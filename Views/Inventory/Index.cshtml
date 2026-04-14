@@ -1,0 +1,784 @@
+@model IEnumerable<CRLFruitstandESS.Models.ViewModels.InventoryViewModel>
+@{
+    ViewData["Title"] = "Inventory List";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="inventory-container">
+    <!-- Header Stats Row -->
+    <div class="stats-row">
+        <div class="stat-item">
+            <div class="stat-icon blue">
+                <i class="bi bi-box-seam"></i>
+            </div>
+            <div class="stat-details">
+                <span class="stat-value">@Model.Count()</span>
+                <span class="stat-label">Products</span>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon green">
+                <i class="bi bi-layers"></i>
+            </div>
+            <div class="stat-details">
+                <span class="stat-value">@Model.Sum(i => i.CurrentStock)</span>
+                <span class="stat-label">Total Units</span>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon purple">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div class="stat-details">
+                <span class="stat-value">₱@Model.Sum(i => i.InventoryValue).ToString("N0")</span>
+                <span class="stat-label">Total Value</span>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon orange">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-details">
+                <span class="stat-value">@Model.Count(i => i.StockStatus != "OK")</span>
+                <span class="stat-label">Alerts</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+        <!-- Filters Sidebar -->
+        <div class="filters-panel">
+            <div class="panel-header">
+                <i class="bi bi-funnel-fill"></i>
+                <h3>Filters</h3>
+            </div>
+            
+            <form method="get" class="filters-form">
+                <div class="filter-group">
+                    <label class="filter-label">Search</label>
+                    <div class="search-input-wrapper">
+                        <i class="bi bi-search"></i>
+                        <input type="text" name="search" class="filter-input" 
+                               placeholder="Product name..." value="@ViewBag.Search" />
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Category</label>
+                    <select name="category" class="filter-select">
+                        <option value="">All Categories</option>
+                        @foreach (var cat in ViewBag.Categories)
+                        {
+                            <option value="@cat" selected="@(ViewBag.SelectedCategory == cat)">@cat</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Stock Status</label>
+                    <div class="status-filters">
+                        <label class="status-option">
+                            <input type="radio" name="status" value="" @(ViewBag.SelectedStatus == "" ? "checked" : "") />
+                            <span class="status-badge all">All</span>
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="ok" @(ViewBag.SelectedStatus == "ok" ? "checked" : "") />
+                            <span class="status-badge ok">OK</span>
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="low" @(ViewBag.SelectedStatus == "low" ? "checked" : "") />
+                            <span class="status-badge low">Low</span>
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="critical" @(ViewBag.SelectedStatus == "critical" ? "checked" : "") />
+                            <span class="status-badge critical">Critical</span>
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="out" @(ViewBag.SelectedStatus == "out" ? "checked" : "") />
+                            <span class="status-badge out">Out</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn-apply">
+                        <i class="bi bi-check-lg"></i> Apply
+                    </button>
+                    <a href="/Inventory/Index" class="btn-clear">
+                        <i class="bi bi-x-lg"></i> Reset
+                    </a>
+                </div>
+            </form>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h4>Quick Actions</h4>
+                <a href="/Inventory/StockIn" class="action-btn stock-in">
+                    <i class="bi bi-box-arrow-in-down"></i>
+                    <span>Stock In</span>
+                </a>
+                <a href="/Inventory/StockOut" class="action-btn stock-out">
+                    <i class="bi bi-box-arrow-up"></i>
+                    <span>Stock Out</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Inventory Grid -->
+        <div class="inventory-panel">
+            @if (!Model.Any())
+            {
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <h4>No products found</h4>
+                    <p>Try adjusting your filters or search criteria</p>
+                </div>
+            }
+            else
+            {
+                <div class="inventory-grid">
+                    @foreach (var item in Model)
+                    {
+                        <div class="inventory-card @item.StockStatus.ToLower().Replace(" ", "-")">
+                            @if (item.StockStatus == "Critical Stock")
+                            {
+                                <div class="critical-warning-badge">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                    <span>CRITICAL</span>
+                                </div>
+                            }
+                            <div class="card-header">
+                                <div class="product-icon">@item.Emoji</div>
+                                <div class="stock-indicator" title="@item.StockStatus">
+                                    <div class="indicator-dot @item.StockStatus.ToLower().Replace(" ", "-")"></div>
+                                    <span class="stock-number">@item.CurrentStock</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card-body">
+                                <h4 class="product-name" title="@item.ProductName">@item.ProductName</h4>
+                                <span class="category-tag">@item.Category</span>
+                                
+                                <div class="stock-bar">
+                                    <div class="stock-progress" 
+                                         style="width: @(item.MaxStockLevel > 0 ? Math.Min(100, (item.CurrentStock * 100) / item.MaxStockLevel) : 0)%;
+                                                background: @(item.StockStatus == "OK" ? "#10b981" : 
+                                                            item.StockStatus == "Low Stock" ? "#f59e0b" : 
+                                                            item.StockStatus == "Critical" ? "#ef4444" : "#64748b")">
+                                    </div>
+                                </div>
+                                
+                                <div class="stock-levels">
+                                    <span>Min: @item.MinStockLevel</span>
+                                    <span>Max: @item.MaxStockLevel</span>
+                                </div>
+                            </div>
+
+                            <div class="card-footer">
+                                <div class="pricing">
+                                    <div class="price-item">
+                                        <span class="label">Price</span>
+                                        <span class="value">₱@item.UnitPrice.ToString("N2")</span>
+                                    </div>
+                                    <div class="price-item">
+                                        <span class="label">Value</span>
+                                        <span class="value total">₱@item.InventoryValue.ToString("N0")</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="card-actions">
+                                    <a href="/Inventory/StockIn?productId=@item.ProductId" 
+                                       class="action-icon add" title="Stock In">
+                                        <i class="bi bi-plus-lg"></i>
+                                        <span class="action-label">Stock In</span>
+                                    </a>
+                                    @if (item.CurrentStock > 0)
+                                    {
+                                        <a href="/Inventory/StockOut?productId=@item.ProductId" 
+                                           class="action-icon remove" title="Stock Out">
+                                            <i class="bi bi-dash-lg"></i>
+                                            <span class="action-label">Stock Out</span>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Styles {
+<style>
+    .inventory-container {
+        padding: 1.5rem;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    /* Stats Row */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.2s;
+    }
+
+    .stat-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon.blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .stat-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .stat-icon.purple { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+    .stat-icon.orange { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+    .stat-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #f8fafc;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-top: 0.25rem;
+    }
+
+    /* Content Grid */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 1.5rem;
+    }
+
+    /* Filters Panel */
+    .filters-panel {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1.5rem;
+        height: fit-content;
+        position: sticky;
+        top: 1.5rem;
+    }
+
+    .panel-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .panel-header i {
+        color: #3b82f6;
+        font-size: 1.25rem;
+    }
+
+    .panel-header h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #f8fafc;
+    }
+
+    .filter-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .filter-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+    }
+
+    .search-input-wrapper {
+        position: relative;
+    }
+
+    .search-input-wrapper i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748b;
+    }
+
+    .filter-input,
+    .filter-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        padding-left: 2.5rem;
+        background: rgba(15, 23, 42, 0.5);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: #e2e8f0;
+        font-size: 0.9375rem;
+        outline: none;
+        transition: all 0.2s;
+    }
+
+    .filter-select {
+        padding-left: 1rem;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        border-color: #3b82f6;
+    }
+
+    .status-filters {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .status-option {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .status-option:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .status-option input {
+        display: none;
+    }
+
+    .status-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .status-option input:checked + .status-badge {
+        border-color: currentColor;
+    }
+
+    .status-badge.all { background: rgba(255, 255, 255, 0.1); color: #e2e8f0; }
+    .status-badge.ok { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .status-badge.low { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .status-badge.critical { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+    .status-badge.out { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-apply,
+    .btn-clear {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-apply {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+    }
+
+    .btn-clear {
+        background: rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+    }
+
+    .btn-apply:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .quick-actions h4 {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s;
+    }
+
+    .action-btn.stock-in {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+    }
+
+    .action-btn.stock-out {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+    }
+
+    .action-btn:hover {
+        transform: translateX(4px);
+    }
+
+    /* Inventory Panel */
+    .inventory-panel {
+        min-height: 600px;
+    }
+
+    .inventory-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .inventory-card {
+        background: rgba(255, 255, 255, 0.028);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        padding: 1.25rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .critical-warning-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 11px;
+        background: linear-gradient(135deg, #dc2626, #991b1b);
+        border-radius: 18px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+        z-index: 5;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .critical-warning-badge i {
+        font-size: 0.7rem;
+    }
+
+    .inventory-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+
+    .inventory-card.ok::before { background: #10b981; }
+    .inventory-card.low-stock::before { background: #f59e0b; height: 3px; }
+    .inventory-card.critical-stock::before { background: #dc2626; height: 3px; }
+    .inventory-card.out-of-stock::before { background: #64748b; }
+
+    .inventory-card.critical-stock {
+        border-color: rgba(220, 38, 38, 0.25) !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+    }
+    
+    .inventory-card.low-stock {
+        border-color: rgba(245, 158, 11, 0.25) !important;
+    }
+
+    .inventory-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.2);
+        background: rgba(255, 255, 255, 0.045);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .product-icon {
+        font-size: 2.5rem;
+        line-height: 1;
+    }
+
+    .stock-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+    }
+
+    .indicator-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .indicator-dot.ok { background: #10b981; }
+    .indicator-dot.low-stock { background: #f59e0b; }
+    .indicator-dot.critical { background: #ef4444; }
+    .indicator-dot.out-of-stock { background: #64748b; }
+
+    .stock-number {
+        font-weight: 700;
+        font-size: 0.875rem;
+        color: #f8fafc;
+    }
+
+    .card-body {
+        margin-bottom: 1rem;
+    }
+
+    .product-name {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #f8fafc;
+        margin: 0 0 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .category-tag {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        background: rgba(59, 130, 246, 0.15);
+        color: #60a5fa;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .stock-bar {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+
+    .stock-progress {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    .stock-levels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    .card-footer {
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .pricing {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .price-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .price-item .label {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-transform: uppercase;
+    }
+
+    .price-item .value {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #e2e8f0;
+    }
+
+    .price-item .value.total {
+        color: #34d399;
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .action-icon {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.625rem;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .action-label {
+        display: inline;
+        white-space: nowrap;
+    }
+
+    .action-icon.add {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+    }
+
+    .action-icon.remove {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+    }
+
+    .action-icon:hover {
+        transform: scale(1.05);
+    }
+
+    /* Empty State */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem;
+        text-align: center;
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-state h4 {
+        color: #e2e8f0;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+    }
+
+    /* Responsive */
+    @@media (max-width: 1200px) {
+        .content-grid {
+            grid-template-columns: 240px 1fr;
+        }
+    }
+
+    @@media (max-width: 992px) {
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filters-panel {
+            position: static;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .stats-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .inventory-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+}

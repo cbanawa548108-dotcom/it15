@@ -1,0 +1,126 @@
+@model CRLFruitstandESS.Models.Supplier
+@{
+    ViewData["Title"] = "Supplier Details";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <h6 class="text-uppercase text-muted mb-1">Supply Chain</h6>
+        <h2 class="fw-bold mb-0">@Model.Name</h2>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0">Supplier Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <div class="mb-3">
+                            <dt class="text-muted small">Contact Person</dt>
+                            <dd class="mb-0 fw-semibold">@(Model.ContactPerson ?? "N/A")</dd>
+                        </div>
+                        <div class="mb-3">
+                            <dt class="text-muted small">Phone</dt>
+                            <dd class="mb-0 fw-semibold">@(Model.Phone ?? "N/A")</dd>
+                        </div>
+                        <div class="mb-3">
+                            <dt class="text-muted small">Email</dt>
+                            <dd class="mb-0 fw-semibold">@(Model.Email ?? "N/A")</dd>
+                        </div>
+                        <div class="mb-3">
+                            <dt class="text-muted small">City</dt>
+                            <dd class="mb-0 fw-semibold">@(Model.City ?? "N/A")</dd>
+                        </div>
+                        <div class="mb-3">
+                            <dt class="text-muted small">Address</dt>
+                            <dd class="mb-0 fw-semibold">@(Model.Address ?? "N/A")</dd>
+                        </div>
+                        <div class="mb-3">
+                            <dt class="text-muted small">Status</dt>
+                            <dd class="mb-0">
+                                @if (Model.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Inactive</span>
+                                }
+                            </dd>
+                        </div>
+                    </dl>
+                    <div class="mt-4">
+                        <a href="/Supplier/Edit/@Model.Id" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil me-2"></i>Edit
+                        </a>
+                        <a href="/Inventory/Suppliers" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="bi bi-arrow-left me-2"></i>Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0">Supplied Products</h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.SupplierProducts?.Any() == true)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th>Supplier Price</th>
+                                        <th>Lead Time</th>
+                                        <th>Preferred</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sp in Model.SupplierProducts)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="me-2">@(sp.Product?.Emoji ?? "📦")</span>
+                                                @(sp.Product?.Name ?? "Unknown")
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">@(sp.Product?.Category ?? "N/A")</span>
+                                            </td>
+                                            <td>@(sp.SupplierPrice?.ToString("C") ?? "N/A")</td>
+                                            <td>@(sp.LeadTimeDays?.ToString() ?? "N/A") days</td>
+                                            <td>
+                                                @if (sp.IsPreferredSupplier)
+                                                {
+                                                    <span class="badge bg-success"><i class="bi bi-star-fill me-1"></i>Preferred</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-light text-dark">Standard</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-box-seam text-muted fs-1"></i>
+                            <p class="text-muted mt-2">No products associated with this supplier yet.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

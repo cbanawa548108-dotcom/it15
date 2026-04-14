@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="CRL Fruitstand Executive Decision Support System — Empowering smart business decisions through integrated POS, inventory, analytics, and financial monitoring." />
+    <title>@ViewData["Title"] - CRL Fruitstand ESS</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231e4fa8'/><text y='22' x='5' font-size='18' font-family='serif' fill='white' font-weight='bold'>C</text></svg>" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <a class="navbar-brand" href="/">
+            <div class="brand-icon">CRL</div>
+            <div class="brand-text">
+                <span class="brand-name">Fruitstand</span>
+                <span class="brand-sub">Executive Decision Support</span>
+            </div>
+        </a>
+
+        <button class="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+
+        <ul class="navbar-nav">
+            <li><a class="nav-link" href="/#home">Home</a></li>
+            <li><a class="nav-link" href="/#about">About</a></li>
+            <li><a class="nav-link" href="/#features">Features</a></li>
+            <li><a class="nav-link nav-btn" href="/Account/Login">Login</a></li>
+        </ul>
+    </nav>
+
+    <!-- PAGE CONTENT -->
+    <main>
+        @RenderBody()
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <a class="navbar-brand" href="/" style="margin-bottom:.5rem; display:inline-flex;">
+                        <div class="brand-icon">CRL</div>
+                        <div class="brand-text">
+                            <span class="brand-name">Fruitstand</span>
+                            <span class="brand-sub">Executive Decision Support</span>
+                        </div>
+                    </a>
+                    <p>An integrated management system designed to empower CRL Fruitstand with real-time data insights and operational clarity.</p>
+                </div>
+
+                <div class="footer-links">
+                    <h4>Navigation</h4>
+                    <ul>
+                        <li><a href="/#home">Home</a></li>
+                        <li><a href="/#about">About</a></li>
+                        <li><a href="/#features">Features</a></li>
+                        <li><a href="/Account/Login">Login to ESS</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links">
+                    <h4>Modules</h4>
+                    <ul>
+                        <li><a href="/#features">Point of Sale</a></li>
+                        <li><a href="/#features">Inventory Control</a></li>
+                        <li><a href="/#features">Sales Analytics</a></li>
+                        <li><a href="/#features">Financial Monitor</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; @DateTime.Now.Year <span>CRL Fruitstand ESS</span>. All rights reserved.</p>
+                <p class="footer-dev">Developed by <strong>Cris Lee Banawa</strong></p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

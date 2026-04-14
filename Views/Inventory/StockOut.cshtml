@@ -1,0 +1,109 @@
+@model CRLFruitstandESS.Models.ViewModels.StockInOutViewModel
+@{
+    ViewData["Title"] = "Stock Out";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="stock-form-page">
+    <div class="form-card">
+        <div class="form-header">
+            <div class="header-icon warning">
+                <i class="bi bi-box-arrow-up"></i>
+            </div>
+            <div>
+                <h2 class="form-title">Stock Out</h2>
+                <p class="form-subtitle">Remove stock from inventory</p>
+            </div>
+        </div>
+
+        <form asp-action="StockOut" method="post" class="stock-form">
+            @Html.AntiForgeryToken()
+            
+            <div class="form-group">
+                <label class="form-label">Select Product</label>
+                <select asp-for="ProductId" class="form-select form-select-lg" id="productSelect" required>
+                    <option value="">-- Select Product --</option>
+                    @foreach (var product in ViewBag.Products)
+                    {
+                        <option value="@product.Id" data-stock="@(product.Inventory?.Quantity ?? 0)">
+                            @product.Emoji @product.Name (@(product.Inventory?.Quantity ?? 0) available)
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="current-stock-display warning" id="currentStockDisplay" style="display: none;">
+                <span class="label">Available Stock:</span>
+                <span class="value" id="currentStockValue">0</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Quantity to Remove</label>
+                <input asp-for="Quantity" type="number" class="form-control form-control-lg" 
+                       min="1" id="quantityInput" required placeholder="Enter quantity" />
+                <small class="text-muted">Maximum: <span id="maxStock">0</span></small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Reference Number (Optional)</label>
+                <input asp-for="ReferenceNumber" class="form-control" 
+                       placeholder="Transfer #, Damage Report #, etc." />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Reason / Notes</label>
+                <textarea asp-for="Notes" class="form-control" rows="3" 
+                          placeholder="Reason for stock removal..."></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-warning btn-lg">
+                    <i class="bi bi-check-circle"></i> Confirm Stock Out
+                </button>
+                <a href="/Inventory/Index" class="btn btn-outline-secondary btn-lg">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById('productSelect').addEventListener('change', function() {
+        var selected = this.options[this.selectedIndex];
+        var stock = selected.getAttribute('data-stock');
+        var display = document.getElementById('currentStockDisplay');
+        var value = document.getElementById('currentStockValue');
+        var maxStock = document.getElementById('maxStock');
+        var quantityInput = document.getElementById('quantityInput');
+        
+        if (this.value) {
+            value.textContent = stock;
+            maxStock.textContent = stock;
+            quantityInput.max = stock;
+            display.style.display = 'flex';
+        } else {
+            display.style.display = 'none';
+        }
+    });
+</script>
+}
+
+@section Styles {
+<style>
+    .stock-form-page { max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+    .form-card { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 2rem; border: 1px solid rgba(255,255,255,0.1); }
+    .form-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+    .header-icon { width: 60px; height: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; }
+    .header-icon.warning { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .form-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+    .form-subtitle { color: #94a3b8; margin: 0; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #e2e8f0; }
+    .current-stock-display { display: flex; align-items: center; gap: 0.5rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border-radius: 12px; margin-bottom: 1.5rem; }
+    .current-stock-display.warning { background: rgba(245, 158, 11, 0.1); }
+    .current-stock-display .label { color: #94a3b8; }
+    .current-stock-display .value { font-size: 1.25rem; font-weight: 700; color: #f59e0b; }
+    .form-actions { display: flex; gap: 1rem; margin-top: 2rem; }
+    .form-actions .btn { flex: 1; }
+</style>
+}

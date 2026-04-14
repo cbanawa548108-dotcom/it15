@@ -1,0 +1,78 @@
+@model CRLFruitstandESS.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Manager Dashboard";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="dash-header">
+    <div>
+        <span class="dash-label">Operations Panel</span>
+        <h1 class="dash-title">Manager Dashboard</h1>
+        <p class="dash-sub">@Model.WelcomeMessage</p>
+    </div>
+    <div class="dash-badge manager-badge">Manager</div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon si-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/>
+                <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">0</div>
+            <div class="stat-label">Stock Items</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-gold">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">0</div>
+            <div class="stat-label">Low Stock Alerts</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-green">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">0</div>
+            <div class="stat-label">Today's Sales</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-purple">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">0</div>
+            <div class="stat-label">Active Staff</div>
+        </div>
+    </div>
+</div>
+
+<div class="quick-actions">
+    <h3 class="section-heading">Operations Modules</h3>
+    <div class="action-grid">
+        <a href="#" class="action-card">Inventory Control</a>
+        <a href="#" class="action-card">Sales Overview</a>
+        <a href="#" class="action-card">Staff Management</a>
+        <a href="#" class="action-card">Daily Reports</a>
+    </div>
+</div>

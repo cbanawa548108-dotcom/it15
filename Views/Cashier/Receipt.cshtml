@@ -1,0 +1,404 @@
+@model CRLFruitstandESS.Models.ViewModels.ReceiptViewModel
+@{
+    ViewData["Title"] = "Receipt";
+    Layout = "~/Views/Shared/_CashierLayout.cshtml";
+}
+
+<div class="receipt-wrapper">
+    <div class="receipt-paper" id="receipt">
+        <!-- Store Header -->
+        <div class="receipt-header">
+            <div class="store-name">CRL FRUITSTAND</div>
+            <div class="store-info">Executive Decision Support System</div>
+            <div class="store-address">123 Main Street, City, Philippines</div>
+            <div class="store-contact">Tel: (02) 8123-4567</div>
+        </div>
+
+        <!-- Transaction Info -->
+        <div class="receipt-divider">--------------------------------</div>
+        
+        <div class="transaction-info">
+            <div class="info-row">
+                <span class="label">Receipt #:</span>
+                <span class="value">@Model.SaleId.ToString("D6")</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Date:</span>
+                <span class="value">@Model.SaleDate.ToString("MM/dd/yyyy")</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Time:</span>
+                <span class="value">@Model.SaleDate.ToString("hh:mm:ss tt")</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Cashier:</span>
+                <span class="value">@Model.CashierName</span>
+            </div>
+        </div>
+
+        <div class="receipt-divider">--------------------------------</div>
+
+        <!-- Items -->
+        <div class="items-section">
+            <div class="items-header">
+                <span class="col-item">ITEM</span>
+                <span class="col-qty">QTY</span>
+                <span class="col-price">PRICE</span>
+                <span class="col-total">TOTAL</span>
+            </div>
+            
+            @foreach (var item in Model.Items)
+            {
+                <div class="item-row">
+                    <span class="item-name">@item.Product.Name</span>
+                    <span class="item-qty">@item.Quantity</span>
+                    <span class="item-price">@item.UnitPrice.ToString("N2")</span>
+                    <span class="item-total">@item.Subtotal.ToString("N2")</span>
+                </div>
+            }
+        </div>
+
+        <div class="receipt-divider">--------------------------------</div>
+
+        <!-- Totals -->
+        <div class="totals-section">
+            <div class="total-row">
+                <span class="label">Subtotal:</span>
+                <span class="value">@Model.TotalAmount.ToString("N2")</span>
+            </div>
+            <div class="total-row">
+                <span class="label">Discount:</span>
+                <span class="value">0.00</span>
+            </div>
+            <div class="total-row grand-total">
+                <span class="label">TOTAL:</span>
+                <span class="value">@Model.TotalAmount.ToString("N2")</span>
+            </div>
+            <div class="payment-row">
+                <span class="label">Cash:</span>
+                <span class="value">@Model.AmountPaid.ToString("N2")</span>
+            </div>
+            <div class="payment-row change">
+                <span class="label">Change:</span>
+                <span class="value">@Model.Change.ToString("N2")</span>
+            </div>
+        </div>
+
+        <div class="receipt-divider">--------------------------------</div>
+
+        <!-- Footer -->
+        <div class="receipt-footer">
+            <div class="thank-you">*** THANK YOU ***</div>
+            <div class="footer-text">Please come again</div>
+            <div class="vat-info">VAT REG TIN: 123-456-789-000</div>
+            <div class="serial">SN: CRL20240001</div>
+            <div class="datetime">@DateTime.Now.ToString("MM/dd/yyyy hh:mm:ss tt")</div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="receipt-actions no-print">
+        <button class="btn-print" onclick="window.print()">
+            <i class="bi bi-printer"></i>
+            Print Receipt
+        </button>
+        <a href="/Cashier/POS" class="btn-new">
+            <i class="bi bi-plus-circle"></i>
+            New Sale
+        </a>
+    </div>
+</div>
+
+@section Styles {
+<style>
+    /* Screen Styles */
+    .receipt-wrapper {
+        min-height: 100vh;
+        background: #1a1f3c;
+        padding: 2rem 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .receipt-paper {
+        background: white;
+        width: 100%;
+        max-width: 300px;
+        padding: 20px 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #000;
+    }
+
+    /* Header */
+    .receipt-header {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .store-name {
+        font-size: 16px;
+        font-weight: bold;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+    }
+
+    .store-info {
+        font-size: 10px;
+        margin-bottom: 2px;
+    }
+
+    .store-address,
+    .store-contact {
+        font-size: 10px;
+        color: #333;
+    }
+
+    /* Dividers */
+    .receipt-divider {
+        text-align: center;
+        font-size: 11px;
+        letter-spacing: -1px;
+        margin: 8px 0;
+        color: #000;
+    }
+
+    /* Transaction Info */
+    .transaction-info {
+        margin: 8px 0;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 2px 0;
+    }
+
+    .info-row .label {
+        font-weight: bold;
+    }
+
+    /* Items */
+    .items-section {
+        margin: 8px 0;
+    }
+
+    .items-header {
+        display: flex;
+        font-weight: bold;
+        border-bottom: 1px dashed #000;
+        padding-bottom: 4px;
+        margin-bottom: 4px;
+        font-size: 11px;
+    }
+
+    .item-row {
+        display: flex;
+        margin: 3px 0;
+        font-size: 11px;
+    }
+
+    .col-item { flex: 2; text-align: left; }
+    .col-qty { flex: 0.5; text-align: center; }
+    .col-price { flex: 1; text-align: right; }
+    .col-total { flex: 1; text-align: right; }
+
+    .item-name { flex: 2; text-align: left; }
+    .item-qty { flex: 0.5; text-align: center; }
+    .item-price { flex: 1; text-align: right; }
+    .item-total { flex: 1; text-align: right; }
+
+    /* Totals */
+    .totals-section {
+        margin: 8px 0;
+    }
+
+    .total-row,
+    .payment-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 2px 0;
+    }
+
+    .total-row.grand-total {
+        font-size: 13px;
+        font-weight: bold;
+        margin-top: 6px;
+        padding-top: 4px;
+        border-top: 1px solid #000;
+    }
+
+    .payment-row.change {
+        font-weight: bold;
+    }
+
+    /* Footer */
+    .receipt-footer {
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    .thank-you {
+        font-size: 13px;
+        font-weight: bold;
+        margin-bottom: 4px;
+    }
+
+    .footer-text {
+        font-size: 10px;
+        margin-bottom: 8px;
+    }
+
+    .vat-info,
+    .serial,
+    .datetime {
+        font-size: 9px;
+        color: #333;
+        margin: 1px 0;
+    }
+
+    /* Action Buttons */
+    .receipt-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .btn-print,
+    .btn-new {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-print {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-print:hover {
+        background: #2563eb;
+    }
+
+    .btn-new {
+        background: #10b981;
+        color: white;
+    }
+
+    .btn-new:hover {
+        background: #059669;
+    }
+
+    /* PRINT STYLES - Thermal Printer Optimized */
+    @@media print {
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        .receipt-wrapper {
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            min-height: auto !important;
+        }
+
+        .receipt-paper {
+            max-width: none !important;
+            width: 80mm !important; /* Standard thermal paper width */
+            padding: 5mm !important;
+            margin: 0 auto !important;
+            box-shadow: none !important;
+            font-size: 10pt !important;
+            line-height: 1.3 !important;
+        }
+
+        .receipt-header {
+            margin-bottom: 3mm !important;
+        }
+
+        .store-name {
+            font-size: 14pt !important;
+        }
+
+        .store-info,
+        .store-address,
+        .store-contact {
+            font-size: 8pt !important;
+        }
+
+        .receipt-divider {
+            font-size: 9pt !important;
+            margin: 3mm 0 !important;
+        }
+
+        .items-header,
+        .item-row {
+            font-size: 9pt !important;
+        }
+
+        .total-row.grand-total {
+            font-size: 11pt !important;
+        }
+
+        .thank-you {
+            font-size: 12pt !important;
+        }
+
+        .vat-info,
+        .serial,
+        .datetime {
+            font-size: 7pt !important;
+        }
+
+        /* Ensure page breaks don't cut content */
+        .receipt-paper {
+            page-break-inside: avoid !important;
+        }
+
+        .item-row,
+        .total-row {
+            page-break-inside: avoid !important;
+        }
+    }
+
+    /* For 58mm thermal printers */
+    @@media print and (max-width: 58mm) {
+        .receipt-paper {
+            width: 58mm !important;
+            padding: 3mm !important;
+            font-size: 9pt !important;
+        }
+
+        .col-price,
+        .item-price {
+            display: none; /* Hide unit price on narrow paper */
+        }
+
+        .col-item { flex: 2.5; }
+        .col-qty { flex: 0.5; }
+        .col-total { flex: 1; }
+    }
+</style>
+}

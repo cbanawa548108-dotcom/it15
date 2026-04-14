@@ -1,0 +1,560 @@
+@model CRLFruitstandESS.Models.Supplier
+@{
+    ViewData["Title"] = "Add Supplier";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="supplier-form-container">
+    <!-- Header Section -->
+    <div class="form-header">
+        <div class="form-header-content">
+            <span class="form-eyebrow">
+                <span class="eyebrow-dot"></span>
+                Supply Chain Management
+            </span>
+            <h1 class="form-title">Add New Supplier</h1>
+            <p class="form-subtitle">Create a new supplier profile to manage your supply chain</p>
+        </div>
+        <div class="form-header-actions">
+            <a href="/Inventory/Suppliers" class="btn-glass">
+                <i class="bi bi-arrow-left"></i>
+                <span>Back to Suppliers</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Form Card -->
+    <div class="form-card">
+        <div class="form-card-glow"></div>
+        
+        <form asp-action="Create" method="post" class="supplier-form">
+            @Html.AntiForgeryToken()
+            
+            <!-- Form Sections -->
+            <div class="form-sections">
+                
+                <!-- Basic Information Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon si-blue">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div class="section-info">
+                            <h3>Basic Information</h3>
+                            <p>Primary supplier details</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group required">
+                            <label asp-for="Name" class="form-label">
+                                <i class="bi bi-shop"></i>
+                                Supplier Name
+                            </label>
+                            <div class="input-wrapper">
+                                <input asp-for="Name" class="form-input" placeholder="Enter supplier company name" required />
+                                <span class="input-focus-border"></span>
+                            </div>
+                            <span asp-validation-for="Name" class="validation-message"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="ContactPerson" class="form-label">
+                                <i class="bi bi-person"></i>
+                                Contact Person
+                            </label>
+                            <div class="input-wrapper">
+                                <input asp-for="ContactPerson" class="form-input" placeholder="Primary contact name" />
+                                <span class="input-focus-border"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon si-green">
+                            <i class="bi bi-telephone"></i>
+                        </div>
+                        <div class="section-info">
+                            <h3>Contact Information</h3>
+                            <p>How to reach this supplier</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label asp-for="Phone" class="form-label">
+                                <i class="bi bi-phone"></i>
+                                Phone Number
+                            </label>
+                            <div class="input-wrapper">
+                                <input asp-for="Phone" class="form-input" placeholder="+63 912 345 6789" />
+                                <span class="input-focus-border"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Email" class="form-label">
+                                <i class="bi bi-envelope"></i>
+                                Email Address
+                            </label>
+                            <div class="input-wrapper">
+                                <input asp-for="Email" type="email" class="form-input" placeholder="supplier@company.com" />
+                                <span class="input-focus-border"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon si-gold">
+                            <i class="bi bi-geo-alt"></i>
+                        </div>
+                        <div class="section-info">
+                            <h3>Location & Tax</h3>
+                            <p>Address and tax information</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label asp-for="City" class="form-label">
+                                <i class="bi bi-building"></i>
+                                City
+                            </label>
+                            <div class="input-wrapper">
+                                <input asp-for="City" class="form-input" placeholder="Manila" />
+                                <span class="input-focus-border"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="TaxId" class="form-label">
+                                <i class="bi bi-receipt"></i>
+                                Tax ID / TIN
+                            </label>
+                            <div class="input-wrapper">
+                                <input asp-for="TaxId" class="form-input" placeholder="000-123-456-000" />
+                                <span class="input-focus-border"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label asp-for="Address" class="form-label">
+                            <i class="bi bi-map"></i>
+                            Full Address
+                        </label>
+                        <div class="input-wrapper">
+                            <textarea asp-for="Address" class="form-textarea" rows="3" placeholder="Enter complete address including street, building, and landmarks..."></textarea>
+                            <span class="input-focus-border"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" class="btn-primary-glow">
+                    <span class="btn-icon">
+                        <i class="bi bi-check-lg"></i>
+                    </span>
+                    <span class="btn-text">Create Supplier</span>
+                    <span class="btn-shine"></span>
+                </button>
+                
+                <a href="/Inventory/Suppliers" class="btn-secondary">
+                    <i class="bi bi-x-lg"></i>
+                    <span>Cancel</span>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Styles {
+<style>
+@@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ─── Container ───────────────────────────────── */
+.supplier-form-container {
+    padding: 2rem 2.5rem;
+    font-family: 'DM Sans', sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ─── Header ──────────────────────────────────── */
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.form-header-content {
+    flex: 1;
+}
+
+.form-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #64b5f6;
+    margin-bottom: 0.5rem;
+}
+
+.eyebrow-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #42a5f5;
+    box-shadow: 0 0 8px #42a5f5;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.form-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #f0f4ff;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
+}
+
+.form-subtitle {
+    color: #8fadd8;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.btn-glass {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.75rem 1.25rem;
+    background: rgba(66, 165, 245, 0.1);
+    border: 1px solid rgba(66, 165, 245, 0.25);
+    border-radius: 12px;
+    color: #64b5f6;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-glass:hover {
+    background: rgba(66, 165, 245, 0.2);
+    border-color: rgba(66, 165, 245, 0.4);
+    color: #90caf9;
+    transform: translateX(-3px);
+}
+
+/* ─── Form Card ───────────────────────────────── */
+.form-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 2.5rem;
+    overflow: hidden;
+}
+
+.form-card-glow {
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(66, 165, 245, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* ─── Form Sections ───────────────────────────── */
+.form-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.form-section {
+    position: relative;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.section-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.si-blue {
+    background: rgba(66, 165, 245, 0.15);
+    color: #64b5f6;
+    box-shadow: 0 0 20px rgba(66, 165, 245, 0.2);
+}
+
+.si-green {
+    background: rgba(102, 187, 106, 0.15);
+    color: #81c784;
+    box-shadow: 0 0 20px rgba(102, 187, 106, 0.2);
+}
+
+.si-gold {
+    background: rgba(255, 167, 38, 0.15);
+    color: #ffb74d;
+    box-shadow: 0 0 20px rgba(255, 167, 38, 0.2);
+}
+
+.section-info h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #e0eeff;
+    margin: 0 0 0.25rem 0;
+}
+
+.section-info p {
+    color: #546e7a;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* ─── Form Grid ───────────────────────────────── */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.form-group {
+    position: relative;
+}
+
+.form-group.required .form-label::after {
+    content: '*';
+    color: #ef5350;
+    margin-left: 4px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #8fadd8;
+    margin-bottom: 0.75rem;
+    transition: color 0.3s;
+}
+
+.form-label i {
+    font-size: 1rem;
+    color: #64b5f6;
+}
+
+/* ─── Input Styling ───────────────────────────── */
+.input-wrapper {
+    position: relative;
+}
+
+.form-input,
+.form-textarea {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #f0f4ff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: rgba(143, 173, 216, 0.4);
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(66, 165, 245, 0.4);
+    box-shadow: 0 0 0 4px rgba(66, 165, 245, 0.1);
+}
+
+.input-focus-border {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #42a5f5, #66bb6a);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.form-input:focus ~ .input-focus-border,
+.form-textarea:focus ~ .input-focus-border {
+    width: 100%;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* ─── Validation ──────────────────────────────── */
+.validation-message {
+    display: block;
+    color: #ef5350;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid #ef5350;
+}
+
+/* ─── Form Actions ────────────────────────────── */
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.btn-primary-glow {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #1b5e20, #2e7d32);
+    border: none;
+    border-radius: 14px;
+    color: #c8e6c9;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(46, 125, 50, 0.4);
+}
+
+.btn-primary-glow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(46, 125, 50, 0.5);
+    color: #fff;
+}
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.btn-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-primary-glow:hover .btn-shine {
+    left: 100%;
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    color: #8fadd8;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #f0f4ff;
+}
+
+/* ─── Responsive ──────────────────────────────── */
+@@media (max-width: 768px) {
+    .supplier-form-container {
+        padding: 1rem;
+    }
+    
+    .form-card {
+        padding: 1.5rem;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-title {
+        font-size: 1.5rem;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .btn-primary-glow,
+    .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+}

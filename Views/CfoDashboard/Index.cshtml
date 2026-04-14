@@ -1,0 +1,78 @@
+@model CRLFruitstandESS.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "CFO Dashboard";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="dash-header">
+    <div>
+        <span class="dash-label">Finance Panel</span>
+        <h1 class="dash-title">Financial Dashboard</h1>
+        <p class="dash-sub">@Model.WelcomeMessage</p>
+    </div>
+    <div class="dash-badge cfo-badge">CFO</div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon si-green">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">₱0.00</div>
+            <div class="stat-label">Today's Revenue</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">₱0.00</div>
+            <div class="stat-label">Monthly Sales</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-gold">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">₱0.00</div>
+            <div class="stat-label">Net Profit</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-red">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/>
+                <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">₱0.00</div>
+            <div class="stat-label">Total Expenses</div>
+        </div>
+    </div>
+</div>
+
+<div class="quick-actions">
+    <h3 class="section-heading">Financial Modules</h3>
+    <div class="action-grid">
+        <a href="#" class="action-card">P&amp;L Report</a>
+        <a href="#" class="action-card">Revenue Analytics</a>
+        <a href="#" class="action-card">Expense Tracker</a>
+        <a href="#" class="action-card">Financial Export</a>
+    </div>
+</div>

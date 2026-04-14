@@ -1,0 +1,179 @@
+@model CRLFruitstandESS.Models.ViewModels.ValuationReportViewModel
+@{
+    ViewData["Title"] = "Valuation Report";
+    Layout = "_DashboardLayout";
+}
+
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <h6 class="text-uppercase text-muted mb-1">Financial Analysis</h6>
+        <h2 class="fw-bold mb-0">Inventory Valuation Report</h2>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary bg-opacity-10 border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-primary bg-opacity-20 rounded p-2 me-3">
+                            <i class="fas fa-dollar-sign text-primary fs-4"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted text-uppercase">Total Value</small>
+                            <h3 class="fw-bold mb-0">₱@Model.TotalInventoryValue.ToString("N2")</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning bg-opacity-10 border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-warning bg-opacity-20 rounded p-2 me-3">
+                            <i class="fas fa-coins text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted text-uppercase">Total Cost</small>
+                            <h3 class="fw-bold mb-0">₱@Model.TotalCostValue.ToString("N2")</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success bg-opacity-10 border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-success bg-opacity-20 rounded p-2 me-3">
+                            <i class="fas fa-chart-line text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted text-uppercase">Potential Profit</small>
+                            <h3 class="fw-bold mb-0">₱@Model.PotentialProfit.ToString("N2")</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info bg-opacity-10 border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-info bg-opacity-20 rounded p-2 me-3">
+                            <i class="fas fa-boxes text-info fs-4"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted text-uppercase">Total Units</small>
+                            <h3 class="fw-bold mb-0">@Model.TotalUnits.ToString("N0")</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Category Breakdown -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0">Valuation by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th class="text-center">Products</th>
+                                    <th class="text-center">Units</th>
+                                    <th class="text-end">Value</th>
+                                    <th class="text-end">Profit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var category in Model.CategoryBreakdown)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-secondary">@category.Category</span>
+                                        </td>
+                                        <td class="text-center">@category.ProductCount</td>
+                                        <td class="text-center">@category.TotalUnits</td>
+                                        <td class="text-end fw-bold">₱@category.InventoryValue.ToString("N2")</td>
+                                        <td class="text-end text-success">₱@category.Profit.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0">Top Products by Value</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @foreach (var product in Model.TopValuedProducts)
+                        {
+                            <div class="list-group-item d-flex align-items-center py-3">
+                                <div class="flex-shrink-0">
+                                    <span class="fs-3 me-3">@(product.Emoji ?? "📦")</span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">@product.Name</h6>
+                                    <small class="text-muted">@product.Category • @product.Quantity units</small>
+                                </div>
+                                <div class="text-end">
+                                    <h6 class="mb-0 fw-bold">₱@product.TotalValue.ToString("N2")</h6>
+                                    <small class="text-success">₱@product.Profit.ToString("N2") profit</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profit Margin Analysis -->
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white border-bottom py-3">
+            <h5 class="mb-0">Profit Margin Analysis</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                @{
+                    var marginPercent = Model.TotalInventoryValue > 0 
+                        ? (Model.PotentialProfit / Model.TotalInventoryValue) * 100 
+                        : 0;
+                }
+                <div class="col-md-4 text-center">
+                    <div class="p-3 bg-success bg-opacity-10 rounded">
+                        <h2 class="text-success mb-1">@marginPercent.ToString("F1")%</h2>
+                        <small class="text-muted">Average Profit Margin</small>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="p-3 bg-primary bg-opacity-10 rounded">
+                        <h2 class="text-primary mb-1">₱@(Model.TotalUnits > 0 ? (Model.TotalInventoryValue / Model.TotalUnits).ToString("N2") : "0.00")</h2>
+                        <small class="text-muted">Average Unit Value</small>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="p-3 bg-info bg-opacity-10 rounded">
+                        <h2 class="text-info mb-1">@Model.TotalProducts</h2>
+                        <small class="text-muted">Active Products</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

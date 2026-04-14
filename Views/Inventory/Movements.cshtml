@@ -1,0 +1,677 @@
+@model IEnumerable<CRLFruitstandESS.Models.ViewModels.StockMovementViewModel>
+@{
+    ViewData["Title"] = "Stock Movements";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="movements-container">
+    <!-- Header -->
+    <div class="page-header-enhanced">
+        <div class="header-content">
+            <div class="header-icon-wrapper">
+                <i class="bi bi-arrow-left-right"></i>
+            </div>
+            <div class="header-text">
+                <h1 class="page-title">Stock Movements</h1>
+                <p class="page-subtitle">Track all inventory transactions and stock adjustments</p>
+            </div>
+        </div>
+        <div class="header-stats">
+            <div class="stat-pill">
+                <span class="stat-value">@Model.Count()</span>
+                <span class="stat-label">Total Records</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="filters-card">
+        <div class="filters-header">
+            <i class="bi bi-funnel-fill"></i>
+            <span>Filter Movements</span>
+        </div>
+        <form method="get" class="filters-form">
+            <div class="filter-field">
+                <label class="filter-label" for="productId">
+                    <i class="bi bi-box"></i> Product
+                </label>
+                <select id="productId" name="productId" class="filter-select">
+                    <option value="">All Products</option>
+                    @foreach (var product in ViewBag.Products)
+                    {
+                        <option value="@product.Id" selected="@(ViewBag.SelectedProduct == product.Id)">
+                            @product.Emoji @product.Name
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="filter-field">
+                <label class="filter-label" for="fromDate">
+                    <i class="bi bi-calendar"></i> From Date
+                </label>
+                <input id="fromDate" type="date" name="from" class="filter-input" value="@ViewBag.From" />
+            </div>
+            <div class="filter-field">
+                <label class="filter-label" for="toDate">
+                    <i class="bi bi-calendar-check"></i> To Date
+                </label>
+                <input id="toDate" type="date" name="to" class="filter-input" value="@ViewBag.To" />
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn-filter btn-primary">
+                    <i class="bi bi-search"></i> Apply Filters
+                </button>
+                <a href="/Inventory/Movements" class="btn-filter btn-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Movements Timeline -->
+    <div class="timeline-card">
+        <div class="timeline-header">
+            <div class="header-left">
+                <i class="bi bi-clock-history"></i>
+                <h3>Transaction History</h3>
+            </div>
+            <div class="header-right">
+                <span class="badge-total">@Model.Count() entries</span>
+            </div>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <h4>No movements found</h4>
+                <p>No stock movements match your filter criteria</p>
+            </div>
+        }
+        else
+        {
+            <div class="timeline-table-wrapper">
+                <table class="timeline-table">
+                    <thead>
+                        <tr>
+                            <th class="col-datetime">
+                                <i class="bi bi-calendar3"></i> Date & Time
+                            </th>
+                            <th class="col-product">
+                                <i class="bi bi-box-seam"></i> Product
+                            </th>
+                            <th class="col-type">
+                                <i class="bi bi-arrow-down-up"></i> Type
+                            </th>
+                            <th class="col-qty">
+                                <i class="bi bi-hash"></i> Qty
+                            </th>
+                            <th class="col-stock">
+                                <i class="bi bi-layers"></i> Stock Change
+                            </th>
+                            <th class="col-ref">
+                                <i class="bi bi-receipt"></i> Reference
+                            </th>
+                            <th class="col-user">
+                                <i class="bi bi-person"></i> By
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var movement in Model)
+                        {
+                            <tr class="timeline-row @((movement.Type ?? "").ToLower())">
+                                <td class="col-datetime">
+                                    <div class="datetime-main">@movement.MovementDate.ToString("MMM dd, yyyy")</div>
+                                    <div class="datetime-sub">@movement.MovementDate.ToString("hh:mm tt")</div>
+                                </td>
+                                <td class="col-product">
+                                    <div class="product-info">
+                                        <span class="product-icon">📦</span>
+                                        <span class="product-name">@movement.ProductName</span>
+                                    </div>
+                                </td>
+                                <td class="col-type">
+                                    <span class="type-badge @((movement.Type ?? "").ToLower())">
+                                        <i class="bi @GetTypeIcon(movement.Type ?? "")"></i>
+                                        @movement.Type
+                                    </span>
+                                </td>
+                                <td class="col-qty">
+                                    <span class="qty-value @((movement.Type == "StockIn" || movement.Type == "Return") ? "positive" : "negative")">
+                                        @((movement.Type == "StockIn" || movement.Type == "Return") ? "+" : "-")@movement.Quantity
+                                    </span>
+                                </td>
+                                <td class="col-stock">
+                                    <div class="stock-change">
+                                        <span class="stock-before">@movement.PreviousStock</span>
+                                        <i class="bi bi-arrow-right"></i>
+                                        <span class="stock-after">@movement.NewStock</span>
+                                    </div>
+                                </td>
+                                <td class="col-ref">
+                                    @if (!string.IsNullOrEmpty(movement.ReferenceNumber))
+                                    {
+                                        <span class="ref-badge">@movement.ReferenceNumber</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ref-empty">—</span>
+                                    }
+                                </td>
+                                <td class="col-user">
+                                    <div class="user-info">
+                                        <div class="user-avatar">@(movement.PerformedBy?.Substring(0, 1).ToUpper() ?? "S")</div>
+                                        <span class="user-name">@(movement.PerformedBy ?? "System")</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@functions {
+    string GetTypeIcon(string type) => type switch
+    {
+        "StockIn" => "bi-box-arrow-in-down",
+        "StockOut" => "bi-box-arrow-up",
+        "Sale" => "bi-cart-check",
+        "Return" => "bi-arrow-return-left",
+        "Adjustment" => "bi-sliders",
+        _ => "bi-circle"
+    };
+}
+
+@section Styles {
+<style>
+    .movements-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* Header */
+    .page-header-enhanced {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 1.5rem 2rem;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .header-icon-wrapper {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        color: white;
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+    }
+
+    .page-title {
+        font-size: 1.875rem;
+        font-weight: 800;
+        color: #f8fafc;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+        color: #94a3b8;
+        margin: 0.25rem 0 0;
+        font-size: 1rem;
+    }
+
+    .header-stats {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .stat-pill {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #3b82f6;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Filters Card */
+    .filters-card {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+
+    .filters-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.25rem 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: #e2e8f0;
+        font-weight: 600;
+    }
+
+    .filters-header i {
+        color: #3b82f6;
+    }
+
+    .filters-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        padding: 1.5rem;
+        align-items: end;
+    }
+
+    .filter-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .filter-label i {
+        color: #64748b;
+    }
+
+    .filter-select,
+    .filter-input {
+        padding: 0.75rem 1rem;
+        background: rgba(15, 23, 42, 0.5);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: #e2e8f0;
+        font-size: 0.9375rem;
+        outline: none;
+        transition: all 0.2s;
+    }
+
+    .filter-select:focus,
+    .filter-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn-filter {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #e2e8f0;
+    }
+
+    /* Timeline Card */
+    .timeline-card {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: #e2e8f0;
+    }
+
+    .header-left i {
+        color: #f59e0b;
+        font-size: 1.25rem;
+    }
+
+    .header-left h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 700;
+    }
+
+    .badge-total {
+        padding: 0.5rem 1rem;
+        background: rgba(59, 130, 246, 0.15);
+        color: #60a5fa;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    /* Table */
+    .timeline-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .timeline-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .timeline-table thead th {
+        padding: 1rem 1.25rem;
+        text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        white-space: nowrap;
+    }
+
+    .timeline-table thead th i {
+        margin-right: 0.5rem;
+    }
+
+    .timeline-row {
+        transition: all 0.2s;
+    }
+
+    .timeline-row:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .timeline-row td {
+        padding: 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        vertical-align: middle;
+    }
+
+    /* Column Specific Styles */
+    .col-datetime {
+        white-space: nowrap;
+    }
+
+    .datetime-main {
+        font-weight: 600;
+        color: #e2e8f0;
+    }
+
+    .datetime-sub {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .product-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .product-icon {
+        font-size: 1.25rem;
+    }
+
+    .product-name {
+        font-weight: 600;
+        color: #e2e8f0;
+    }
+
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .type-badge.stockin {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+    }
+
+    .type-badge.stockout {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+    }
+
+    .type-badge.sale {
+        background: rgba(59, 130, 246, 0.15);
+        color: #60a5fa;
+    }
+
+    .type-badge.return {
+        background: rgba(139, 92, 246, 0.15);
+        color: #a78bfa;
+    }
+
+    .type-badge.adjustment {
+        background: rgba(100, 116, 139, 0.15);
+        color: #94a3b8;
+    }
+
+    .qty-value {
+        font-family: monospace;
+        font-size: 1.125rem;
+        font-weight: 700;
+    }
+
+    .qty-value.positive {
+        color: #34d399;
+    }
+
+    .qty-value.negative {
+        color: #f87171;
+    }
+
+    .stock-change {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: monospace;
+    }
+
+    .stock-before {
+        color: #64748b;
+    }
+
+    .stock-change i {
+        color: #3b82f6;
+        font-size: 0.875rem;
+    }
+
+    .stock-after {
+        color: #34d399;
+        font-weight: 600;
+    }
+
+    .ref-badge {
+        padding: 0.35rem 0.75rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        color: #e2e8f0;
+        font-family: monospace;
+    }
+
+    .ref-empty {
+        color: #475569;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+
+    .user-name {
+        color: #94a3b8;
+        font-size: 0.875rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2.5rem;
+        color: #64748b;
+    }
+
+    .empty-state h4 {
+        color: #e2e8f0;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .movements-container {
+            padding: 1rem;
+        }
+
+        .page-header-enhanced {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .filters-form {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-actions {
+            flex-direction: column;
+        }
+
+        .timeline-table thead {
+            display: none;
+        }
+
+        .timeline-row {
+            display: block;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-row td {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border: none;
+        }
+
+        .timeline-row td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #64748b;
+        }
+    }
+</style>
+}

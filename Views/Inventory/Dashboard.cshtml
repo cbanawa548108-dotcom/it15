@@ -36,7 +36,7 @@
     @*
     @{
         var itemsBelowTwenty = (Model.InventoryItems ?? new List<InventoryViewModel>())
-            .Where(i => i.CurrentStock > 0 && i.CurrentStock <= 20).ToList();
+            .Where(i => i.CurrentStock <= 20).ToList();
     }
     @if (Model.CriticalStockCount > 0 || Model.OutOfStockCount > 0 || itemsBelowTwenty.Any())
     {
@@ -90,9 +90,8 @@
     <!-- ── Stats Grid ───────────────────────────────── -->
     <div class="inv-stats">
         <div class="inv-stat inv-stat-blue">
-            <div class="inv-stat-sticker" style="transform: rotate(-8deg);"><span>📦</span></div>
             <div class="inv-stat-glow"></div>
-            <div class="inv-stat-icon-wrap"><i class="bi bi-box-seam-fill"></i></div>
+            <div class="inv-stat-icon-wrap">📦</div>
             <div class="inv-stat-content">
                 <div class="inv-stat-val">@Model.TotalProducts</div>
                 <div class="inv-stat-lbl">Active Products</div>
@@ -100,9 +99,8 @@
             <div class="inv-stat-trend up"><i class="bi bi-arrow-up-right"></i></div>
         </div>
         <div class="inv-stat inv-stat-green">
-            <div class="inv-stat-sticker" style="transform: rotate(12deg);"><span>📚</span></div>
             <div class="inv-stat-glow"></div>
-            <div class="inv-stat-icon-wrap"><i class="bi bi-layers-fill"></i></div>
+            <div class="inv-stat-icon-wrap">📊</div>
             <div class="inv-stat-content">
                 <div class="inv-stat-val">@Model.TotalStockItems</div>
                 <div class="inv-stat-lbl">Total Units</div>
@@ -110,9 +108,8 @@
             <div class="inv-stat-trend up"><i class="bi bi-arrow-up-right"></i></div>
         </div>
         <div class="inv-stat inv-stat-purple">
-            <div class="inv-stat-sticker" style="transform: rotate(-5deg);"><span>💰</span></div>
             <div class="inv-stat-glow"></div>
-            <div class="inv-stat-icon-wrap"><i class="bi bi-cash-stack"></i></div>
+            <div class="inv-stat-icon-wrap">💰</div>
             <div class="inv-stat-content">
                 <div class="inv-stat-val">₱@Model.TotalInventoryValue.ToString("N0")</div>
                 <div class="inv-stat-lbl">Inventory Value</div>
@@ -120,9 +117,8 @@
             <div class="inv-stat-trend up"><i class="bi bi-arrow-up-right"></i></div>
         </div>
         <div class="inv-stat inv-stat-amber">
-            <div class="inv-stat-sticker" style="transform: rotate(15deg);"><span>⚠️</span></div>
             <div class="inv-stat-glow"></div>
-            <div class="inv-stat-icon-wrap"><i class="bi bi-graph-down-arrow"></i></div>
+            <div class="inv-stat-icon-wrap">⚠️</div>
             <div class="inv-stat-content">
                 <div class="inv-stat-val">@Model.LowStockCount</div>
                 <div class="inv-stat-lbl">Low Stock Items</div>
@@ -143,8 +139,13 @@
             <span>Stock Movements</span>
             <i class="bi bi-chevron-right inv-qlink-arrow"></i>
         </a>
-        <a href="/Inventory/Suppliers" class="inv-qlink">
+        <a href="/Inventory/Stocks" class="inv-qlink">
             <div class="inv-qlink-ico"><i class="bi bi-truck"></i></div>
+            <span>Stocks</span>
+            <i class="bi bi-chevron-right inv-qlink-arrow"></i>
+        </a>
+        <a href="/Inventory/Suppliers" class="inv-qlink">
+            <div class="inv-qlink-ico"><i class="bi bi-people"></i></div>
             <span>Suppliers</span>
             <i class="bi bi-chevron-right inv-qlink-arrow"></i>
         </a>
@@ -184,7 +185,7 @@
                     <tbody>
                         @foreach (var item in Model.LowStockAlerts.Take(5))
                         {
-                            <tr class="inv-row">
+                            <tr class="inv-row @(item.CurrentStock == 0 ? "out-of-stock-row" : "")">
                                 <td>
                                     <div class="inv-product-name">
                                         <span class="inv-emoji">@item.Emoji</span>
@@ -193,24 +194,51 @@
                                 </td>
                                 <td><span class="inv-category-pill">@item.Category</span></td>
                                 <td class="tc">
-                                    <span class="inv-stock-val @(item.CurrentStock <= 20 ? "critical" : "warn")">
+                                    <span class="inv-stock-val @(item.CurrentStock == 0 ? "out-of-stock" : item.CurrentStock <= 20 ? "critical" : "warn")">
                                         @item.CurrentStock
                                     </span>
                                 </td>
                                 <td class="tc"><span class="inv-min-val">@item.MinStockLevel</span></td>
                                 <td class="tc">
-                                    <span class="inv-badge @(item.StockStatus == "Critical Stock" ? "inv-badge-danger" : "inv-badge-warn")">
-                                        @if (item.StockStatus == "Critical Stock")
-                                        { <i class="bi bi-exclamation-circle-fill"></i> }
-                                        else
-                                        { <i class="bi bi-exclamation-triangle-fill"></i> }
-                                        @item.StockStatus
-                                    </span>
-                                </td>
+                                    @if (item.CurrentStock == 0)
+                                    {
+                                        <span class="inv-badge inv-badge-out-of-stock">
+                                            <i class="bi bi-exclamation-diamond-fill"></i> OUT OF STOCK
+                                        </span>
+                                    }
+                                    else if (item.StockStatus == "Critical Stock")
+                                    {
+                                        <span class="inv-badge inv-badge-danger">
+                                            <i class="bi bi-exclamation-circle-fill"></i> @item.StockStatus
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inv-badge inv-badge-warn">
+                                            <i class="bi bi-exclamation-triangle-fill"></i> @item.StockStatus
+                                        </span>
+                                    }
                                 <td class="tc">
-                                    <a href="/Inventory/StockIn?productId=@item.ProductId" class="inv-restock-btn">
-                                        <i class="bi bi-plus-lg"></i> Restock
-                                    </a>
+                                    @{
+                                        var productsWithPending = ViewBag.ProductsWithPendingDeliveries as System.Collections.Generic.List<int> ?? new System.Collections.Generic.List<int>();
+                                        bool hasPendingDelivery = productsWithPending.Contains(item.ProductId);
+                                    }
+                                    @if (hasPendingDelivery)
+                                    {
+                                        <a href="/Inventory/StockIn?productId=@item.ProductId" class="inv-restock-btn @(item.CurrentStock == 0 ? "urgent" : "")">
+                                            <i class="bi bi-plus-lg"></i> @(item.CurrentStock == 0 ? "URGENT: Restock Now" : "Restock")
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" 
+                                                class="inv-restock-btn" 
+                                                disabled 
+                                                title="No pending deliveries from suppliers"
+                                                style="opacity: 0.5; cursor: not-allowed; background: rgba(100, 116, 139, 0.15); border-color: rgba(100, 116, 139, 0.3);">
+                                            <i class="bi bi-plus-lg"></i> Restock
+                                        </button>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -273,9 +301,26 @@
                             <span class="inv-metric-val">₱@item.UnitPrice.ToString("N2")</span>
                         </div>
                     </div>
-                    <a href="/Inventory/StockIn?productId=@item.ProductId" class="inv-card-action-btn">
-                        <i class="bi bi-plus-lg"></i> Add Stock
-                    </a>
+                    @{
+                        var productsWithPendingCard = ViewBag.ProductsWithPendingDeliveries as System.Collections.Generic.List<int> ?? new System.Collections.Generic.List<int>();
+                        bool hasPendingDeliveryCard = productsWithPendingCard.Contains(item.ProductId);
+                    }
+                    @if (hasPendingDeliveryCard)
+                    {
+                        <a href="/Inventory/StockIn?productId=@item.ProductId" class="inv-card-action-btn">
+                            <i class="bi bi-plus-lg"></i> Add Stock
+                        </a>
+                    }
+                    else
+                    {
+                        <button type="button" 
+                                class="inv-card-action-btn" 
+                                disabled 
+                                title="No pending deliveries from suppliers"
+                                style="opacity: 0.5; cursor: not-allowed; background: rgba(100, 116, 139, 0.08); border-color: rgba(100, 116, 139, 0.2);">
+                            <i class="bi bi-plus-lg"></i> Add Stock
+                        </button>
+                    }
                 </div>
             }
         </div>
@@ -381,7 +426,7 @@
 }
 .inv-stat {
     position: relative; display: flex; align-items: center; gap: 14px;
-    padding: 20px 18px; border-radius: 16px; overflow: hidden;
+    padding: 20px 18px; border-radius: 16px; overflow: visible;
     transition: transform .22s ease, box-shadow .22s ease;
 }
 .inv-stat:hover { transform: translateY(-3px); }
@@ -389,35 +434,38 @@
     position: absolute; top: -20px; right: -20px;
     width: 100px; height: 100px; border-radius: 50%;
     opacity: .18; filter: blur(28px); pointer-events: none;
+    overflow: hidden;
 }
-.inv-stat-blue   { background:linear-gradient(135deg,#0d2137,#0a3256); border:1px solid rgba(66,165,245,.25); box-shadow:0 4px 20px rgba(13,71,161,.3); }
+.inv-stat-blue   { background:linear-gradient(135deg,#0d2137,#0a3256); border:1px solid rgba(66,165,245,.3); box-shadow:0 4px 24px rgba(13,71,161,.35), inset 0 1px 0 rgba(66,165,245,.15); }
 .inv-stat-blue   .inv-stat-glow        { background:#42a5f5; }
-.inv-stat-blue   .inv-stat-icon-wrap   { background:rgba(66,165,245,.18); color:#64b5f6; }
-.inv-stat-blue   .inv-stat-val         { color:#90caf9; }
+.inv-stat-blue   .inv-stat-icon-wrap   { background:linear-gradient(135deg,rgba(66,165,245,.3),rgba(66,165,245,.15)); color:#64b5f6; border:1px solid rgba(66,165,245,.25); }
+.inv-stat-blue   .inv-stat-val         { color:#90caf9; text-shadow:0 0 20px rgba(66,165,245,.4); }
 .inv-stat-blue   .inv-stat-lbl         { color:#4fc3f7; }
-.inv-stat-green  { background:linear-gradient(135deg,#0a2119,#0d3326); border:1px solid rgba(102,187,106,.25); box-shadow:0 4px 20px rgba(27,94,32,.3); }
+.inv-stat-green  { background:linear-gradient(135deg,#0a2119,#0d3326); border:1px solid rgba(102,187,106,.3); box-shadow:0 4px 24px rgba(27,94,32,.35), inset 0 1px 0 rgba(102,187,106,.15); }
 .inv-stat-green  .inv-stat-glow        { background:#66bb6a; }
-.inv-stat-green  .inv-stat-icon-wrap   { background:rgba(102,187,106,.18); color:#81c784; }
-.inv-stat-green  .inv-stat-val         { color:#a5d6a7; }
+.inv-stat-green  .inv-stat-icon-wrap   { background:linear-gradient(135deg,rgba(102,187,106,.3),rgba(102,187,106,.15)); color:#81c784; border:1px solid rgba(102,187,106,.25); }
+.inv-stat-green  .inv-stat-val         { color:#a5d6a7; text-shadow:0 0 20px rgba(102,187,106,.4); }
 .inv-stat-green  .inv-stat-lbl         { color:#80cbc4; }
-.inv-stat-purple { background:linear-gradient(135deg,#1a0a2e,#2a1052); border:1px solid rgba(171,71,188,.25); box-shadow:0 4px 20px rgba(74,20,140,.3); }
+.inv-stat-purple { background:linear-gradient(135deg,#1a0a2e,#2a1052); border:1px solid rgba(171,71,188,.3); box-shadow:0 4px 24px rgba(74,20,140,.35), inset 0 1px 0 rgba(171,71,188,.15); }
 .inv-stat-purple .inv-stat-glow        { background:#ab47bc; }
-.inv-stat-purple .inv-stat-icon-wrap   { background:rgba(171,71,188,.18); color:#ce93d8; }
-.inv-stat-purple .inv-stat-val         { color:#e1bee7; }
+.inv-stat-purple .inv-stat-icon-wrap   { background:linear-gradient(135deg,rgba(171,71,188,.3),rgba(171,71,188,.15)); color:#ce93d8; border:1px solid rgba(171,71,188,.25); }
+.inv-stat-purple .inv-stat-val         { color:#e1bee7; text-shadow:0 0 20px rgba(171,71,188,.4); }
 .inv-stat-purple .inv-stat-lbl         { color:#b39ddb; }
-.inv-stat-amber  { background:linear-gradient(135deg,#2c1a00,#3e2400); border:1px solid rgba(255,167,38,.25); box-shadow:0 4px 20px rgba(230,81,0,.3); }
+.inv-stat-amber  { background:linear-gradient(135deg,#2c1a00,#3e2400); border:1px solid rgba(255,167,38,.3); box-shadow:0 4px 24px rgba(230,81,0,.35), inset 0 1px 0 rgba(255,167,38,.15); }
 .inv-stat-amber  .inv-stat-glow        { background:#ffa726; }
-.inv-stat-amber  .inv-stat-icon-wrap   { background:rgba(255,167,38,.18); color:#ffb74d; }
-.inv-stat-amber  .inv-stat-val         { color:#ffcc80; }
+.inv-stat-amber  .inv-stat-icon-wrap   { background:linear-gradient(135deg,rgba(255,167,38,.3),rgba(255,167,38,.15)); color:#ffb74d; border:1px solid rgba(255,167,38,.25); }
+.inv-stat-amber  .inv-stat-val         { color:#ffcc80; text-shadow:0 0 20px rgba(255,167,38,.4); }
 .inv-stat-amber  .inv-stat-lbl         { color:#ffab40; }
 .inv-stat-icon-wrap {
-    width:50px; height:50px; border-radius:14px;
+    width:56px; height:56px; border-radius:16px;
     display:flex; align-items:center; justify-content:center;
-    font-size:1.4rem; flex-shrink:0;
+    font-size:1.9rem; flex-shrink:0;
+    position:relative; z-index:1;
+    backdrop-filter:blur(8px);
 }
 .inv-stat-content { flex:1; }
-.inv-stat-val { font-family:'Syne',sans-serif; font-size:1.55rem; font-weight:800; line-height:1.1; }
-.inv-stat-lbl { font-size:.75rem; font-weight:500; letter-spacing:.04em; text-transform:uppercase; margin-top:3px; opacity:.8; }
+.inv-stat-val { font-family:'Syne',sans-serif; font-size:1.75rem; font-weight:900; line-height:1.1; letter-spacing:-.02em; }
+.inv-stat-lbl { font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin-top:4px; opacity:.75; }
 .inv-stat-trend { font-size:.8rem; font-weight:700; padding:4px 8px; border-radius:8px; align-self:flex-start; }
 .inv-stat-trend.up   { background:rgba(102,187,106,.15); color:#81c784; }
 .inv-stat-trend.down { background:rgba(239,83,80,.15);   color:#ef9a9a; }
@@ -425,21 +473,21 @@
 /* ─── Stickers ─────────────────────────────────*/
 .inv-stat-sticker {
     position: absolute;
-    top: -12px;
-    right: -8px;
-    width: 56px;
-    height: 56px;
-    border-radius: 18px;
+    top: 8px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.8rem;
-    background: white;
-    box-shadow: 0 4px 16px rgba(0,0,0,.25),
-                inset 0 -1px 3px rgba(0,0,0,.1);
-    border: 2px solid rgba(255,255,255,.9);
+    font-size: 1.5rem;
+    background: rgba(255,255,255,.12);
+    box-shadow: 0 4px 12px rgba(0,0,0,.2);
+    border: 1px solid rgba(255,255,255,.15);
     animation: sticker-float 3s ease-in-out infinite;
     z-index: 2;
+    backdrop-filter: blur(4px);
 }
 @@keyframes sticker-float {
     0%, 100% { transform: translateY(0px) rotate(-8deg); }
@@ -464,29 +512,35 @@
 .inv-qlink {
     display: flex; align-items: center; gap: 12px;
     padding: 16px 18px;
-    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
-    border-radius:14px; text-decoration:none; color:#c5d8f5;
-    font-size:.9rem; font-weight:500;
+    background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:14px; text-decoration:none; color:#94a3b8;
+    font-size:.9rem; font-weight:600;
     position:relative; overflow:hidden;
     transition:all .2s ease;
+    box-shadow:0 2px 8px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.05);
 }
 .inv-qlink::before {
     content:''; position:absolute; inset:0;
-    background:linear-gradient(135deg,rgba(66,165,245,.1),transparent 60%);
+    background:linear-gradient(135deg,rgba(66,165,245,.12),transparent 60%);
     opacity:0; transition:opacity .2s;
 }
-.inv-qlink:hover { background:rgba(66,165,245,.1); border-color:rgba(66,165,245,.35); color:#90caf9; transform:translateY(-2px); box-shadow:0 6px 18px rgba(13,71,161,.25); }
+.inv-qlink:hover { background:rgba(66,165,245,.12); border-color:rgba(66,165,245,.4); color:#e2e8f0; transform:translateY(-2px); box-shadow:0 8px 24px rgba(13,71,161,.3); }
 .inv-qlink:hover::before { opacity:1; }
 .inv-qlink-ico {
-    width:38px; height:38px; background:rgba(66,165,245,.12); border-radius:10px;
+    width:40px; height:40px;
+    background:linear-gradient(135deg,rgba(66,165,245,.2),rgba(66,165,245,.1));
+    border:1px solid rgba(66,165,245,.2);
+    border-radius:10px;
     display:flex; align-items:center; justify-content:center;
-    font-size:1rem; color:#42a5f5; flex-shrink:0;
+    font-size:1.1rem; color:#60a5fa; flex-shrink:0;
     transition:background .2s, transform .2s;
+    box-shadow:0 0 12px rgba(66,165,245,.15);
 }
-.inv-qlink:hover .inv-qlink-ico { background:rgba(66,165,245,.22); transform:scale(1.08); }
-.inv-qlink span { flex:1; }
-.inv-qlink-arrow { font-size:.7rem; opacity:.4; transition:opacity .2s, transform .2s; }
-.inv-qlink:hover .inv-qlink-arrow { opacity:.9; transform:translateX(3px); }
+.inv-qlink:hover .inv-qlink-ico { background:rgba(66,165,245,.3); transform:scale(1.1); box-shadow:0 0 16px rgba(66,165,245,.3); }
+.inv-qlink span { flex:1; color:#e2e8f0; }
+.inv-qlink-arrow { font-size:.75rem; opacity:.5; transition:opacity .2s, transform .2s; color:#60a5fa; }
+.inv-qlink:hover .inv-qlink-arrow { opacity:1; transform:translateX(4px); }
 
 /* ─── Section Card ───────────────────────────────*/
 .inv-section {
@@ -541,8 +595,10 @@
 }
 .inv-table .tc { text-align:center; }
 .inv-row { transition:background .15s; border-bottom:1px solid rgba(255,255,255,.04); }
+.inv-row.out-of-stock-row { background:rgba(255,61,61,.08); border-left:4px solid rgba(255,61,61,.6); }
 .inv-row:last-child { border-bottom:none; }
 .inv-row:hover { background:rgba(66,165,245,.05); }
+.inv-row.out-of-stock-row:hover { background:rgba(255,61,61,.12); }
 .inv-row td { padding:13px 18px; vertical-align:middle; color:#cfd8e3; }
 .inv-product-name { display:flex; align-items:center; gap:10px; font-weight:500; color:#e0eeff; }
 .inv-emoji { font-size:1.25rem; line-height:1; }
@@ -554,10 +610,14 @@
 .inv-stock-val { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; min-width:36px; display:inline-block; }
 .inv-stock-val.critical { color:#ef5350; text-shadow:0 0 12px rgba(239,83,80,.4); }
 .inv-stock-val.warn     { color:#ffa726; text-shadow:0 0 12px rgba(255,167,38,.3); }
+.inv-stock-val.out-of-stock { color:#ff3d3d; text-shadow:0 0 14px rgba(255,61,61,.6); font-size:1.2rem; animation: out-of-stock-pulse 1.5s ease-in-out infinite; }
+@@keyframes out-of-stock-pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
 .inv-min-val { font-size:.875rem; font-weight:600; color:#546e7a; }
 .inv-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:20px; font-size:.73rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
 .inv-badge-danger { background:rgba(183,28,28,.2); border:1px solid rgba(229,57,53,.5); color:#ef9a9a; }
 .inv-badge-warn   { background:rgba(230,81,0,.18);  border:1px solid rgba(255,152,0,.45);  color:#ffcc80; }
+.inv-badge-out-of-stock { background:rgba(255,61,61,.25); border:2px solid rgba(255,61,61,.65); color:#ff6666; animation: badge-alert-pulse 1.5s ease-in-out infinite; }
+@@keyframes badge-alert-pulse { 0%,100%{box-shadow:0 0 8px rgba(255,61,61,.3)} 50%{box-shadow:0 0 16px rgba(255,61,61,.6)} }
 .inv-restock-btn {
     display:inline-flex; align-items:center; gap:6px;
     padding:7px 15px; border-radius:10px;
@@ -566,6 +626,17 @@
     transition:all .18s ease; white-space:nowrap;
 }
 .inv-restock-btn:hover { background:rgba(46,125,50,.4); border-color:rgba(102,187,106,.6); color:#c8e6c9; transform:translateY(-1px); box-shadow:0 4px 12px rgba(27,94,32,.3); }
+.inv-restock-btn:disabled,
+.inv-restock-btn[disabled] {
+    background:rgba(100,116,139,.15);
+    border-color:rgba(100,116,139,.3);
+    color:rgba(148,163,184,.6);
+    cursor:not-allowed;
+    opacity:0.6;
+}
+.inv-restock-btn.urgent { background:rgba(255,61,61,.25); border:2px solid rgba(255,61,61,.65); color:#ff6666; font-size:.75rem; animation: urgent-pulse 1.2s ease-in-out infinite; }
+.inv-restock-btn.urgent:hover { background:rgba(255,61,61,.4); border-color:rgba(255,61,61,.85); color:#ff9999; box-shadow:0 4px 16px rgba(255,61,61,.4); animation: none; }
+@@keyframes urgent-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,61,61,.6)} 50%{box-shadow:0 0 0 6px rgba(255,61,61,.2)} }
 
 /* ─── Empty State ────────────────────────────────*/
 .inv-empty-state {
@@ -694,6 +765,14 @@
 .inv-card-action-btn:hover {
     background: rgba(46,125,50,.35); border-color: rgba(102,187,106,.55);
     color: #c8e6c9; box-shadow: 0 3px 12px rgba(27,94,32,.3);
+}
+.inv-card-action-btn:disabled,
+.inv-card-action-btn[disabled] {
+    background: rgba(100,116,139,.08);
+    border-color: rgba(100,116,139,.2);
+    color: rgba(148,163,184,.6);
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 /* ─── Responsive ─────────────────────────────────*/

@@ -1,0 +1,107 @@
+@using CRLFruitstandESS.Models.ViewModels
+@model List<AuditLog>
+@{ ViewData["Title"] = "Audit Log"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#0f172a!important;min-height:100vh}
+.al-header{background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #334155;padding:2.5rem 2rem;border-radius:14px;margin-bottom:2rem;position:relative;overflow:hidden}
+.al-header::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(6,182,212,.1) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.al-header>div{position:relative;z-index:1}
+.dark-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:1.75rem;margin-bottom:1.5rem}
+.dark-input{padding:.65rem 1rem;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f1f5f9;font-size:.875rem;outline:none;transition:border-color .2s,box-shadow .2s}
+.dark-input:focus{border-color:#06b6d4;box-shadow:0 0 0 3px rgba(6,182,212,.15)}
+.filter-btn{padding:.65rem 1.25rem;border-radius:8px;font-size:.82rem;font-weight:700;border:1px solid #334155;background:#0f172a;color:#64748b;cursor:pointer;text-decoration:none;transition:all .2s;outline:none}
+.filter-btn:hover,.filter-btn.active{border-color:#06b6d4;color:#22d3ee;background:#1e293b;box-shadow:0 0 0 1px #06b6d4}
+.filter-btn:active{transform:scale(.97)}
+.btn-apply{padding:.65rem 1.5rem;background:#06b6d4;color:white;border:none;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer;transition:all .2s;outline:none}
+.btn-apply:hover{background:#0891b2;transform:translateY(-1px);box-shadow:0 4px 16px rgba(6,182,212,.4)}
+.btn-apply:active{transform:scale(.97)}
+.dark-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.dark-table thead tr{background:#0f172a}
+.dark-table thead th{padding:.875rem 1rem;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475569;border-bottom:1px solid #334155;white-space:nowrap}
+.dark-table tbody tr{border-bottom:1px solid #1e293b;transition:background .15s}
+.dark-table tbody tr:hover{background:#0f172a}
+.dark-table tbody td{padding:.75rem 1rem;color:#cbd5e1}
+.badge-pill{display:inline-block;padding:.2rem .65rem;border-radius:999px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.mod-pos      {background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3)}
+.mod-finance  {background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.mod-inventory{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.3)}
+.mod-system   {background:rgba(100,116,139,.15);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
+</style>
+}
+
+<div class="al-header">
+    <div>
+        <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#06b6d4;display:block;margin-bottom:.5rem;">System Administration</span>
+        <h1 style="font-size:2.25rem;font-weight:800;margin:0 0 .5rem;color:#f1f5f9;">Audit Trail</h1>
+        <p style="margin:0;font-size:.95rem;color:#64748b;">Tamper-proof log of all system actions — <strong style="color:#22d3ee;">@ViewBag.Total</strong> entries</p>
+    </div>
+</div>
+
+<!-- FILTERS -->
+<div class="dark-card">
+    <form method="get" action="/AuditLog/Index" style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;">
+        <div>
+            <label style="display:block;margin-bottom:.4rem;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#475569;">From</label>
+            <input type="date" name="from" value="@((DateTime)ViewBag.DateFrom).ToString("yyyy-MM-dd")" class="dark-input"/>
+        </div>
+        <div>
+            <label style="display:block;margin-bottom:.4rem;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#475569;">To</label>
+            <input type="date" name="to" value="@((DateTime)ViewBag.DateTo).ToString("yyyy-MM-dd")" class="dark-input"/>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;">
+            @foreach (var m in (string[])ViewBag.Modules)
+            {
+                <a href="/AuditLog/Index?module=@m&from=@((DateTime)ViewBag.DateFrom).ToString("yyyy-MM-dd")&to=@((DateTime)ViewBag.DateTo).ToString("yyyy-MM-dd")"
+                   class="filter-btn @(ViewBag.Module == m ? "active" : "")">
+                    @(m == "all" ? "All" : m)
+                </a>
+            }
+        </div>
+        <button type="submit" class="btn-apply"><i class="bi bi-funnel-fill"></i> Apply</button>
+    </form>
+</div>
+
+<!-- TABLE -->
+<div class="dark-card">
+    <div style="overflow-x:auto;border-radius:10px;border:1px solid #334155;">
+        <table class="dark-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Module</th>
+                    <th>Action</th>
+                    <th>Entity</th>
+                    <th>Details</th>
+                    <th>User</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="6" style="text-align:center;color:#475569;padding:3rem;">No audit entries for this period.</td></tr>
+                }
+                @foreach (var log in Model)
+                {
+                    var modClass = log.Module switch {
+                        "POS"       => "mod-pos",
+                        "Finance"   => "mod-finance",
+                        "Inventory" => "mod-inventory",
+                        _           => "mod-system"
+                    };
+                    var actionColor = log.Action.Contains("Void") || log.Action.Contains("Delete") ? "#fca5a5"
+                                    : log.Action.Contains("Payment") || log.Action.Contains("Expense") ? "#fcd34d"
+                                    : "#f1f5f9";
+                    <tr>
+                        <td style="color:#64748b;white-space:nowrap;font-size:.8rem;">@log.Timestamp?.ToString("MMM dd HH:mm:ss")</td>
+                        <td><span class="badge-pill @modClass">@log.Module</span></td>
+                        <td style="color:@actionColor;font-weight:600;">@log.Action</td>
+                        <td style="color:#f1f5f9;font-weight:500;">@log.Entity</td>
+                        <td style="color:#64748b;font-size:.82rem;">@log.Details</td>
+                        <td style="color:#94a3b8;">@log.User</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

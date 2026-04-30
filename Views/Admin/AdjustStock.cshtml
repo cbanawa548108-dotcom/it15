@@ -1,0 +1,72 @@
+@using CRLFruitstandESS.Models.ViewModels
+@model AdminStockAdjustViewModel
+@{ ViewData["Title"] = "Adjust Stock"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#060d1a!important;min-height:100vh}
+.adm-header{background:linear-gradient(135deg,#0f2044,#0a1628);border:1px solid #1e3a6e;padding:2.5rem 2rem;border-radius:14px;margin-bottom:2rem}
+.blue-card{background:#0d1f3c;border:1px solid #1e3a6e;border-radius:14px;padding:2rem;margin-bottom:1.5rem;max-width:560px}
+.form-label{display:block;margin-bottom:.4rem;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#475569}
+.dark-input{width:100%;padding:.875rem 1rem;background:#060d1a;border:1px solid #1e3a6e;border-radius:8px;color:#e2e8f0;font-size:.9rem;box-sizing:border-box;outline:none;transition:border-color .2s,box-shadow .2s}
+.dark-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+.btn-blue{padding:.875rem 2rem;background:#2563eb;color:white;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;outline:none}
+.btn-blue:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 16px rgba(37,99,235,.4)}
+.btn-back{padding:.875rem 1.5rem;background:transparent;color:#64748b;border:1px solid #1e3a6e;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s}
+.btn-back:hover{border-color:#3b82f6;color:#93c5fd}
+.type-btn{flex:1;padding:.75rem;border:2px solid #1e3a6e;border-radius:8px;background:#060d1a;color:#64748b;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s;text-align:center}
+.type-btn.selected-in    {border-color:#10b981;background:rgba(16,185,129,.1);color:#34d399}
+.type-btn.selected-out   {border-color:#ef4444;background:rgba(239,68,68,.1);color:#fca5a5}
+.type-btn.selected-adj   {border-color:#f59e0b;background:rgba(245,158,11,.1);color:#fbbf24}
+</style>
+}
+<div class="adm-header">
+    <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#3b82f6;display:block;margin-bottom:.5rem;">Administration</span>
+    <h1 style="font-size:2rem;font-weight:800;margin:0 0 .4rem;color:#f1f5f9;">Adjust Stock</h1>
+    <p style="margin:0;font-size:.9rem;color:#475569;">@Model.ProductName — Current: <strong style="color:#f1f5f9;">@Model.CurrentQty units</strong></p>
+</div>
+<div class="blue-card">
+    <form method="post" action="/Admin/AdjustStock">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ProductId"/>
+        <input type="hidden" asp-for="ProductName"/>
+        <input type="hidden" asp-for="CurrentQty"/>
+
+        <div style="margin-bottom:1.5rem;">
+            <label class="form-label">Adjustment Type</label>
+            <div style="display:flex;gap:.75rem;">
+                <button type="button" class="type-btn selected-in" onclick="setType('StockIn',this)">📥 Stock In</button>
+                <button type="button" class="type-btn" onclick="setType('StockOut',this)">📤 Stock Out</button>
+                <button type="button" class="type-btn" onclick="setType('Adjustment',this)">⚙️ Set Exact</button>
+            </div>
+            <input type="hidden" asp-for="Type" id="typeInput" value="StockIn"/>
+        </div>
+
+        <div style="margin-bottom:1.25rem;">
+            <label class="form-label" id="qtyLabel">Quantity to Add</label>
+            <input asp-for="Quantity" type="number" min="1" class="dark-input" id="qtyInput"/>
+        </div>
+        <div style="margin-bottom:1.25rem;">
+            <label class="form-label">Reference / PO Number</label>
+            <input asp-for="Reference" class="dark-input" placeholder="Optional"/>
+        </div>
+        <div style="margin-bottom:1.5rem;">
+            <label class="form-label">Notes</label>
+            <textarea asp-for="Notes" class="dark-input" rows="3" style="resize:vertical;" placeholder="Reason for adjustment…"></textarea>
+        </div>
+        <div style="display:flex;gap:1rem;">
+            <button type="submit" class="btn-blue"><i class="bi bi-check-lg"></i> Apply Adjustment</button>
+            <a href="/Admin/InventoryManagement" class="btn-back">Cancel</a>
+        </div>
+    </form>
+</div>
+@section Scripts {
+<script>
+function setType(type, btn) {
+    document.getElementById('typeInput').value = type;
+    document.querySelectorAll('.type-btn').forEach(b => b.className = 'type-btn');
+    if (type === 'StockIn')     { btn.classList.add('selected-in');  document.getElementById('qtyLabel').textContent = 'Quantity to Add'; }
+    if (type === 'StockOut')    { btn.classList.add('selected-out'); document.getElementById('qtyLabel').textContent = 'Quantity to Remove'; }
+    if (type === 'Adjustment')  { btn.classList.add('selected-adj'); document.getElementById('qtyLabel').textContent = 'Set Stock to Exact Amount'; }
+}
+</script>
+}

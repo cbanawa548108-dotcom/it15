@@ -1,0 +1,463 @@
+@using CRLFruitstandESS.Models.ViewModels
+@using CRLFruitstandESS.Models.Executive
+@model ExecutiveDashboardViewModel
+@{
+    ViewData["Title"] = "Executive Dashboard";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .page-content { background: #0f172a !important; min-height: 100vh; }
+
+        .exec-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            padding: 2.5rem 2rem;
+            border-radius: 14px;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .exec-header::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 350px; height: 350px;
+            background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .exec-header > div { position: relative; z-index: 1; }
+        .exec-badge {
+            display: inline-block;
+            margin-top: 1.25rem;
+            background: rgba(59,130,246,0.15);
+            border: 1px solid rgba(59,130,246,0.3);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            color: #93c5fd;
+        }
+
+        .dark-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .dark-card:hover {
+            border-color: #475569;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            transform: translateY(-2px);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0 0 1.5rem 0;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: 14px 14px 0 0;
+        }
+        .kpi-card.blue::after  { background: #3b82f6; }
+        .kpi-card.green::after { background: #10b981; }
+        .kpi-card.amber::after { background: #f59e0b; }
+        .kpi-card.purple::after{ background: #8b5cf6; }
+        .kpi-card:hover { border-color: #475569; box-shadow: 0 8px 32px rgba(0,0,0,0.4); transform: translateY(-2px); }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .kpi-value {
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: #f1f5f9;
+            line-height: 1;
+            margin-bottom: 0.75rem;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .action-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #94a3b8;
+            transition: all 0.2s ease;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            outline: none;
+        }
+        .action-link:hover {
+            border-color: #3b82f6;
+            color: #f1f5f9;
+            background: #1e293b;
+            transform: translateX(4px);
+            box-shadow: 0 0 0 1px #3b82f6, 0 4px 16px rgba(59,130,246,0.2);
+        }
+        .action-link:active {
+            transform: translateX(2px) scale(0.98);
+            box-shadow: 0 0 0 1px #2563eb;
+            background: #172033;
+        }
+        .action-link:focus-visible {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.35);
+            color: #f1f5f9;
+        }
+        .action-link .action-icon {
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+        .action-link:hover .action-icon { transform: scale(1.1); }
+
+        .btn-acknowledge {
+            padding: 0.4rem 1rem;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        .btn-acknowledge:hover  { filter: brightness(1.15); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .btn-acknowledge:active { transform: translateY(0) scale(0.97); filter: brightness(0.9); }
+        .btn-acknowledge:focus-visible { box-shadow: 0 0 0 3px rgba(255,255,255,0.25); }
+
+        .gauge-ring {
+            width: 130px; height: 130px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.25rem;
+            position: relative;
+        }
+        .gauge-inner {
+            position: absolute;
+            width: 100px; height: 100px;
+            background: #1e293b;
+            border-radius: 50%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+
+        .tx-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.875rem 1rem;
+            background: #0f172a;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            margin-bottom: 0.625rem;
+            transition: border-color 0.2s ease;
+        }
+        .tx-row:hover { border-color: #475569; }
+
+        .risk-bar-track { height: 6px; background: #0f172a; border-radius: 3px; overflow: hidden; margin: 0.5rem 0 1rem; }
+        .risk-bar-fill  { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+        .badge-pill {
+            display: inline-block;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+}
+
+<!-- HEADER -->
+<div class="exec-header">
+    <div>
+        <span style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#3b82f6;display:block;margin-bottom:0.5rem;">Command Center</span>
+        <h1 style="font-size:2.25rem;font-weight:800;margin:0 0 0.5rem;color:#f1f5f9;">Executive Dashboard</h1>
+        <p style="margin:0 0 1rem;font-size:0.95rem;color:#94a3b8;">Welcome back, <strong style="color:#e2e8f0;">@Model.FullName</strong> &mdash; @DateTime.Now.ToString("MMMM dd, yyyy")</p>
+        <div class="exec-badge">EXECUTIVE</div>
+    </div>
+</div>
+
+<!-- ALERTS -->
+@if (Model.ExecutiveAlerts.Any())
+{
+    <div style="margin-bottom:1.5rem;">
+        <p class="section-title" style="color:#f1f5f9;">
+            <i class="bi bi-exclamation-triangle-fill" style="color:#ef4444;font-size:1.3rem;"></i> Active Alerts
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem;">
+            @foreach (var alert in Model.ExecutiveAlerts)
+            {
+                var isCrit = alert.Severity == "critical";
+                <div class="dark-card" style="margin-bottom:0;border-left:4px solid @(isCrit ? "#ef4444" : "#f59e0b");padding:1.5rem;">
+                    <div style="display:flex;align-items:start;gap:1rem;margin-bottom:1rem;">
+                        <i class="bi @(isCrit ? "bi-exclamation-triangle-fill" : "bi-exclamation-circle-fill")" style="color:@(isCrit ? "#ef4444" : "#f59e0b");font-size:1.4rem;flex-shrink:0;margin-top:2px;"></i>
+                        <div style="flex:1;">
+                            <strong style="color:#f1f5f9;font-size:1rem;display:block;margin-bottom:0.4rem;">@alert.Title</strong>
+                            <p style="margin:0;color:#94a3b8;font-size:0.9rem;line-height:1.5;">@alert.Message</p>
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1rem;border-top:1px solid #334155;">
+                        <small style="color:#64748b;font-weight:600;">@alert.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</small>
+                        <form method="post" action="/ExecutiveDashboard/ResolveAlert" style="display:inline;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@alert.Id" />
+                            <button type="submit" class="btn-acknowledge" style="background:@(isCrit ? "#ef4444" : "#f59e0b");">Acknowledge</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- KPI CARDS -->
+<div class="kpi-grid">
+    <div class="kpi-card blue">
+        <div class="kpi-label"><i class="bi bi-currency-dollar" style="color:#3b82f6;"></i> Total Revenue</div>
+        <div class="kpi-value">₱@Model.TotalRevenue.ToString("N0")</div>
+        <span class="pill" style="background:@(Model.RevenueChangePercent >= 0 ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)");color:@(Model.RevenueChangePercent >= 0 ? "#34d399" : "#fca5a5");border:1px solid @(Model.RevenueChangePercent >= 0 ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)");">
+            <i class="bi @(Model.RevenueChangePercent >= 0 ? "bi-arrow-up-short" : "bi-arrow-down-short")"></i>
+            @Math.Abs(Model.RevenueChangePercent).ToString("F1")% vs last month
+        </span>
+    </div>
+
+    <div class="kpi-card green">
+        <div class="kpi-label"><i class="bi bi-graph-up" style="color:#10b981;"></i> Net Profit</div>
+        <div class="kpi-value">₱@Model.NetProfit.ToString("N0")</div>
+        <span style="color:#64748b;font-size:0.85rem;">From <strong style="color:#94a3b8;">₱@Model.TotalExpenses.ToString("N0")</strong> expenses</span>
+    </div>
+
+    <div class="kpi-card amber">
+        <div class="kpi-label"><i class="bi bi-pie-chart" style="color:#f59e0b;"></i> Gross Margin</div>
+        <div class="kpi-value">@Model.GrossMarginPercent.ToString("F1")%</div>
+        <span class="pill" style="background:@(Model.GrossMarginPercent >= 30 ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)");color:@(Model.GrossMarginPercent >= 30 ? "#34d399" : "#fca5a5");border:1px solid @(Model.GrossMarginPercent >= 30 ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)");">
+            @(Model.GrossMarginPercent >= 30 ? "✓ Healthy" : "⚠ Below Target")
+        </span>
+    </div>
+
+    <div class="kpi-card purple">
+        <div class="kpi-label"><i class="bi bi-lightning-fill" style="color:#8b5cf6;"></i> Efficiency</div>
+        <div class="kpi-value">@Model.OperationalEfficiency.ToString("F1")%</div>
+        <span style="color:#64748b;font-size:0.85rem;">ROI: <strong style="color:#94a3b8;">@Model.ROI.ToString("F1")%</strong></span>
+    </div>
+</div>
+
+<!-- HEALTH + QUICK ACTIONS -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+    <!-- Business Health -->
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-heart-pulse" style="color:#3b82f6;font-size:1.3rem;"></i> Business Health
+        </p>
+        <div class="gauge-ring" style="background:conic-gradient(#3b82f6 0deg, #3b82f6 @(Model.BusinessHealthScore * 3.6)deg, #0f172a @(Model.BusinessHealthScore * 3.6)deg, #0f172a 360deg);">
+            <div class="gauge-inner">
+                <span style="font-size:1.75rem;font-weight:800;color:#f1f5f9;line-height:1;">@Model.BusinessHealthScore.ToString("F0")</span>
+                <span style="font-size:0.75rem;color:#64748b;font-weight:600;">/100</span>
+            </div>
+        </div>
+        <div style="text-align:center;padding:0.875rem;background:@(Model.HealthStatus == "healthy" ? "rgba(16,185,129,0.1)" : Model.HealthStatus == "caution" ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)");border:1px solid @(Model.HealthStatus == "healthy" ? "rgba(16,185,129,0.25)" : Model.HealthStatus == "caution" ? "rgba(245,158,11,0.25)" : "rgba(239,68,68,0.25)");border-radius:8px;margin-bottom:1.25rem;">
+            <i class="bi @(Model.HealthStatus == "healthy" ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill")" style="color:@(Model.HealthStatus == "healthy" ? "#10b981" : Model.HealthStatus == "caution" ? "#f59e0b" : "#ef4444");font-size:1.25rem;display:block;margin-bottom:0.35rem;"></i>
+            <span style="font-weight:800;font-size:0.85rem;color:@(Model.HealthStatus == "healthy" ? "#34d399" : Model.HealthStatus == "caution" ? "#fcd34d" : "#fca5a5");text-transform:uppercase;letter-spacing:0.08em;">@Model.HealthStatus</span>
+        </div>
+        @if (Model.HealthInsights.Any())
+        {
+            <div style="border-top:1px solid #334155;padding-top:1rem;">
+                <p style="margin:0 0 0.75rem;font-weight:700;color:#94a3b8;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;">Key Insights</p>
+                <ul style="margin:0;padding-left:1.25rem;display:flex;flex-direction:column;gap:0.4rem;">
+                    @foreach (var insight in Model.HealthInsights.Take(3))
+                    {
+                        <li style="color:#64748b;font-size:0.875rem;line-height:1.5;">@insight</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-lightning-fill" style="color:#f59e0b;font-size:1.3rem;"></i> Quick Actions
+        </p>
+        <a href="@Url.Action("KPIDashboard", "ExecutiveDashboard")" class="action-link">
+            <div class="action-icon" style="background:rgba(59,130,246,0.15);color:#3b82f6;"><i class="bi bi-graph-up"></i></div>
+            <span>KPI Dashboard</span>
+            <i class="bi bi-chevron-right" style="margin-left:auto;font-size:0.8rem;color:#475569;"></i>
+        </a>
+        <a href="@Url.Action("Forecasting", "ExecutiveDashboard")" class="action-link">
+            <div class="action-icon" style="background:rgba(16,185,129,0.15);color:#10b981;"><i class="bi bi-graph-up-arrow"></i></div>
+            <span>Sales Forecast</span>
+            <i class="bi bi-chevron-right" style="margin-left:auto;font-size:0.8rem;color:#475569;"></i>
+        </a>
+        <a href="@Url.Action("ScenarioSimulation", "ExecutiveDashboard")" class="action-link">
+            <div class="action-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;"><i class="bi bi-play-circle"></i></div>
+            <span>Run Scenario</span>
+            <i class="bi bi-chevron-right" style="margin-left:auto;font-size:0.8rem;color:#475569;"></i>
+        </a>
+        <a href="@Url.Action("RiskAnalysis", "ExecutiveDashboard")" class="action-link">
+            <div class="action-icon" style="background:rgba(239,68,68,0.15);color:#ef4444;"><i class="bi bi-shield-exclamation"></i></div>
+            <span>Risk Analysis</span>
+            <i class="bi bi-chevron-right" style="margin-left:auto;font-size:0.8rem;color:#475569;"></i>
+        </a>
+        <a href="@Url.Action("DecisionSupport", "ExecutiveDashboard")" class="action-link" style="margin-bottom:0;">
+            <div class="action-icon" style="background:rgba(139,92,246,0.15);color:#8b5cf6;"><i class="bi bi-cpu"></i></div>
+            <span>Decision Support</span>
+            <i class="bi bi-chevron-right" style="margin-left:auto;font-size:0.8rem;color:#475569;"></i>
+        </a>
+    </div>
+</div>
+
+<!-- TOP RISKS -->
+@if (Model.TopRisks.Any())
+{
+    <div style="margin-bottom:1.5rem;">
+        <p class="section-title" style="color:#f1f5f9;">
+            <i class="bi bi-shield-exclamation" style="color:#ef4444;font-size:1.3rem;"></i> Top Business Risks
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;">
+            @foreach (var risk in Model.TopRisks)
+            {
+                var rc = risk.Status == "red" ? "#ef4444" : risk.Status == "yellow" ? "#f59e0b" : "#10b981";
+                <div class="dark-card" style="margin-bottom:0;border-top:3px solid @rc;">
+                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.75rem;">
+                        <span class="badge-pill" style="background:@(risk.Status == "red" ? "rgba(239,68,68,0.15)" : risk.Status == "yellow" ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.15)");color:@rc;border:1px solid @rc;">@risk.RiskCategory</span>
+                        <strong style="color:#f1f5f9;font-size:1.1rem;">@risk.RiskScore.ToString("F2")</strong>
+                    </div>
+                    <div class="risk-bar-track">
+                        <div class="risk-bar-fill" style="width:@(risk.RiskScore * 100)%;background:@rc;"></div>
+                    </div>
+                    <p style="margin:0 0 0.5rem;color:#64748b;font-size:0.875rem;"><span style="color:#94a3b8;font-weight:600;">Probability:</span> @((risk.Probability * 100).ToString("F0"))%</p>
+                    @if (risk.Insights.Any())
+                    {
+                        <div style="padding-top:0.75rem;border-top:1px solid #334155;">
+                            <small style="color:#64748b;display:block;line-height:1.5;font-size:0.82rem;"><i class="bi bi-lightbulb-fill" style="color:#f59e0b;margin-right:0.35rem;"></i>@risk.Insights.First()</small>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- RECENT TRANSACTIONS -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem;">
+    <div class="dark-card" style="border-top:3px solid #10b981;">
+        <p class="section-title">
+            <i class="bi bi-arrow-up-circle-fill" style="color:#10b981;font-size:1.3rem;"></i> Recent Revenues
+        </p>
+        @if (Model.RecentRevenues.Any())
+        {
+            @foreach (var rev in Model.RecentRevenues)
+            {
+                <div class="tx-row">
+                    <div>
+                        <p style="margin:0;color:#f1f5f9;font-weight:600;font-size:0.9rem;">@rev.Source</p>
+                        <small style="color:#64748b;">@rev.TransactionDate.ToString("MMM dd, yyyy")</small>
+                    </div>
+                    <span style="color:#34d399;font-weight:700;font-size:1rem;">+₱@rev.Amount.ToString("N0")</span>
+                </div>
+            }
+        }
+        else
+        {
+            <p style="color:#475569;text-align:center;padding:2rem 0;font-size:0.9rem;">No recent revenues</p>
+        }
+    </div>
+
+    <div class="dark-card" style="border-top:3px solid #ef4444;">
+        <p class="section-title">
+            <i class="bi bi-arrow-down-circle-fill" style="color:#ef4444;font-size:1.3rem;"></i> Recent Expenses
+        </p>
+        @if (Model.RecentExpenses.Any())
+        {
+            @foreach (var exp in Model.RecentExpenses)
+            {
+                <div class="tx-row">
+                    <div>
+                        <p style="margin:0;color:#f1f5f9;font-weight:600;font-size:0.9rem;">@exp.Category</p>
+                        <small style="color:#64748b;">@exp.ExpenseDate.ToString("MMM dd, yyyy")</small>
+                    </div>
+                    <span style="color:#fca5a5;font-weight:700;font-size:1rem;">-₱@exp.Amount.ToString("N0")</span>
+                </div>
+            }
+        }
+        else
+        {
+            <p style="color:#475569;text-align:center;padding:2rem 0;font-size:0.9rem;">No recent expenses</p>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.addEventListener('load', function () {
+            document.querySelectorAll('.kpi-card, .dark-card').forEach((el, i) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(12px)';
+                el.style.transition = `opacity 0.4s ease ${i * 0.05}s, transform 0.4s ease ${i * 0.05}s`;
+                setTimeout(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }, 50);
+            });
+        });
+    </script>
+}

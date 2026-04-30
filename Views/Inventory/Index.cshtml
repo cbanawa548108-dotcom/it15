@@ -190,11 +190,28 @@
                                 </div>
                                 
                                 <div class="card-actions">
-                                    <a href="/Inventory/StockIn?productId=@item.ProductId" 
-                                       class="action-icon add" title="Stock In">
-                                        <i class="bi bi-plus-lg"></i>
-                                        <span class="action-label">Stock In</span>
-                                    </a>
+                                    @{
+                                        bool hasPendingDelivery = ViewBag.ProductsWithPendingDeliveries.Contains(item.ProductId);
+                                    }
+                                    @if (hasPendingDelivery)
+                                    {
+                                        <a href="/Inventory/StockIn?productId=@item.ProductId" 
+                                           class="action-icon add" title="Stock In">
+                                            <i class="bi bi-plus-lg"></i>
+                                            <span class="action-label">Stock In</span>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" 
+                                                class="action-icon add" 
+                                                disabled 
+                                                title="No pending deliveries from suppliers"
+                                                style="opacity: 0.5; cursor: not-allowed; background-color: rgba(16, 185, 129, 0.08);">
+                                            <i class="bi bi-plus-lg"></i>
+                                            <span class="action-label">Stock In</span>
+                                        </button>
+                                    }
                                     @if (item.CurrentStock > 0)
                                     {
                                         <a href="/Inventory/StockOut?productId=@item.ProductId" 
@@ -707,6 +724,14 @@
     .action-icon.add {
         background: rgba(16, 185, 129, 0.15);
         color: #34d399;
+    }
+
+    .action-icon.add:disabled,
+    .action-icon.add[disabled] {
+        background: rgba(16, 185, 129, 0.08);
+        color: rgba(52, 211, 153, 0.6);
+        cursor: not-allowed;
+        opacity: 0.6;
     }
 
     .action-icon.remove {

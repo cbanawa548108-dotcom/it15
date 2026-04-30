@@ -1,0 +1,503 @@
+@using CRLFruitstandESS.Models.ViewModels
+@using CRLFruitstandESS.Models.Executive
+@using CRLFruitstandESS.Services
+@model ScenarioSimulationViewModel
+@{
+    ViewData["Title"] = "Scenario Simulation";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .page-content { background: #0f172a !important; min-height: 100vh; }
+
+        .scenario-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            padding: 2.5rem 2rem;
+            border-radius: 14px;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .scenario-header::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .scenario-header > div { position: relative; z-index: 1; }
+
+        .dark-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0 0 1.5rem 0;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .dark-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #f1f5f9;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            outline: none;
+        }
+        .dark-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .dark-input::placeholder { color: #475569; }
+        .input-display {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: #0a1020;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            color: #64748b;
+            font-size: 0.95rem;
+            font-weight: 600;
+            box-sizing: border-box;
+        }
+        .form-hint { margin: 0.4rem 0 0; font-size: 0.78rem; color: #475569; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-run {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        .btn-run:hover  { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59,130,246,0.4); }
+        .btn-run:active { background: #1d4ed8; transform: scale(0.98); box-shadow: none; }
+        .btn-run:focus-visible { box-shadow: 0 0 0 3px rgba(59,130,246,0.5); }
+
+        .btn-save {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2rem;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        .btn-save:hover  { background: #059669; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16,185,129,0.4); }
+        .btn-save:active { background: #047857; transform: scale(0.98); box-shadow: none; }
+        .btn-save:focus-visible { box-shadow: 0 0 0 3px rgba(16,185,129,0.5); }
+
+        /* Results summary */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .result-tile {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 1.25rem;
+            transition: border-color 0.2s ease;
+        }
+        .result-tile:hover { border-color: #475569; }
+        .result-tile .r-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 0.6rem; }
+        .result-tile .r-value { font-size: 1.6rem; font-weight: 800; color: #f1f5f9; line-height: 1; }
+
+        /* Table */
+        .dark-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #334155; }
+        .dark-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .dark-table thead tr { background: #0f172a; }
+        .dark-table thead th { padding: 1rem 1.25rem; text-align: left; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; border-bottom: 1px solid #334155; white-space: nowrap; }
+        .dark-table tbody tr { border-bottom: 1px solid #1e293b; transition: background 0.2s ease; }
+        .dark-table tbody tr:hover { background: #1e293b; }
+        .dark-table tbody td { padding: 0.875rem 1.25rem; color: #cbd5e1; }
+        .dark-table tbody tr.loss td { color: #94a3b8; }
+        .dark-table .positive { color: #34d399; font-weight: 700; }
+        .dark-table .negative { color: #fca5a5; font-weight: 700; }
+
+        /* Chart */
+        .chart-wrap {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+
+        /* Sensitivity */
+        .sensitivity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .sens-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 1.25rem;
+            transition: border-color 0.2s ease;
+        }
+        .sens-card:hover { border-color: #475569; }
+        .sens-card h5 { margin: 0 0 0.75rem; color: #f1f5f9; font-size: 0.9rem; font-weight: 700; }
+        .sens-value { font-size: 1.4rem; font-weight: 800; color: #f1f5f9; margin-bottom: 0.25rem; }
+        .sens-unit  { font-size: 0.78rem; color: #64748b; margin-bottom: 0.75rem; }
+        .sens-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .sens-badge.high   { background: rgba(239,68,68,0.15);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .sens-badge.medium { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+
+        /* Saved scenarios */
+        .scenarios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+        }
+        .scenario-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 1.25rem;
+            border-left: 3px solid #3b82f6;
+            transition: all 0.2s ease;
+        }
+        .scenario-card:hover { border-color: #3b82f6; box-shadow: 0 4px 16px rgba(59,130,246,0.15); transform: translateY(-2px); }
+        .scenario-card h5 { margin: 0 0 0.5rem; color: #f1f5f9; font-size: 0.95rem; font-weight: 700; }
+        .scenario-card .s-desc { color: #64748b; font-size: 0.85rem; margin: 0 0 0.75rem; line-height: 1.5; }
+        .scenario-card .s-params { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; }
+        .scenario-card .s-params small { color: #94a3b8; font-size: 0.8rem; }
+        .scenario-card .s-date { margin: 0; font-size: 0.75rem; color: #475569; border-top: 1px solid #1e293b; padding-top: 0.75rem; }
+    </style>
+}
+
+<!-- HEADER -->
+<div class="scenario-header">
+    <div>
+        <span style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#3b82f6;display:block;margin-bottom:0.5rem;">What-If Analysis</span>
+        <h1 style="font-size:2.25rem;font-weight:800;margin:0 0 0.5rem;color:#f1f5f9;">Scenario Simulation</h1>
+        <p style="margin:0;font-size:0.95rem;color:#94a3b8;">Test business strategies and see projected financial impact</p>
+    </div>
+</div>
+
+<!-- SIMULATION FORM -->
+<div class="dark-card">
+    <p class="section-title">
+        <i class="bi bi-sliders" style="color:#3b82f6;font-size:1.3rem;"></i> Create New Scenario
+    </p>
+    <form method="post" action="@Url.Action("SimulateScenario", "ExecutiveDashboard")">
+        @Html.AntiForgeryToken()
+        <div class="form-grid">
+            <div>
+                <label class="form-label">Baseline Monthly Revenue</label>
+                <div class="input-display">₱@Model.BaselineMonthlyRevenue.ToString("N0")</div>
+                <input type="hidden" name="baselineRevenue" value="@Model.BaselineMonthlyRevenue" />
+                <p class="form-hint">Current month revenue (read-only)</p>
+            </div>
+            <div>
+                <label class="form-label" for="revenueGrowth">Revenue Growth (%)</label>
+                <input type="number" id="revenueGrowth" name="revenueGrowth" step="0.5" value="@Model.RevenueGrowthPercent" required class="dark-input" />
+                <p class="form-hint">Monthly growth rate (e.g., 5 for 5%)</p>
+            </div>
+            <div>
+                <label class="form-label" for="expenseGrowth">Expense Growth (%)</label>
+                <input type="number" id="expenseGrowth" name="expenseGrowth" step="0.5" value="@Model.ExpenseGrowthPercent" required class="dark-input" />
+                <p class="form-hint">Monthly expense increase rate</p>
+            </div>
+            <div>
+                <label class="form-label" for="cogsPercent">Cost of Goods Sold (%)</label>
+                <input type="number" id="cogsPercent" name="cogsPercent" step="1" value="@Model.CogsPercent" min="0" max="100" required class="dark-input" />
+                <p class="form-hint">COGS as % of revenue (typical: 30–40%)</p>
+            </div>
+            <div>
+                <label class="form-label" for="months">Simulation Period (months)</label>
+                <input type="number" id="months" name="months" value="@Model.SimulationMonths" min="1" max="36" required class="dark-input" />
+                <p class="form-hint">How many months to simulate (1–36)</p>
+            </div>
+        </div>
+        <button type="submit" class="btn-run">
+            <i class="bi bi-play-circle-fill"></i> Run Simulation
+        </button>
+    </form>
+</div>
+
+<!-- RESULTS -->
+@if (Model.SimulationResult != null)
+{
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-bar-chart-line" style="color:#10b981;font-size:1.3rem;"></i> Results: @Model.SimulationResult.ScenarioName
+        </p>
+        <div class="results-grid">
+            <div class="result-tile" style="border-top:3px solid #3b82f6;">
+                <div class="r-label">Total Revenue</div>
+                <div class="r-value">₱@Model.SimulationResult.TotalProjectedRevenue.ToString("N0")</div>
+            </div>
+            <div class="result-tile" style="border-top:3px solid #10b981;">
+                <div class="r-label">Total Profit</div>
+                <div class="r-value" style="color:@(Model.SimulationResult.TotalProjectedProfit >= 0 ? "#34d399" : "#fca5a5");">₱@Model.SimulationResult.TotalProjectedProfit.ToString("N0")</div>
+            </div>
+            <div class="result-tile" style="border-top:3px solid #f59e0b;">
+                <div class="r-label">Avg Margin</div>
+                <div class="r-value">@Model.SimulationResult.AverageMargin.ToString("F1")%</div>
+            </div>
+            <div class="result-tile" style="border-top:3px solid #8b5cf6;">
+                <div class="r-label">ROI</div>
+                <div class="r-value">@Model.SimulationResult.ROI.ToString("F1")%</div>
+            </div>
+        </div>
+
+        <!-- Monthly Projections Table -->
+        <p class="section-title" style="margin-top:0.5rem;">
+            <i class="bi bi-table" style="color:#8b5cf6;font-size:1.2rem;"></i> Monthly Projections
+        </p>
+        <div class="dark-table-wrap">
+            <table class="dark-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Revenue</th>
+                        <th>COGS</th>
+                        <th>Op. Expenses</th>
+                        <th>Profit</th>
+                        <th>Margin %</th>
+                        <th>Cumulative</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var proj in Model.SimulationResult.Projections)
+                    {
+                        <tr class="@(proj.ProjectedProfit < 0 ? "loss" : "")">
+                            <td style="color:#94a3b8;font-weight:600;">Month @proj.Month</td>
+                            <td>₱@proj.ProjectedRevenue.ToString("N0")</td>
+                            <td>₱@proj.ProjectedCOGS.ToString("N0")</td>
+                            <td>₱@proj.ProjectedOpEx.ToString("N0")</td>
+                            <td class="@(proj.ProjectedProfit < 0 ? "negative" : "positive")">₱@proj.ProjectedProfit.ToString("N0")</td>
+                            <td>@proj.ProfitMargin.ToString("F1")%</td>
+                            <td><strong style="color:#f1f5f9;">₱@proj.CumulativeProfit.ToString("N0")</strong></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-graph-up" style="color:#3b82f6;font-size:1.3rem;"></i> Profit Projection Chart
+        </p>
+        <div class="chart-wrap">
+            <canvas id="profitChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Sensitivity Analysis -->
+    @if (Model.SensitivityAnalysis.Any())
+    {
+        <div class="dark-card">
+            <p class="section-title">
+                <i class="bi bi-activity" style="color:#f59e0b;font-size:1.3rem;"></i> Sensitivity Analysis
+            </p>
+            <p style="color:#64748b;font-size:0.875rem;margin:-0.5rem 0 1.25rem;">How sensitive is profit to changes in key variables?</p>
+            <div class="sensitivity-grid">
+                @foreach (var sens in Model.SensitivityAnalysis)
+                {
+                    <div class="sens-card">
+                        <h5>@sens.Variable</h5>
+                        <div class="sens-value">₱@sens.ImpactOnProfit.ToString("N0")</div>
+                        <div class="sens-unit">per ±10% change</div>
+                        <span class="sens-badge @(Math.Abs(sens.ImpactPercentage) > 20 ? "high" : "medium")">
+                            @Math.Abs(sens.ImpactPercentage).ToString("F1")% impact
+                        </span>
+                    </div>
+                }
+            </div>
+            <div style="display:flex;align-items:start;gap:0.75rem;padding:1rem;background:#0f172a;border:1px solid #334155;border-radius:8px;border-left:3px solid #f59e0b;">
+                <i class="bi bi-lightbulb-fill" style="color:#f59e0b;font-size:1.1rem;flex-shrink:0;margin-top:2px;"></i>
+                <p style="margin:0;color:#94a3b8;font-size:0.875rem;line-height:1.6;">The variable with the highest impact percentage is your most critical lever for profit optimization.</p>
+            </div>
+        </div>
+    }
+
+    <!-- Save Scenario -->
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-bookmark-plus" style="color:#10b981;font-size:1.3rem;"></i> Save This Scenario
+        </p>
+        <form method="post" action="@Url.Action("SaveScenario", "ExecutiveDashboard")">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="baselineRevenue" value="@Model.BaselineMonthlyRevenue" />
+            <input type="hidden" name="revenueGrowth"   value="@Model.RevenueGrowthPercent" />
+            <input type="hidden" name="expenseGrowth"   value="@Model.ExpenseGrowthPercent" />
+            <input type="hidden" name="cogsPercent"     value="@Model.CogsPercent" />
+            <input type="hidden" name="months"          value="@Model.SimulationMonths" />
+            <div class="form-grid" style="margin-bottom:1.5rem;">
+                <div>
+                    <label class="form-label" for="scenarioName">Scenario Name</label>
+                    <input type="text" id="scenarioName" name="scenarioName" placeholder="e.g., Optimistic Growth..." required class="dark-input" />
+                </div>
+                <div>
+                    <label class="form-label" for="description">Description</label>
+                    <textarea id="description" name="description" placeholder="Optional notes about this scenario..." rows="3" class="dark-input" style="resize:vertical;"></textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn-save">
+                <i class="bi bi-save-fill"></i> Save Scenario
+            </button>
+        </form>
+    </div>
+}
+
+<!-- SAVED SCENARIOS -->
+@if (Model.SavedScenarios.Any())
+{
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-collection" style="color:#8b5cf6;font-size:1.3rem;"></i> Saved Scenarios
+        </p>
+        <div class="scenarios-grid">
+            @foreach (var scenario in Model.SavedScenarios.OrderByDescending(s => s.CreatedAt).Take(6))
+            {
+                <div class="scenario-card">
+                    <h5>@scenario.ScenarioName</h5>
+                    @if (!string.IsNullOrEmpty(scenario.Description))
+                    {
+                        <p class="s-desc">@scenario.Description</p>
+                    }
+                    <div class="s-params">
+                        <small><span style="color:#3b82f6;">↑</span> Revenue Growth: <strong style="color:#f1f5f9;">@scenario.RevenueGrowthPercent%</strong></small>
+                        <small><span style="color:#f59e0b;">↑</span> Expense Growth: <strong style="color:#f1f5f9;">@scenario.ExpenseIncreasePercent%</strong></small>
+                        <small><span style="color:#94a3b8;">⏱</span> Period: <strong style="color:#f1f5f9;">@scenario.SimulationMonths months</strong></small>
+                    </div>
+                    <p class="s-date">@scenario.CreatedAt.ToString("MMM dd, yyyy")</p>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        @if (Model.SimulationResult != null && Model.SimulationResult.Projections.Any())
+        {
+            <text>
+            const projections = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                Model.SimulationResult.Projections.Select(p => new {
+                    month = p.Month,
+                    profit = p.ProjectedProfit,
+                    cumulative = p.CumulativeProfit
+                }).ToList()
+            ));
+
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: projections.map(p => 'M' + p.month),
+                    datasets: [
+                        {
+                            label: 'Monthly Profit',
+                            data: projections.map(p => p.profit),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.08)',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#3b82f6',
+                            pointRadius: 4,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Cumulative Profit',
+                            data: projections.map(p => p.cumulative),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16,185,129,0.08)',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#10b981',
+                            pointRadius: 4,
+                            tension: 0.4,
+                            yAxisID: 'y1',
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#94a3b8', usePointStyle: true, padding: 20 }
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            titleColor: '#f1f5f9',
+                            bodyColor: '#94a3b8',
+                            callbacks: {
+                                label: ctx => ctx.dataset.label + ': ₱' + ctx.parsed.y.toLocaleString()
+                            }
+                        }
+                    },
+                    scales: {
+                        x:  { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+                        y:  { position: 'left',  ticks: { color: '#64748b', callback: v => '₱' + v.toLocaleString() }, grid: { color: '#1e293b' } },
+                        y1: { position: 'right', ticks: { color: '#64748b', callback: v => '₱' + v.toLocaleString() }, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+            </text>
+        }
+    </script>
+}

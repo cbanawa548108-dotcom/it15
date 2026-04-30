@@ -1,0 +1,107 @@
+@model CRLFruitstandESS.Models.ViewModels.BudgetViewModel
+@{ ViewData["Title"] = "Budget Planning"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+
+<div class="dash-header">
+    <div>
+        <span class="dash-label">Finance</span>
+        <h1 class="dash-title">Budget Planning</h1>
+    </div>
+    <a href="/CfoDashboard/AddBudget" class="btn-primary">+ Create Budget</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert-success">✅ @TempData["Success"]</div> }
+
+<!-- Month/Year Filter -->
+<div class="cfo-card" style="margin-bottom:1.5rem;">
+    <div class="cfo-card-body">
+        <form method="get" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+
+            @{
+                // FIX CS1526: Month names pre-computed — new DateTime() inside option attributes causes parse errors
+                var monthNames = new System.Globalization.DateTimeFormatInfo().MonthNames;
+            }
+
+            <select name="month" class="form-input" style="width:auto;">
+                @for (int m = 1; m <= 12; m++)
+                {
+                    if (Model.FilterMonth == m)
+                    {
+                        <option value="@m" selected="selected">@monthNames[m - 1]</option>
+                    }
+                    else
+                    {
+                        <option value="@m">@monthNames[m - 1]</option>
+                    }
+                }
+            </select>
+
+            <select name="year" class="form-input" style="width:auto;">
+                @for (int y = DateTime.Today.Year; y >= DateTime.Today.Year - 3; y--)
+                {
+                    if (Model.FilterYear == y)
+                    {
+                        <option value="@y" selected="selected">@y</option>
+                    }
+                    else
+                    {
+                        <option value="@y">@y</option>
+                    }
+                }
+            </select>
+
+            <button type="submit" class="btn-primary" style="padding:.5rem 1.2rem;">Filter</button>
+
+            <div style="margin-left:auto;display:flex;gap:1.5rem;font-size:.88rem;">
+                <span>Allocated: <strong style="color:var(--sky);">₱@Model.TotalAllocated.ToString("N2")</strong></span>
+                <span>Spent: <strong class="text-loss">₱@Model.TotalSpent.ToString("N2")</strong></span>
+                <span>Remaining: <strong class="text-profit">₱@Model.TotalRemaining.ToString("N2")</strong></span>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="cfo-card">
+    <div class="cfo-card-body">
+        @if (!Model.Budgets.Any())
+        {
+            <p style="text-align:center;color:var(--text-muted);padding:2rem;">No budgets set for this period.</p>
+        }
+        else
+        {
+            <table class="cfo-table">
+                <thead>
+                    <tr><th>Category</th><th>Title</th><th>Allocated</th><th>Spent</th><th>Remaining</th><th>Utilization</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in Model.Budgets)
+                    {
+                        <tr>
+                            <td><span class="badge badge-blue">@b.Category</span></td>
+                            <td><strong>@b.Title</strong></td>
+                            <td>₱@b.AllocatedAmount.ToString("N2")</td>
+                            <td class="text-loss">₱@b.SpentAmount.ToString("N2")</td>
+                            <td class="@(b.RemainingAmount >= 0 ? "text-profit" : "text-loss")">₱@b.RemainingAmount.ToString("N2")</td>
+                            <td style="min-width:140px;">
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill @(b.UtilizationPercent > 90 ? "fill-red" : b.UtilizationPercent > 70 ? "fill-gold" : "fill-green")"
+                                         style="width:@(Math.Min(b.UtilizationPercent, 100))%"></div>
+                                </div>
+                                <span style="font-size:.75rem;color:var(--text-muted);">@b.UtilizationPercent.ToString("N1")%</span>
+                            </td>
+                            <td>
+                                <div style="display:flex;gap:6px;">
+                                    <a href="/CfoDashboard/EditBudget/@b.Id" class="tbl-btn tbl-edit">Edit</a>
+                                    <form method="post" action="/CfoDashboard/DeleteBudget/@b.Id"
+                                          onsubmit="return confirm('Delete this budget?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="tbl-btn tbl-delete">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

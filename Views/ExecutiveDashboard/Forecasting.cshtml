@@ -1,0 +1,443 @@
+@using CRLFruitstandESS.Models.ViewModels
+@using CRLFruitstandESS.Services
+@model ForecastingViewModel
+@{
+    ViewData["Title"] = "Sales Forecasting";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+
+    var primary = Model.PrimaryForecast;
+    var ma      = Model.MovingAverageForecast;
+    var exp     = Model.ExponentialSmoothingForecast;
+
+    decimal primaryAvg   = primary?.Forecast.Any() == true ? primary.Forecast.Average(f => f.ForecastedValue) : 0;
+    decimal primaryTotal = primary?.Forecast.Sum(f => f.ForecastedValue) ?? 0;
+    double  primaryMape  = primary?.MAPE ?? 0;
+    double  confidence   = (primary?.Forecast.FirstOrDefault()?.Confidence ?? 0.0) * 100.0;
+
+    decimal maAvg  = ma?.Forecast.Any()  == true ? ma.Forecast.Average(f => f.ForecastedValue)  : 0;
+    decimal expAvg = exp?.Forecast.Any() == true ? exp.Forecast.Average(f => f.ForecastedValue) : 0;
+}
+
+@section Styles {
+<style>
+.page-content { background:#0f172a !important; min-height:100vh; }
+
+.fc-header {
+    background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);
+    border:1px solid #334155; border-radius:14px;
+    padding:2.5rem 2rem; margin-bottom:2rem;
+    position:relative; overflow:hidden;
+}
+.fc-header::before {
+    content:''; position:absolute; top:-60px; right:-60px;
+    width:320px; height:320px;
+    background:radial-gradient(circle,rgba(99,102,241,.12) 0%,transparent 70%);
+    border-radius:50%; pointer-events:none;
+}
+.fc-header > div { position:relative; z-index:1; }
+
+.dark-card {
+    background:#1e293b; border:1px solid #334155;
+    border-radius:14px; padding:1.75rem; margin-bottom:1.5rem;
+    transition:border-color .25s;
+}
+.dark-card:hover { border-color:#475569; }
+
+.section-title {
+    font-size:1rem; font-weight:700; color:#f1f5f9;
+    display:flex; align-items:center; gap:.6rem; margin:0 0 1.5rem;
+}
+
+/* ── Method cards ── */
+.method-grid {
+    display:grid; grid-template-columns:2fr 1fr 1fr; gap:1.25rem; margin-bottom:1.5rem;
+}
+@@media(max-width:900px){ .method-grid{ grid-template-columns:1fr; } }
+
+.method-card {
+    background:#0f172a; border:1px solid #334155; border-radius:12px;
+    padding:1.5rem; transition:border-color .2s;
+}
+.method-card:hover { border-color:#6366f1; }
+.method-card.primary { border-top:3px solid #6366f1; }
+.method-card.secondary { border-top:3px solid #334155; }
+
+.mc-label { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:#475569; margin-bottom:.4rem; }
+.mc-value { font-size:1.75rem; font-weight:800; color:#f1f5f9; line-height:1; margin-bottom:.25rem; }
+.mc-sub   { font-size:.78rem; color:#64748b; }
+.mc-method { font-size:.78rem; color:#6366f1; font-weight:600; margin-bottom:1.25rem; }
+
+.metric-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1.25rem; }
+.metric-box { background:#1e293b; border-radius:8px; padding:.875rem 1rem; }
+
+.accuracy-bar { height:6px; background:#1e293b; border-radius:3px; overflow:hidden; margin-top:.4rem; }
+.accuracy-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,#6366f1,#8b5cf6); transition:width .5s ease; }
+
+/* ── Chart wrap ── */
+.chart-wrap {
+    background:#0f172a; border:1px solid #334155;
+    border-radius:10px; padding:1.5rem;
+}
+
+/* ── Forecast table ── */
+.fc-table { width:100%; border-collapse:collapse; font-size:.875rem; }
+.fc-table thead tr { background:#0f172a; }
+.fc-table thead th { padding:.875rem 1rem; text-align:left; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#475569; border-bottom:1px solid #334155; }
+.fc-table tbody tr { border-bottom:1px solid #1e293b; transition:background .15s; }
+.fc-table tbody tr:hover { background:#0f172a; }
+.fc-table tbody td { padding:.75rem 1rem; color:#cbd5e1; }
+
+/* ── Insight box ── */
+.insight-box {
+    display:flex; align-items:start; gap:1rem;
+    padding:1.25rem; background:#0f172a;
+    border:1px solid #334155; border-left:3px solid #6366f1;
+    border-radius:8px; margin-bottom:1.5rem;
+}
+.insight-box i { color:#6366f1; font-size:1.25rem; flex-shrink:0; margin-top:2px; }
+.insight-box p { margin:0; color:#94a3b8; font-size:.9rem; line-height:1.6; }
+
+/* ── Rec cards ── */
+.rec-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.25rem; }
+.rec-card {
+    background:#0f172a; border:1px solid #334155; border-radius:10px;
+    padding:1.25rem; transition:border-color .2s;
+}
+.rec-card:hover { border-color:#6366f1; }
+.rec-card i { font-size:1.5rem; color:#6366f1; display:block; margin-bottom:.75rem; }
+.rec-card h5 { margin:0 0 .5rem; color:#f1f5f9; font-size:.9rem; font-weight:700; }
+.rec-card p  { margin:0; color:#64748b; font-size:.82rem; line-height:1.6; }
+
+/* ── No data ── */
+.no-data {
+    text-align:center; padding:4rem 2rem;
+    background:#1e293b; border:1px solid #334155; border-radius:14px;
+}
+.no-data i { font-size:3rem; color:#334155; display:block; margin-bottom:1rem; }
+.no-data h3 { color:#f1f5f9; margin:0 0 .5rem; }
+.no-data p  { color:#64748b; margin:0; }
+</style>
+}
+
+<!-- HEADER -->
+<div class="fc-header">
+    <div>
+        <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#6366f1;display:block;margin-bottom:.5rem;">Predictive Analytics</span>
+        <h1 style="font-size:2.25rem;font-weight:800;margin:0 0 .5rem;color:#f1f5f9;">Sales Forecasting</h1>
+        <p style="margin:0;font-size:.95rem;color:#94a3b8;">30-day revenue forecast based on <strong style="color:#e2e8f0;">@Model.HistoricalDays-day</strong> historical analysis &mdash; Generated @Model.GeneratedAt.ToString("MMM dd, yyyy h:mm tt")</p>
+    </div>
+</div>
+
+@if (primary != null && primary.Forecast.Any())
+{
+    <!-- METHOD COMPARISON CARDS -->
+    <div class="method-grid">
+        <!-- Primary -->
+        <div class="method-card primary">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
+                <span style="font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#6366f1;">Primary Forecast</span>
+                <span style="padding:.2rem .65rem;border-radius:999px;background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3);font-size:.68rem;font-weight:700;">RECOMMENDED</span>
+            </div>
+            <div class="mc-method">@primary.Method</div>
+            <div class="mc-label">Avg Daily Revenue</div>
+            <div class="mc-value">₱@primaryAvg.ToString("N0")</div>
+            <div class="mc-sub" style="margin-bottom:1rem;">Total 30-day: <strong style="color:#f1f5f9;">₱@primaryTotal.ToString("N0")</strong></div>
+            <div class="metric-row">
+                <div class="metric-box">
+                    <div class="mc-label">MAPE</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:@(primaryMape < 20 ? "#34d399" : primaryMape < 40 ? "#fbbf24" : "#fca5a5");">@primaryMape.ToString("F1")%</div>
+                    <div class="accuracy-bar"><div class="accuracy-fill" style="width:@Math.Min(100, 100 - primaryMape).ToString("F0")%;"></div></div>
+                </div>
+                <div class="metric-box">
+                    <div class="mc-label">Confidence</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:#a5b4fc;">@confidence.ToString("F0")%</div>
+                    <div class="accuracy-bar"><div class="accuracy-fill" style="width:@confidence.ToString("F0")%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Moving Average -->
+        @if (ma != null) {
+        <div class="method-card secondary">
+            <div style="font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:.5rem;">Moving Average</div>
+            <div class="mc-method" style="color:#94a3b8;">7-day window</div>
+            <div class="mc-label">Avg Daily</div>
+            <div class="mc-value" style="font-size:1.4rem;">₱@maAvg.ToString("N0")</div>
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #334155;">
+                <div class="mc-label">MAPE</div>
+                <div style="font-size:1.1rem;font-weight:700;color:@(ma.MAPE < 20 ? "#34d399" : ma.MAPE < 40 ? "#fbbf24" : "#fca5a5");">@ma.MAPE.ToString("F1")%</div>
+            </div>
+        </div>
+        }
+
+        <!-- Exponential Smoothing -->
+        @if (exp != null) {
+        <div class="method-card secondary">
+            <div style="font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:.5rem;">Exp. Smoothing</div>
+            <div class="mc-method" style="color:#94a3b8;">α = 0.3</div>
+            <div class="mc-label">Avg Daily</div>
+            <div class="mc-value" style="font-size:1.4rem;">₱@expAvg.ToString("N0")</div>
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #334155;">
+                <div class="mc-label">MAPE</div>
+                <div style="font-size:1.1rem;font-weight:700;color:@(exp.MAPE < 20 ? "#34d399" : exp.MAPE < 40 ? "#fbbf24" : "#fca5a5");">@exp.MAPE.ToString("F1")%</div>
+            </div>
+        </div>
+        }
+    </div>
+
+    <!-- INSIGHT -->
+    @if (!string.IsNullOrEmpty(primary.Insights)) {
+    <div class="insight-box">
+        <i class="bi bi-lightbulb-fill"></i>
+        <p><strong style="color:#f1f5f9;">Forecast Insight:</strong> @primary.Insights</p>
+    </div>
+    }
+
+    <!-- CHART -->
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-graph-up-arrow" style="color:#6366f1;font-size:1.2rem;"></i>
+            Historical Revenue &amp; 30-Day Forecast
+        </p>
+        <div class="chart-wrap">
+            <canvas id="forecastChart" height="90"></canvas>
+        </div>
+    </div>
+
+    <!-- FORECAST TABLE -->
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-table" style="color:#8b5cf6;font-size:1.2rem;"></i>
+            Forecast Detail — Next 15 Days
+        </p>
+        <div style="overflow-x:auto;border-radius:10px;border:1px solid #334155;">
+            <table class="fc-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Lower Bound</th>
+                        <th>Forecast</th>
+                        <th>Upper Bound</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var pt in primary.Forecast.Take(15))
+                    {
+                        var ptConf = pt.Confidence * 100.0;
+                        <tr>
+                            <td style="color:#94a3b8;font-weight:600;">@pt.Date.ToString("MMM dd, yyyy")</td>
+                            <td style="color:#64748b;">₱@pt.LowerBound.ToString("N0")</td>
+                            <td style="color:#f1f5f9;font-weight:700;">₱@pt.ForecastedValue.ToString("N0")</td>
+                            <td style="color:#64748b;">₱@pt.UpperBound.ToString("N0")</td>
+                            <td>
+                                <span style="padding:.2rem .65rem;border-radius:999px;background:rgba(99,102,241,.12);color:#a5b4fc;border:1px solid rgba(99,102,241,.25);font-size:.72rem;font-weight:700;">@ptConf.ToString("F0")%</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PRODUCT DEMAND FORECAST -->
+    @if (Model.ProductDemandForecasts.Any())
+    {
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-box-seam-fill" style="color:#f59e0b;font-size:1.2rem;"></i>
+            Product Demand Forecast — Next 7 Days
+            <span style="margin-left:auto;font-size:.75rem;font-weight:600;color:#475569;">Based on last 15 days of sales</span>
+        </p>
+        <div style="overflow-x:auto;border-radius:10px;border:1px solid #334155;">
+            <table class="fc-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Sold (15d)</th>
+                        <th>Daily Avg</th>
+                        <th>Projected Qty (7d)</th>
+                        <th>Projected Revenue</th>
+                        <th>Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.ProductDemandForecasts)
+                    {
+                        var trendColor = p.Trend == "up" ? "#34d399" : p.Trend == "down" ? "#fca5a5" : "#94a3b8";
+                        var trendIcon  = p.Trend == "up" ? "bi-arrow-up-short" : p.Trend == "down" ? "bi-arrow-down-short" : "bi-dash";
+                        var trendBg    = p.Trend == "up" ? "rgba(16,185,129,.12)" : p.Trend == "down" ? "rgba(239,68,68,.12)" : "rgba(100,116,139,.12)";
+                        var trendBorder= p.Trend == "up" ? "rgba(16,185,129,.3)" : p.Trend == "down" ? "rgba(239,68,68,.3)" : "rgba(100,116,139,.3)";
+                        <tr>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:.75rem;">
+                                    <span style="font-size:1.4rem;">@p.Emoji</span>
+                                    <span style="font-weight:600;color:#f1f5f9;">@p.ProductName</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="padding:.2rem .65rem;border-radius:999px;background:rgba(99,102,241,.12);color:#a5b4fc;border:1px solid rgba(99,102,241,.25);font-size:.7rem;font-weight:700;">@p.Category</span>
+                            </td>
+                            <td style="color:#94a3b8;font-weight:600;">@p.TotalQty15Days units</td>
+                            <td style="color:#94a3b8;">@p.DailyAvgQty.ToString("F1")/day</td>
+                            <td style="color:#f1f5f9;font-weight:700;font-size:1.05rem;">@p.ProjectedQty7Days units</td>
+                            <td style="color:#34d399;font-weight:700;">₱@p.ProjectedRevenue7Days.ToString("N0")</td>
+                            <td>
+                                <span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .75rem;border-radius:999px;background:@trendBg;color:@trendColor;border:1px solid @trendBorder;font-size:.75rem;font-weight:700;">
+                                    <i class="bi @trendIcon"></i>
+                                    @if (p.Trend == "stable") { <text>Stable</text> }
+                                    else { <text>@(p.GrowthRate > 0 ? "+" : "")@p.GrowthRate.ToString("F0")%</text> }
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p style="margin:1rem 0 0;font-size:.78rem;color:#334155;"><i class="bi bi-info-circle" style="margin-right:.4rem;"></i>Projections based on daily average from the last 15 days. Trend shows week-over-week change.</p>
+    </div>
+    }
+
+    <!-- RECOMMENDATIONS -->
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-lightbulb" style="color:#f59e0b;font-size:1.2rem;"></i>
+            Strategic Recommendations
+        </p>
+        <div class="rec-grid">
+            <div class="rec-card">
+                <i class="bi bi-people-fill" style="color:#6366f1;"></i>
+                <h5>Resource Planning</h5>
+                <p>Allocate staff and inventory based on forecasted revenue peaks to optimize operational efficiency.</p>
+            </div>
+            <div class="rec-card">
+                <i class="bi bi-cash-stack" style="color:#10b981;"></i>
+                <h5>Cash Flow Management</h5>
+                <p>Use confidence intervals to plan cash reserves and manage working capital requirements.</p>
+            </div>
+            <div class="rec-card">
+                <i class="bi bi-shield-exclamation" style="color:#ef4444;"></i>
+                <h5>Risk Mitigation</h5>
+                <p>Monitor forecast accuracy weekly. Adjust strategies if actual revenue deviates by more than 15%.</p>
+            </div>
+            <div class="rec-card">
+                <i class="bi bi-bullseye" style="color:#f59e0b;"></i>
+                <h5>Sales Target Setting</h5>
+                <p>Set realistic targets aligned with forecast projections for better team performance tracking.</p>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="no-data">
+        <i class="bi bi-bar-chart-line"></i>
+        <h3>Insufficient Data</h3>
+        <p>We need at least 7 days of historical revenue data to generate forecasts. Please check back later.</p>
+    </div>
+}
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+@if (primary != null && primary.Forecast.Any())
+{
+    <text>
+Chart.defaults.color = '#475569';
+Chart.defaults.borderColor = 'rgba(255,255,255,.04)';
+
+const hist = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    Model.HistoricalData.Select(d => new { label = d.Label, value = d.Value }).ToList()
+));
+const fc = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    primary.Forecast.Select(f => new { label = f.Date.ToString("MMM dd"), value = f.ForecastedValue, lower = f.LowerBound, upper = f.UpperBound }).ToList()
+));
+
+const allLabels = [...hist.map(d=>d.label), ...fc.map(d=>d.label)];
+const histData  = [...hist.map(d=>d.value), ...Array(fc.length).fill(null)];
+const fcData    = [...Array(hist.length).fill(null), ...fc.map(d=>d.value)];
+const lowerData = [...Array(hist.length).fill(null), ...fc.map(d=>d.lower)];
+const upperData = [...Array(hist.length).fill(null), ...fc.map(d=>d.upper)];
+
+const ctx = document.getElementById('forecastChart').getContext('2d');
+
+function grad(c1, c2) {
+    const g = ctx.createLinearGradient(0,0,0,400);
+    g.addColorStop(0, c1); g.addColorStop(1, c2); return g;
+}
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: allLabels,
+        datasets: [
+            {
+                label: 'Historical Revenue',
+                data: histData,
+                borderColor: '#6366f1',
+                backgroundColor: grad('rgba(99,102,241,.18)','rgba(99,102,241,0)'),
+                borderWidth: 2, pointRadius: 0, pointHoverRadius: 5,
+                tension: .4, fill: true
+            },
+            {
+                label: 'Forecast',
+                data: fcData,
+                borderColor: '#10b981',
+                backgroundColor: grad('rgba(16,185,129,.12)','rgba(16,185,129,0)'),
+                borderWidth: 2, borderDash: [6,4],
+                pointRadius: 0, pointHoverRadius: 5,
+                tension: .4, fill: true
+            },
+            {
+                label: 'Upper Bound',
+                data: upperData,
+                borderColor: 'rgba(16,185,129,.25)',
+                backgroundColor: 'transparent',
+                borderWidth: 1, borderDash: [3,3],
+                pointRadius: 0, tension: .4
+            },
+            {
+                label: 'Lower Bound',
+                data: lowerData,
+                borderColor: 'rgba(16,185,129,.25)',
+                backgroundColor: 'rgba(16,185,129,.05)',
+                borderWidth: 1, borderDash: [3,3],
+                pointRadius: 0, tension: .4, fill: '-1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { labels: { color: '#64748b', usePointStyle: true, padding: 20 } },
+            tooltip: {
+                backgroundColor: '#0d1526',
+                borderColor: 'rgba(99,102,241,.3)',
+                borderWidth: 1,
+                titleColor: '#f1f5f9',
+                bodyColor: '#94a3b8',
+                padding: 12,
+                callbacks: { label: c => ' ' + c.dataset.label + ': ₱' + Number(c.parsed.y).toLocaleString() }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: '#334155', maxTicksLimit: 16 },
+                grid: { color: 'rgba(255,255,255,.03)' }
+            },
+            y: {
+                ticks: {
+                    color: '#334155',
+                    callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
+                },
+                grid: { color: 'rgba(255,255,255,.03)' }
+            }
+        }
+    }
+});
+    </text>
+}
+</script>
+}

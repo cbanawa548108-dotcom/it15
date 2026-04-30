@@ -9,6 +9,8 @@ namespace CRLFruitstandESS.Models.ViewModels
 
         public string? ProductName { get; set; }
 
+        public int? SupplierId { get; set; }
+
         public int CurrentStock { get; set; }
 
         [Required]

@@ -1,0 +1,68 @@
+@using CRLFruitstandESS.Models
+@model List<(ApplicationRole Role, int UserCount)>
+@{ ViewData["Title"] = "Roles & Permissions"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#060d1a!important;min-height:100vh}
+.adm-header{background:linear-gradient(135deg,#0f2044,#0a1628);border:1px solid #1e3a6e;padding:2.5rem 2rem;border-radius:14px;margin-bottom:2rem}
+.blue-card{background:#0d1f3c;border:1px solid #1e3a6e;border-radius:14px;padding:1.75rem;margin-bottom:1.5rem}
+.dark-input{padding:.75rem 1rem;background:#060d1a;border:1px solid #1e3a6e;border-radius:8px;color:#e2e8f0;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s}
+.dark-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+.btn-blue{display:inline-flex;align-items:center;gap:.5rem;padding:.65rem 1.5rem;background:#2563eb;color:white;border:none;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer;transition:all .2s;outline:none}
+.btn-blue:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 16px rgba(37,99,235,.4)}
+.btn-danger{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;outline:none}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.role-card{background:#060d1a;border:1px solid #1e3a6e;border-radius:10px;padding:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem;transition:border-color .2s}
+.role-card:hover{border-color:#3b82f6}
+.roles-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem}
+</style>
+}
+<div class="adm-header">
+    <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#3b82f6;display:block;margin-bottom:.5rem;">Administration</span>
+    <h1 style="font-size:2rem;font-weight:800;margin:0 0 .4rem;color:#f1f5f9;">Roles &amp; Permissions</h1>
+    <p style="margin:0;font-size:.9rem;color:#475569;">Manage system roles and their user assignments</p>
+</div>
+@if (TempData["Success"] != null) { <div style="padding:1rem 1.5rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;color:#34d399;margin-bottom:1.5rem;font-weight:600;">✓ @TempData["Success"]</div> }
+@if (TempData["Error"]   != null) { <div style="padding:1rem 1.5rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#fca5a5;margin-bottom:1.5rem;font-weight:600;">✕ @TempData["Error"]</div> }
+
+<!-- Create Role -->
+<div class="blue-card">
+    <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;display:flex;align-items:center;gap:.6rem;"><i class="bi bi-plus-circle" style="color:#3b82f6;"></i> Create New Role</p>
+    <form method="post" action="/Admin/CreateRole" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+        @Html.AntiForgeryToken()
+        <div style="flex:1;min-width:180px;">
+            <label style="display:block;margin-bottom:.4rem;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#475569;">Role Name</label>
+            <input name="roleName" class="dark-input" placeholder="e.g. Supervisor" style="width:100%;box-sizing:border-box;" required/>
+        </div>
+        <div style="flex:2;min-width:220px;">
+            <label style="display:block;margin-bottom:.4rem;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#475569;">Description</label>
+            <input name="description" class="dark-input" placeholder="Role description" style="width:100%;box-sizing:border-box;"/>
+        </div>
+        <button type="submit" class="btn-blue"><i class="bi bi-shield-plus"></i> Create Role</button>
+    </form>
+</div>
+
+<!-- Existing Roles -->
+<div class="blue-card">
+    <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;display:flex;align-items:center;gap:.6rem;"><i class="bi bi-shield-fill" style="color:#8b5cf6;"></i> Existing Roles (@Model.Count)</p>
+    <div class="roles-grid">
+        @foreach (var (role, count) in Model) {
+            <div class="role-card">
+                <div>
+                    <div style="font-weight:700;color:#f1f5f9;margin-bottom:.3rem;">@role.Name</div>
+                    <div style="font-size:.8rem;color:#475569;">@(string.IsNullOrEmpty(role.Description) ? "No description" : role.Description)</div>
+                    <div style="font-size:.78rem;color:#3b82f6;margin-top:.3rem;font-weight:600;">@count user@(count!=1?"s":"")</div>
+                </div>
+                @if (count == 0) {
+                    <form method="post" action="/Admin/DeleteRole" onsubmit="return confirm('Delete role @role.Name?')">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@role.Id"/>
+                        <button type="submit" class="btn-danger"><i class="bi bi-trash"></i> Delete</button>
+                    </form>
+                } else {
+                    <span style="font-size:.75rem;color:#334155;font-style:italic;">In use</span>
+                }
+            </div>
+        }
+    </div>
+</div>

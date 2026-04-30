@@ -1,0 +1,70 @@
+@using CRLFruitstandESS.Models
+@model List<Inventory>
+@{ ViewData["Title"] = "Inventory Management"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#060d1a!important;min-height:100vh}
+.adm-header{background:linear-gradient(135deg,#0f2044,#0a1628);border:1px solid #1e3a6e;padding:2.5rem 2rem;border-radius:14px;margin-bottom:2rem}
+.blue-card{background:#0d1f3c;border:1px solid #1e3a6e;border-radius:14px;padding:1.75rem;margin-bottom:1.5rem}
+.btn-blue{display:inline-flex;align-items:center;gap:.5rem;padding:.65rem 1.25rem;background:#2563eb;color:white;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s;outline:none}
+.btn-blue:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 16px rgba(37,99,235,.4)}
+.filter-btn{padding:.5rem 1rem;border-radius:8px;font-size:.78rem;font-weight:700;border:1px solid #1e3a6e;background:#060d1a;color:#475569;cursor:pointer;text-decoration:none;transition:all .2s}
+.filter-btn.active,.filter-btn:hover{border-color:#3b82f6;color:#93c5fd;background:#0d1f3c}
+.adm-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.adm-table thead tr{background:#060d1a}
+.adm-table thead th{padding:.875rem 1rem;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#334155;border-bottom:1px solid #1e3a6e}
+.adm-table tbody tr{border-bottom:1px solid #0d1f3c;transition:background .15s}
+.adm-table tbody tr:hover{background:#0d1f3c}
+.adm-table tbody td{padding:.875rem 1rem;color:#cbd5e1}
+.stock-bar-track{height:6px;background:#060d1a;border-radius:3px;overflow:hidden;margin-top:.4rem;width:100px}
+.stock-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+</style>
+}
+<div class="adm-header">
+    <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#3b82f6;display:block;margin-bottom:.5rem;">Administration</span>
+    <h1 style="font-size:2rem;font-weight:800;margin:0 0 .4rem;color:#f1f5f9;">Inventory Management</h1>
+    <p style="margin:0;font-size:.9rem;color:#475569;">Monitor stock levels and perform stock adjustments</p>
+</div>
+@if (TempData["Success"] != null) { <div style="padding:1rem 1.5rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;color:#34d399;margin-bottom:1.5rem;font-weight:600;">✓ @TempData["Success"]</div> }
+
+<div class="blue-card">
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <a href="/Admin/InventoryManagement" class="filter-btn @(ViewBag.Filter=="all"?"active":"")">All (@Model.Count)</a>
+        <a href="/Admin/InventoryManagement?filter=low" class="filter-btn @(ViewBag.Filter=="low"?"active":"")">Low Stock</a>
+        <a href="/Admin/InventoryManagement?filter=critical" class="filter-btn @(ViewBag.Filter=="critical"?"active":"")">Out of Stock</a>
+    </div>
+</div>
+
+<div class="blue-card">
+    <div style="overflow-x:auto;border-radius:10px;border:1px solid #1e3a6e;">
+        <table class="adm-table">
+            <thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Reorder Point</th><th>Location</th><th>Last Updated</th><th>Action</th></tr></thead>
+            <tbody>
+                @if (!Model.Any()) { <tr><td colspan="7" style="text-align:center;color:#334155;padding:3rem;">No inventory items.</td></tr> }
+                @foreach (var inv in Model) {
+                    var pct = inv.MaxStockLevel > 0 ? (double)inv.Quantity / inv.MaxStockLevel * 100 : 0;
+                    var color = inv.Quantity == 0 ? "#ef4444" : inv.Quantity <= inv.ReorderPoint ? "#f59e0b" : "#10b981";
+                    <tr>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:.75rem;">
+                                <span style="font-size:1.4rem;">@(inv.Product?.Emoji ?? "📦")</span>
+                                <span style="font-weight:600;color:#f1f5f9;">@inv.Product?.Name</span>
+                            </div>
+                        </td>
+                        <td style="color:#94a3b8;">@inv.Product?.Category</td>
+                        <td>
+                            <div style="font-weight:800;color:@color;font-size:1.1rem;">@inv.Quantity</div>
+                            <div class="stock-bar-track"><div class="stock-bar-fill" style="width:@Math.Min(100,pct).ToString("F0")%;background:@color;"></div></div>
+                        </td>
+                        <td style="color:#64748b;">@inv.ReorderPoint</td>
+                        <td style="color:#64748b;">@inv.Location</td>
+                        <td style="color:#475569;font-size:.8rem;">@inv.LastUpdated.ToString("MMM dd, yyyy")</td>
+                        <td>
+                            <a href="/Admin/AdjustStock/@inv.ProductId" class="btn-blue"><i class="bi bi-boxes"></i> Adjust</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

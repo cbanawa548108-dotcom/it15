@@ -1,0 +1,177 @@
+@using CRLFruitstandESS.Models
+@{ ViewData["Title"] = "Warehouse Workload"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#0f172a!important;min-height:100vh}
+.wh-header{background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #334155;padding:2.5rem 2rem;border-radius:14px;margin-bottom:2rem;position:relative;overflow:hidden}
+.wh-header::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(139,92,246,.08) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.wh-header>div{position:relative;z-index:1}
+.dark-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:1.75rem;margin-bottom:1.5rem}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1.25rem;margin-bottom:1.5rem}
+.stat-tile{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1.25rem;transition:border-color .2s}
+.stat-tile:hover{border-color:#475569}
+.st-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:.5rem}
+.st-value{font-size:1.8rem;font-weight:800;line-height:1}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.25rem;margin-bottom:1.5rem}
+.move-row{display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;background:#0f172a;border-radius:8px;border:1px solid #334155;margin-bottom:.5rem;transition:border-color .2s}
+.move-row:hover{border-color:#475569}
+.badge-pill{display:inline-block;padding:.2rem .65rem;border-radius:999px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.dark-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.dark-table thead tr{background:#0f172a}
+.dark-table thead th{padding:.875rem 1rem;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;border-bottom:1px solid #334155}
+.dark-table tbody tr{border-bottom:1px solid #1e293b;transition:background .15s}
+.dark-table tbody tr:hover{background:#0f172a}
+.dark-table tbody td{padding:.75rem 1rem;color:#cbd5e1}
+</style>
+}
+<div class="wh-header">
+    <div>
+        <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#8b5cf6;display:block;margin-bottom:.5rem;">Operations · Today @DateTime.Today.ToString("MMM dd, yyyy")</span>
+        <h1 style="font-size:2.25rem;font-weight:800;margin:0 0 .5rem;color:#f1f5f9;">Warehouse Workload Tracker</h1>
+        <p style="margin:0;font-size:.95rem;color:#94a3b8;">Stock movements, pending deliveries, and distribution schedules</p>
+    </div>
+</div>
+
+<div class="stat-row">
+    <div class="stat-tile" style="border-top:3px solid #10b981">
+        <div class="st-label">Stock In Today</div>
+        <div class="st-value" style="color:#34d399">@ViewBag.TotalStockInToday</div>
+    </div>
+    <div class="stat-tile" style="border-top:3px solid #ef4444">
+        <div class="st-label">Stock Out Today</div>
+        <div class="st-value" style="color:#fca5a5">@ViewBag.TotalStockOutToday</div>
+    </div>
+    <div class="stat-tile" style="border-top:3px solid #f59e0b">
+        <div class="st-label">Pending Deliveries</div>
+        <div class="st-value" style="color:#fbbf24">@ViewBag.PendingCount</div>
+    </div>
+    <div class="stat-tile" style="border-top:3px solid #ef4444">
+        <div class="st-label">Low Stock Items</div>
+        <div class="st-value" style="color:#fca5a5">@ViewBag.LowStockCount</div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <!-- Stock In Today -->
+    <div class="dark-card">
+        <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;display:flex;align-items:center;gap:.6rem;">
+            <i class="bi bi-box-arrow-in-down" style="color:#10b981;font-size:1.2rem;"></i> Stock Received Today
+        </p>
+        @if (!((IEnumerable<StockMovement>)ViewBag.StockInToday).Any()) {
+            <p style="color:#475569;text-align:center;padding:1.5rem;">No stock received today.</p>
+        }
+        @foreach (var m in (IEnumerable<StockMovement>)ViewBag.StockInToday) {
+            <div class="move-row">
+                <div>
+                    <span style="color:#f1f5f9;font-weight:600;font-size:.9rem;">@m.Product?.Name</span>
+                    <small style="display:block;color:#475569;">@m.MovementDate.ToString("HH:mm") · @(m.PerformedBy ?? "System")</small>
+                </div>
+                <span style="color:#34d399;font-weight:700;font-size:1.1rem;">+@m.Quantity</span>
+            </div>
+        }
+    </div>
+
+    <!-- Stock Out Today -->
+    <div class="dark-card">
+        <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;display:flex;align-items:center;gap:.6rem;">
+            <i class="bi bi-box-arrow-up" style="color:#ef4444;font-size:1.2rem;"></i> Stock Dispatched Today
+        </p>
+        @if (!((IEnumerable<StockMovement>)ViewBag.StockOutToday).Any()) {
+            <p style="color:#475569;text-align:center;padding:1.5rem;">No stock dispatched today.</p>
+        }
+        @foreach (var m in (IEnumerable<StockMovement>)ViewBag.StockOutToday) {
+            <div class="move-row">
+                <div>
+                    <span style="color:#f1f5f9;font-weight:600;font-size:.9rem;">@m.Product?.Name</span>
+                    <small style="display:block;color:#475569;">@m.MovementDate.ToString("HH:mm") · @m.Type</small>
+                </div>
+                <span style="color:#fca5a5;font-weight:700;font-size:1.1rem;">-@m.Quantity</span>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Weekly movement chart -->
+<div class="dark-card">
+    <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;display:flex;align-items:center;gap:.6rem;">
+        <i class="bi bi-bar-chart" style="color:#8b5cf6;font-size:1.2rem;"></i> 7-Day Movement Summary
+    </p>
+    <canvas id="weeklyChart" height="80"></canvas>
+</div>
+
+<!-- Pending Deliveries -->
+<div class="dark-card">
+    <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;display:flex;align-items:center;gap:.6rem;">
+        <i class="bi bi-truck" style="color:#f59e0b;font-size:1.2rem;"></i> Recent Supplier Deliveries (7 days)
+    </p>
+    <div style="overflow-x:auto;border-radius:10px;border:1px solid #334155;">
+        <table class="dark-table">
+            <thead><tr><th>Date</th><th>Supplier</th><th>Product</th><th>Qty</th><th>Total Cost</th></tr></thead>
+            <tbody>
+                @foreach (var d in (IEnumerable<SupplierDelivery>)ViewBag.PendingDeliveries) {
+                    <tr>
+                        <td style="color:#94a3b8;">@d.DeliveryDate.ToString("MMM dd HH:mm")</td>
+                        <td style="color:#f1f5f9;font-weight:500;">@(d.Supplier?.Name ?? "—")</td>
+                        <td style="color:#cbd5e1;">@(d.Product?.Name ?? "—")</td>
+                        <td style="color:#fbbf24;font-weight:700;">@d.Quantity</td>
+                        <td style="color:#fca5a5;">₱@d.TotalCost.ToString("N0")</td>
+                    </tr>
+                }
+                @if (!((IEnumerable<SupplierDelivery>)ViewBag.PendingDeliveries).Any()) {
+                    <tr><td colspan="5" style="text-align:center;color:#475569;padding:2rem;">No deliveries in the last 7 days.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Low Stock -->
+<div class="dark-card">
+    <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;display:flex;align-items:center;gap:.6rem;">
+        <i class="bi bi-exclamation-triangle-fill" style="color:#ef4444;font-size:1.2rem;"></i> Items Needing Restock
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;">
+        @foreach (var inv in (IEnumerable<Inventory>)ViewBag.LowStock) {
+            var pct = inv.MaxStockLevel > 0 ? (double)inv.Quantity / inv.MaxStockLevel * 100 : 0;
+            var color = inv.Quantity == 0 ? "#ef4444" : inv.Quantity <= inv.ReorderPoint / 2 ? "#ef4444" : "#f59e0b";
+            <div style="background:#0f172a;border:1px solid #334155;border-left:3px solid @color;border-radius:8px;padding:1rem;">
+                <div style="font-weight:600;color:#f1f5f9;margin-bottom:.4rem;">@inv.Product?.Name</div>
+                <div style="font-size:1.4rem;font-weight:800;color:@color;margin-bottom:.4rem;">@inv.Quantity <small style="font-size:.75rem;color:#64748b;">/ reorder @inv.ReorderPoint</small></div>
+                <div style="height:5px;background:#1e293b;border-radius:3px;overflow:hidden;">
+                    <div style="height:100%;background:@color;width:@pct.ToString("F0")%;transition:width .4s;"></div>
+                </div>
+            </div>
+        }
+        @if (!((IEnumerable<Inventory>)ViewBag.LowStock).Any()) {
+            <p style="color:#475569;padding:1rem;">All stock levels are healthy.</p>
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color='#475569'; Chart.defaults.borderColor='rgba(255,255,255,.04)';
+const wm = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    ((IEnumerable<dynamic>)ViewBag.WeeklyMovements).Select(x => new {
+        date    = ((DateTime)x.Date).ToString("MMM dd"),
+        stockIn = (int)x.StockIn,
+        stockOut= (int)x.StockOut
+    }).ToList()
+));
+new Chart(document.getElementById('weeklyChart'),{
+    type:'bar',
+    data:{
+        labels:wm.map(x=>x.date),
+        datasets:[
+            {label:'Stock In', data:wm.map(x=>x.stockIn), backgroundColor:'rgba(16,185,129,.6)',borderColor:'#10b981',borderWidth:1,borderRadius:4},
+            {label:'Stock Out',data:wm.map(x=>x.stockOut),backgroundColor:'rgba(239,68,68,.5)', borderColor:'#ef4444',borderWidth:1,borderRadius:4}
+        ]
+    },
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{labels:{color:'#64748b',usePointStyle:true}},
+            tooltip:{backgroundColor:'#0d1526',borderColor:'rgba(139,92,246,.3)',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b'}},
+        scales:{x:{ticks:{color:'#334155'},grid:{display:false}},y:{ticks:{color:'#334155'},grid:{color:'rgba(255,255,255,.03)'}}}}
+});
+</script>
+}

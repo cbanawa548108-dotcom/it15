@@ -36,6 +36,10 @@ namespace CRLFruitstandESS.Models
 
         public DateTime? UpdatedAt { get; set; }
 
+        // Running balance for supplier
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Balance { get; set; } = 0;
+
         // Navigation property
         public virtual ICollection<SupplierProduct> SupplierProducts { get; set; } = new List<SupplierProduct>();
     }

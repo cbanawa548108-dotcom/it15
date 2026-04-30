@@ -1,0 +1,346 @@
+@using CRLFruitstandESS.Models.ViewModels
+@model KPIDashboardViewModel
+@{
+    ViewData["Title"] = "KPI Dashboard";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+    var periodLabel = new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy");
+    var prevMonth = Model.Month - 1;
+    var prevYear  = Model.Year;
+    if (prevMonth < 1) { prevMonth = 12; prevYear--; }
+    var nextMonth = Model.Month + 1;
+    var nextYear  = Model.Year;
+    if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+}
+
+@section Styles {
+    <style>
+        .page-content { background: #0f172a !important; min-height: 100vh; }
+
+        .kpi-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            padding: 2.5rem 2rem;
+            border-radius: 14px;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-header::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .kpi-header > div { position: relative; z-index: 1; }
+
+        .dark-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 1.75rem;
+            transition: all 0.3s ease;
+        }
+        .dark-card:hover { border-color: #475569; box-shadow: 0 8px 32px rgba(0,0,0,0.4); transform: translateY(-2px); }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0 0 1.5rem 0;
+        }
+
+        /* Month nav */
+        .month-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .month-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.25rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            outline: none;
+        }
+        .month-nav-btn:hover  { border-color: #3b82f6; color: #f1f5f9; background: #1e293b; box-shadow: 0 0 0 1px #3b82f6; }
+        .month-nav-btn:active { transform: scale(0.97); background: #0a1020; }
+        .month-nav-btn:focus-visible { box-shadow: 0 0 0 3px rgba(59,130,246,0.4); }
+
+        /* KPI metric cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .kpi-metric-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-metric-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: 14px 14px 0 0;
+        }
+        .kpi-metric-card.kpi-status-good::after    { background: #10b981; }
+        .kpi-metric-card.kpi-status-warning::after { background: #f59e0b; }
+        .kpi-metric-card.kpi-status-danger::after  { background: #ef4444; }
+        .kpi-metric-card.kpi-status-neutral::after { background: #3b82f6; }
+        .kpi-metric-card:hover { border-color: #475569; box-shadow: 0 8px 32px rgba(0,0,0,0.4); transform: translateY(-2px); }
+
+        .kpi-metric-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .kpi-status-icon {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem;
+        }
+        .kpi-metric-value {
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: #f1f5f9;
+            line-height: 1;
+            margin-bottom: 1rem;
+        }
+        .kpi-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+        .kpi-change.positive { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .kpi-change.negative { background: rgba(239,68,68,0.15);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .kpi-change.neutral  { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+
+        /* Targets */
+        .targets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+        }
+        .target-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 1.25rem;
+            transition: border-color 0.2s ease;
+        }
+        .target-card:hover { border-color: #475569; }
+        .target-card.target-achieved { border-left: 3px solid #10b981; }
+        .target-card.target-on-track { border-left: 3px solid #3b82f6; }
+        .target-card.target-at-risk  { border-left: 3px solid #f59e0b; }
+        .target-card.target-missed   { border-left: 3px solid #ef4444; }
+
+        .target-status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        /* Insights */
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+        }
+        .insight-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            transition: border-color 0.2s ease;
+        }
+        .insight-card:hover { border-color: #3b82f6; }
+        .insight-card i { font-size: 1.5rem; color: #3b82f6; }
+        .insight-card p { margin: 0; color: #94a3b8; font-size: 0.875rem; line-height: 1.6; }
+    </style>
+}
+
+<!-- HEADER -->
+<div class="kpi-header">
+    <div>
+        <span style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#3b82f6;display:block;margin-bottom:0.5rem;">Analytics</span>
+        <h1 style="font-size:2.25rem;font-weight:800;margin:0 0 0.5rem;color:#f1f5f9;">KPI Dashboard</h1>
+        <p style="margin:0;font-size:0.95rem;color:#94a3b8;">Monthly performance metrics and targets &mdash; <strong style="color:#e2e8f0;">@periodLabel</strong></p>
+    </div>
+</div>
+
+<!-- MONTH NAVIGATOR -->
+<div class="month-nav">
+    <a href="@Url.Action("KPIDashboard", new { month = prevMonth, year = prevYear })" class="month-nav-btn">
+        <i class="bi bi-chevron-left"></i> Previous
+    </a>
+    <span style="font-size:1.1rem;font-weight:700;color:#f1f5f9;">@periodLabel</span>
+    <a href="@Url.Action("KPIDashboard", new { month = nextMonth, year = nextYear })" class="month-nav-btn">
+        Next <i class="bi bi-chevron-right"></i>
+    </a>
+</div>
+
+<!-- KPI METRICS -->
+@if (Model.KPIMetrics.Any())
+{
+    <div class="kpi-grid">
+        @foreach (var kpi in Model.KPIMetrics)
+        {
+            var iconColor = kpi.Status == "good" ? "#10b981" : kpi.Status == "warning" ? "#f59e0b" : kpi.Status == "danger" ? "#ef4444" : "#3b82f6";
+            var iconBg    = kpi.Status == "good" ? "rgba(16,185,129,0.15)" : kpi.Status == "warning" ? "rgba(245,158,11,0.15)" : kpi.Status == "danger" ? "rgba(239,68,68,0.15)" : "rgba(59,130,246,0.15)";
+            <div class="kpi-metric-card kpi-status-@kpi.Status">
+                <div class="kpi-metric-label">
+                    @kpi.Name
+                    <div class="kpi-status-icon" style="background:@iconBg;color:@iconColor;">
+                        <i class="bi @kpi.StatusIcon"></i>
+                    </div>
+                </div>
+                <div class="kpi-metric-value">
+                    @if (kpi.Unit == "%") { <span>@kpi.CurrentValue.ToString("F1")%</span> }
+                    else if (kpi.Unit == "x") { <span>@kpi.CurrentValue.ToString("F2")x</span> }
+                    else { <span>₱@kpi.CurrentValue.ToString("N0")</span> }
+                </div>
+                @if (kpi.PreviousValue == 0)
+                {
+                    <span class="kpi-change neutral">No previous data</span>
+                }
+                else
+                {
+                    <span class="kpi-change @(kpi.ChangePercent > 0 ? "positive" : kpi.ChangePercent < 0 ? "negative" : "neutral")">
+                        <i class="bi @(kpi.ChangePercent > 0 ? "bi-arrow-up-short" : "bi-arrow-down-short")"></i>
+                        @Math.Abs(kpi.ChangePercent).ToString("F1")% vs last month
+                    </span>
+                }
+                <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #334155;">
+                    <small style="color:#64748b;font-size:0.8rem;">
+                        Previous:
+                        <strong style="color:#94a3b8;">
+                            @if (kpi.Unit == "₱") { <text>₱@kpi.PreviousValue.ToString("N0")</text> }
+                            else { <text>@kpi.PreviousValue.ToString("F1")@kpi.Unit</text> }
+                        </strong>
+                    </small>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="dark-card" style="text-align:center;padding:3rem;">
+        <i class="bi bi-bar-chart" style="font-size:2.5rem;color:#334155;display:block;margin-bottom:1rem;"></i>
+        <p style="color:#64748b;margin:0;font-size:0.95rem;">No KPI data available for this period</p>
+    </div>
+}
+
+<!-- KPI TARGETS -->
+@if (Model.KPITargets.Any())
+{
+    <div class="dark-card" style="margin-top:1.5rem;">
+        <p class="section-title">
+            <i class="bi bi-bullseye" style="color:#f59e0b;font-size:1.3rem;"></i> KPI Targets
+        </p>
+        <div class="targets-grid">
+            @foreach (var target in Model.KPITargets)
+            {
+                var tColor  = target.Status?.ToLower() == "achieved" ? "#10b981" : target.Status?.ToLower() == "on-track" ? "#3b82f6" : target.Status?.ToLower() == "at-risk" ? "#f59e0b" : "#ef4444";
+                var tBg     = target.Status?.ToLower() == "achieved" ? "rgba(16,185,129,0.15)" : target.Status?.ToLower() == "on-track" ? "rgba(59,130,246,0.15)" : target.Status?.ToLower() == "at-risk" ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)";
+                <div class="target-card target-@target.Status?.ToLower()">
+                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1rem;">
+                        <h5 style="margin:0;color:#f1f5f9;font-size:0.95rem;font-weight:700;">@target.KPIName</h5>
+                        <span class="target-status-badge" style="background:@tBg;color:@tColor;border:1px solid @tColor;">@target.Status?.ToUpper()</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.75rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.875rem;">
+                            <span style="color:#64748b;">Target</span>
+                            <strong style="color:#f1f5f9;">@target.TargetValue@(target.Unit ?? "")</strong>
+                        </div>
+                        @if (target.CurrentValue.HasValue)
+                        {
+                            <div style="display:flex;justify-content:space-between;font-size:0.875rem;">
+                                <span style="color:#64748b;">Current</span>
+                                <strong style="color:#f1f5f9;">@target.CurrentValue@(target.Unit ?? "")</strong>
+                            </div>
+                        }
+                    </div>
+                    @if (target.VariancePercent.HasValue)
+                    {
+                        <div style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.3rem 0.75rem;border-radius:20px;font-size:0.78rem;font-weight:700;background:@(target.VariancePercent > 0 ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)");color:@(target.VariancePercent > 0 ? "#34d399" : "#fca5a5");border:1px solid @(target.VariancePercent > 0 ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)");">
+                            <i class="bi @(target.VariancePercent > 0 ? "bi-arrow-up-short" : "bi-arrow-down-short")"></i>
+                            @Math.Abs(target.VariancePercent.Value).ToString("F1")% variance
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(target.Notes))
+                    {
+                        <p style="margin:0.75rem 0 0;font-size:0.8rem;color:#64748b;border-top:1px solid #334155;padding-top:0.75rem;">@target.Notes</p>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- INSIGHTS -->
+<div class="dark-card" style="margin-top:1.5rem;">
+    <p class="section-title">
+        <i class="bi bi-lightbulb-fill" style="color:#f59e0b;font-size:1.3rem;"></i> Performance Insights
+    </p>
+    <div class="insights-grid">
+        <div class="insight-card">
+            <i class="bi bi-graph-up-arrow" style="color:#3b82f6;"></i>
+            <p>Monitor KPI trends regularly to identify performance patterns and adjust strategies proactively.</p>
+        </div>
+        <div class="insight-card">
+            <i class="bi bi-bullseye" style="color:#10b981;"></i>
+            <p>Compare current metrics against targets to ensure alignment with business objectives.</p>
+        </div>
+        <div class="insight-card">
+            <i class="bi bi-arrow-left-right" style="color:#f59e0b;"></i>
+            <p>Use month-over-month comparisons to track improvement and identify areas for optimization.</p>
+        </div>
+    </div>
+</div>

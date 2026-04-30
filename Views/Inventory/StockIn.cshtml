@@ -1,6 +1,6 @@
 @model CRLFruitstandESS.Models.ViewModels.StockInOutViewModel
 @{
-    ViewData["Title"] = "Stock In";
+    ViewData["Title"] = "Receive Stock";
     Layout = "~/Views/Shared/_DashboardLayout.cshtml";
 }
 
@@ -11,25 +11,64 @@
                 <i class="bi bi-box-arrow-in-down"></i>
             </div>
             <div>
-                <h2 class="form-title">Stock In</h2>
-                <p class="form-subtitle">Add stock to inventory</p>
+                <h2 class="form-title">Receive Delivery</h2>
+                <p class="form-subtitle">Record stock received from supplier</p>
             </div>
         </div>
 
         <form asp-action="StockIn" method="post" class="stock-form">
             @Html.AntiForgeryToken()
             
+            <!-- Error Messages -->
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-bottom: 1.5rem; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 1rem; color: #f87171;">
+                    <i class="bi bi-exclamation-circle-fill" style="margin-right: 0.5rem;"></i>
+                    <div>
+                        @foreach (var modelState in ViewData.ModelState.Values)
+                        {
+                            @foreach (var error in modelState.Errors)
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        }
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="filter: invert(1);"></button>
+                </div>
+            }
+            
+            <!-- Supplier Selection -->
             <div class="form-group">
-                <label class="form-label">Select Product</label>
+                <label class="form-label">Select Supplier <span class="required">*</span></label>
+                <select name="SupplierId" class="form-select form-select-lg" id="supplierSelect" required>
+                    <option value="">-- Select Supplier --</option>
+                    @foreach (var supplier in ViewBag.Suppliers)
+                    {
+                        <option value="@supplier.Id" selected="@(ViewBag.PreSelectedSupplierId == supplier.Id)">
+                            @supplier.Name
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Select Product <span class="required">*</span></label>
                 <select asp-for="ProductId" class="form-select form-select-lg" id="productSelect" required>
                     <option value="">-- Select Product --</option>
                     @foreach (var product in ViewBag.Products)
                     {
-                        <option value="@product.Id" data-stock="@(product.Inventory?.Quantity ?? 0)">
-                            @product.Emoji @product.Name (@(product.Inventory?.Quantity ?? 0) in stock)
+                        var pendingQty = ViewBag.PendingDeliveries.ContainsKey(product.Id) ? ViewBag.PendingDeliveries[product.Id] : 0;
+                        var displayText = $"{product.Emoji} {product.Name} ({product.Inventory?.Quantity ?? 0} in stock)";
+                        if (pendingQty > 0)
+                        {
+                            displayText += $" - {pendingQty} units pending";
+                        }
+                        <option value="@product.Id" data-stock="@(product.Inventory?.Quantity ?? 0)" data-pending="@pendingQty" selected="@(Model.ProductId == product.Id)">
+                            @displayText
                         </option>
                     }
                 </select>
+                <small class="form-text text-muted">Only products with pending deliveries from the selected supplier will appear</small>
             </div>
 
             <div class="current-stock-display" id="currentStockDisplay" style="display: none;">
@@ -37,29 +76,48 @@
                 <span class="value" id="currentStockValue">0</span>
             </div>
 
+            <div class="pending-delivery-display" id="pendingDeliveryDisplay" style="display: none; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px; margin: 10px 0;">
+                <span class="label" style="color: #856404;"><i class="bi bi-info-circle"></i> Pending Stock:</span>
+                <span class="value" id="pendingDeliveryValue" style="color: #856404; font-weight: bold;">0</span>
+                <span style="color: #856404;">units waiting to be received</span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group half">
+                    <label class="form-label">Quantity <span class="required">*</span></label>
+                    <input asp-for="Quantity" type="number" class="form-control form-control-lg" 
+                           min="1" required placeholder="Enter quantity" />
+                </div>
+
+                <div class="form-group half">
+                    <label class="form-label">Unit Cost (₱) <span class="required">*</span></label>
+                    <input name="UnitCost" type="number" step="0.01" class="form-control form-control-lg" 
+                           min="0" required placeholder="Price per unit from supplier" />
+                </div>
+            </div>
+
             <div class="form-group">
-                <label class="form-label">Quantity to Add</label>
-                <input asp-for="Quantity" type="number" class="form-control form-control-lg" 
-                       min="1" required placeholder="Enter quantity" />
+                <label class="form-label">Received By</label>
+                <input type="text" class="form-control" value="@User.Identity?.Name" readonly />
             </div>
 
             <div class="form-group">
                 <label class="form-label">Reference Number (Optional)</label>
                 <input asp-for="ReferenceNumber" class="form-control" 
-                       placeholder="PO-2024-001, Invoice #, etc." />
+                       placeholder="Invoice #, Delivery Receipt" />
             </div>
 
             <div class="form-group">
                 <label class="form-label">Notes (Optional)</label>
                 <textarea asp-for="Notes" class="form-control" rows="3" 
-                          placeholder="Delivery notes, supplier info, etc."></textarea>
+                          placeholder="Quality check, delivery condition, etc."></textarea>
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-success btn-lg">
-                    <i class="bi bi-check-circle"></i> Confirm Stock In
+                <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                    <i class="bi bi-check-circle"></i> Confirm Receipt
                 </button>
-                <a href="/Inventory/Index" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                <a href="/Inventory/Stocks" class="btn btn-outline-secondary btn-lg">Cancel</a>
             </div>
         </form>
     </div>
@@ -67,17 +125,72 @@
 
 @section Scripts {
 <script>
+    function updateSubmitButton() {
+        var productSelect = document.getElementById('productSelect');
+        var submitBtn = document.getElementById('submitBtn');
+        var selected = productSelect.options[productSelect.selectedIndex];
+        var pending = parseInt(selected.getAttribute('data-pending') || 0);
+        
+        if (productSelect.value && pending === 0) {
+            submitBtn.disabled = true;
+            submitBtn.title = 'This product has no pending stock from the selected supplier';
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+        } else if (productSelect.value) {
+            submitBtn.disabled = false;
+            submitBtn.title = '';
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.title = 'Please select a product';
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+        }
+    }
+
+    document.getElementById('supplierSelect').addEventListener('change', function() {
+        if (this.value) {
+            // Reload the page with the selected supplier ID to filter products
+            window.location.href = '/Inventory/StockIn?supplierId=' + this.value;
+        }
+    });
+
     document.getElementById('productSelect').addEventListener('change', function() {
         var selected = this.options[this.selectedIndex];
         var stock = selected.getAttribute('data-stock');
+        var pending = selected.getAttribute('data-pending');
         var display = document.getElementById('currentStockDisplay');
+        var pendingDisplay = document.getElementById('pendingDeliveryDisplay');
         var value = document.getElementById('currentStockValue');
+        var pendingValue = document.getElementById('pendingDeliveryValue');
         
         if (this.value) {
             value.textContent = stock;
             display.style.display = 'flex';
+            
+            // Show pending delivery info if there are pending units
+            if (pending && parseInt(pending) > 0) {
+                pendingValue.textContent = pending;
+                pendingDisplay.style.display = 'block';
+            } else {
+                pendingDisplay.style.display = 'none';
+            }
         } else {
             display.style.display = 'none';
+            pendingDisplay.style.display = 'none';
+        }
+        
+        // Update button state
+        updateSubmitButton();
+    });
+
+    // Trigger change event on page load if product is pre-selected
+    window.addEventListener('DOMContentLoaded', function() {
+        updateSubmitButton();
+        var productSelect = document.getElementById('productSelect');
+        if (productSelect.value) {
+            productSelect.dispatchEvent(new Event('change'));
         }
     });
 </script>
@@ -90,14 +203,21 @@
     .form-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
     .header-icon { width: 60px; height: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; }
     .header-icon.success { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-    .form-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+    .form-title { font-size: 1.5rem; font-weight: 700; margin: 0; color: #fff; }
     .form-subtitle { color: #94a3b8; margin: 0; }
     .form-group { margin-bottom: 1.5rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group.half { margin-bottom: 0; }
     .form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #e2e8f0; }
+    .required { color: #ef4444; }
     .current-stock-display { display: flex; align-items: center; gap: 0.5rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 12px; margin-bottom: 1.5rem; }
     .current-stock-display .label { color: #94a3b8; }
     .current-stock-display .value { font-size: 1.25rem; font-weight: 700; color: #3b82f6; }
     .form-actions { display: flex; gap: 1rem; margin-top: 2rem; }
     .form-actions .btn { flex: 1; }
+    @@media (max-width: 768px) {
+        .form-row { grid-template-columns: 1fr; }
+        .form-group.half { margin-bottom: 1.5rem; }
+    }
 </style>
 }

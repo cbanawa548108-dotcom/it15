@@ -1,0 +1,983 @@
+/* ============================================
+   MANAGER DASHBOARD STYLES
+   CRLFruitstandESS
+   ============================================ */
+
+/* Chart Section Layout */
+.charts-section {
+    margin-bottom: 1.5rem;
+}
+
+.chart-card {
+    min-height: 350px;
+}
+
+.chart-card.wide {
+    grid-column: 1 / -1;
+}
+
+.chart-body {
+    height: 300px;
+    position: relative;
+    padding: 0.5rem;
+}
+
+.pie-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chart-btn {
+    padding: 0.375rem 0.875rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: #cbd5e1;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.chart-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #f8fafc;
+}
+
+.chart-btn.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+}
+
+.report-controls {
+    margin-top: 1rem;
+}
+
+.report-controls .chart-btn {
+    padding: 0.5rem 1rem;
+}
+
+/* Stat Subtitle */
+.stat-sub {
+    display: block;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.25rem;
+}
+
+/* Highlight variations */
+.highlight-red {
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.highlight-gold {
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.dashboard-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.dashboard-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-header h3 i {
+    color: #3b82f6;
+}
+
+.card-link {
+    font-size: 0.8rem;
+    color: #64748b;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.card-link:hover {
+    color: #60a5fa;
+}
+
+.card-body {
+    padding: 1.25rem 1.5rem;
+}
+
+/* Quick Actions */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: #f8fafc;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.quick-action-btn i {
+    font-size: 1.5rem;
+}
+
+.quick-action-btn span {
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.quick-action-btn:hover {
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.1);
+}
+
+.action-blue:hover { border-color: #3b82f6; color: #60a5fa; }
+.action-green:hover { border-color: #22c55e; color: #4ade80; }
+.action-orange:hover { border-color: #f97316; color: #fb923c; }
+.action-purple:hover { border-color: #a855f7; color: #c084fc; }
+.action-gold:hover { border-color: #eab308; color: #facc15; }
+.action-red:hover { border-color: #ef4444; color: #f87171; }
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #64748b;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+/* Product Lists */
+.product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.product-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+.product-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.product-rank {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.rank-1 { background: rgba(251, 191, 36, 0.3); color: #fcd34d; }
+.rank-2 { background: rgba(148, 163, 184, 0.3); color: #e2e8f0; }
+.rank-3 { background: rgba(180, 83, 9, 0.3); color: #fb923c; }
+.rank-4, .rank-5 { background: rgba(255,255,255,0.1); color: #cbd5e1; }
+.rank-low { background: rgba(239, 68, 68, 0.3); color: #fca5a5; }
+
+.product-emoji {
+    font-size: 1.5rem;
+}
+
+.product-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-info strong {
+    color: #f8fafc;
+    font-size: 0.9rem;
+}
+
+.product-info small {
+    color: #64748b;
+    font-size: 0.75rem;
+}
+
+.product-revenue {
+    font-weight: 700;
+    color: #86efac;
+}
+
+.product-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-zero { background: rgba(239, 68, 68, 0.3); color: #fca5a5; }
+.status-low { background: rgba(251, 191, 36, 0.3); color: #fcd34d; }
+
+/* Movement List */
+.movement-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.movement-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.movement-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.movement-item.in {
+    border-left-color: #22c55e;
+}
+
+.movement-item.out {
+    border-left-color: #f97316;
+}
+
+.movement-icon {
+    font-size: 1.25rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.movement-icon.in {
+    background: rgba(34, 197, 94, 0.25);
+    color: #86efac;
+}
+
+.movement-icon.out {
+    background: rgba(249, 115, 22, 0.25);
+    color: #fdba74;
+}
+
+.movement-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.movement-info strong {
+    color: #f8fafc;
+    font-size: 0.9rem;
+}
+
+.movement-info small {
+    color: #94a3b8;
+    font-size: 0.75rem;
+}
+
+.movement-quantity {
+    font-weight: 700;
+    min-width: 60px;
+    text-align: right;
+}
+
+.movement-quantity.in {
+    color: #86efac;
+}
+
+.movement-quantity.out {
+    color: #fdba74;
+}
+
+.movement-date {
+    font-size: 0.75rem;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+/* ============================================
+   KPI MONITORING STYLES
+   ============================================ */
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, transparent);
+}
+
+.kpi-card.green::before { background: linear-gradient(90deg, #22c55e, transparent); }
+.kpi-card.orange::before { background: linear-gradient(90deg, #f97316, transparent); }
+.kpi-card.red::before { background: linear-gradient(90deg, #ef4444, transparent); }
+.kpi-card.purple::before { background: linear-gradient(90deg, #a855f7, transparent); }
+
+.kpi-label {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 0.5rem;
+}
+
+.kpi-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.kpi-trend.up {
+    color: #4ade80;
+}
+
+.kpi-trend.down {
+    color: #f87171;
+}
+
+.kpi-trend i {
+    font-size: 1rem;
+}
+
+.kpi-icon {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    font-size: 2rem;
+    opacity: 0.1;
+}
+
+/* ============================================
+   SALES DASHBOARD STYLES
+   ============================================ */
+
+.sales-period-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.period-tab {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #94a3b8;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.period-tab:hover {
+    color: #cbd5e1;
+}
+
+.period-tab.active {
+    color: #60a5fa;
+    border-bottom-color: #60a5fa;
+}
+
+.sales-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.sales-stat {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.sales-stat-label {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+}
+
+.sales-stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.sales-stat-change {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    color: #cbd5e1;
+}
+
+.sales-stat-change.positive {
+    color: #86efac;
+}
+
+.sales-stat-change.negative {
+    color: #fca5a5;
+}
+
+/* ============================================
+   INVENTORY MOVEMENT TRACKING
+   ============================================ */
+
+.movement-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.movement-filters {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.movement-filter-btn {
+    padding: 0.5rem 1rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: #cbd5e1;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.movement-filter-btn:hover,
+.movement-filter-btn.active {
+    background: rgba(255,255,255,0.1);
+    color: #f8fafc;
+}
+
+.movement-filter-btn.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+}
+
+.movement-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.movement-stat {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.movement-stat-label {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+}
+
+.movement-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+/* ============================================
+   CHART ENHANCEMENTS
+   ============================================ */
+
+.chart-wrapper {
+    position: relative;
+    height: 100%;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.chart-tooltip {
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+    color: #f8fafc;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.chart-no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #64748b;
+}
+
+.chart-no-data i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* ============================================
+   PERFORMANCE INDICATORS
+   ============================================ */
+
+.performance-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+
+.performance-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.performance-fill.high {
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.performance-fill.medium {
+    background: linear-gradient(90deg, #f97316, #fb923c);
+}
+
+.performance-fill.low {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1200px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sales-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .movement-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chart-card {
+        min-height: 250px;
+    }
+
+    .chart-body {
+        height: 200px;
+    }
+
+    .period-tab {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .movement-filters {
+        flex-wrap: wrap;
+    }
+}
+
+/* ============================================
+   KPI MONITORING SECTION STYLES
+   ============================================ */
+
+.kpi-monitoring-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.section-header h2 i {
+    color: #60a5fa;
+    font-size: 1.5rem;
+}
+
+.section-subtitle {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-left: auto;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+
+.kpi-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.kpi-card:hover::before {
+    opacity: 1;
+}
+
+/* KPI Status Colors */
+.kpi-status-good {
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.kpi-status-good::before {
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.kpi-status-warning {
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+.kpi-status-warning::before {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.kpi-status-danger {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.kpi-status-danger::before {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.kpi-status-neutral {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.kpi-status-neutral::before {
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.kpi-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.kpi-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.kpi-color-blue {
+    background: rgba(59, 130, 246, 0.25);
+    color: #93c5fd;
+}
+
+.kpi-color-green {
+    background: rgba(34, 197, 94, 0.25);
+    color: #86efac;
+}
+
+.kpi-color-orange {
+    background: rgba(251, 191, 36, 0.25);
+    color: #fcd34d;
+}
+
+.kpi-color-red {
+    background: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+}
+
+.kpi-color-purple {
+    background: rgba(168, 85, 247, 0.25);
+    color: #e9d5ff;
+}
+
+.kpi-color-cyan {
+    background: rgba(6, 182, 212, 0.25);
+    color: #a5f3fc;
+}
+
+.kpi-title h4 {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.kpi-target {
+    display: block;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.25rem;
+}
+
+.kpi-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.kpi-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.kpi-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.kpi-change.positive {
+    color: #4ade80;
+    background: rgba(34, 197, 94, 0.15);
+}
+
+.kpi-change.negative {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.kpi-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.kpi-trend i {
+    font-size: 1rem;
+}
+
+.trend-increasing {
+    color: #86efac;
+}
+
+.trend-decreasing {
+    color: #fca5a5;
+}
+
+.trend-stable {
+    color: #cbd5e1;
+}
+
+.kpi-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: fit-content;
+}
+
+.status-badge-good {
+    background: rgba(34, 197, 94, 0.3);
+    color: #86efac;
+}
+
+.status-badge-warning {
+    background: rgba(251, 191, 36, 0.3);
+    color: #fcd34d;
+}
+
+.status-badge-danger {
+    background: rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+}
+
+.status-badge-neutral {
+    background: rgba(148, 163, 184, 0.3);
+    color: #cbd5e1;
+}
+
+/* Responsive KPI Grid */
+@media (max-width: 1400px) {
+    .kpi-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+}

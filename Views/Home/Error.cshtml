@@ -1,0 +1,28 @@
+@{ Layout = "~/Views/Shared/_DashboardLayout.cshtml"; ViewData["Title"] = ViewBag.Title ?? "Error"; }
+@section Styles {
+<style>
+.page-content { background: #0f172a !important; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.error-wrap { text-align: center; max-width: 520px; margin: 0 auto; padding: 3rem 2rem; }
+.error-code { font-size: 7rem; font-weight: 900; line-height: 1; margin-bottom: 1rem;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.error-title { font-size: 1.75rem; font-weight: 800; color: #f1f5f9; margin-bottom: 1rem; }
+.error-msg { color: #64748b; font-size: 1rem; line-height: 1.7; margin-bottom: 2.5rem; }
+.btn-home { display: inline-flex; align-items: center; gap: .5rem; padding: .875rem 2rem;
+    background: #3b82f6; color: white; border-radius: 10px; font-weight: 700; font-size: .95rem;
+    text-decoration: none; transition: all .2s ease; }
+.btn-home:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59,130,246,.4); }
+.btn-back { display: inline-flex; align-items: center; gap: .5rem; padding: .875rem 2rem;
+    background: transparent; color: #64748b; border: 1px solid #334155; border-radius: 10px;
+    font-weight: 600; font-size: .95rem; text-decoration: none; transition: all .2s ease; margin-left: 1rem; }
+.btn-back:hover { border-color: #475569; color: #f1f5f9; }
+</style>
+}
+<div class="error-wrap">
+    <div class="error-code">@ViewBag.StatusCode</div>
+    <h1 class="error-title">@ViewBag.Title</h1>
+    <p class="error-msg">@ViewBag.Message</p>
+    <div>
+        <a href="/" class="btn-home"><i class="bi bi-house-fill"></i> Go Home</a>
+        <a href="javascript:history.back()" class="btn-back"><i class="bi bi-arrow-left"></i> Go Back</a>
+    </div>
+</div>

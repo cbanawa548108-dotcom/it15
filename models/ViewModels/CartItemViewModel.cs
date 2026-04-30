@@ -12,9 +12,17 @@ namespace CRLFruitstandESS.Models.ViewModels
 
     public class ProcessSaleViewModel
     {
-        public List<CartItemViewModel> Items { get; set; }
-        public decimal TotalAmount { get; set; }
-        public decimal AmountPaid { get; set; }
+        public List<CartItemViewModel>? Items { get; set; }
+        public decimal TotalAmount  { get; set; }
+        public decimal AmountPaid   { get; set; }
+        public string  PaymentMethod { get; set; } = "cash"; // cash | gcash | paymaya | card
+    }
+
+    public class DigitalPaymentRequest
+    {
+        public decimal Amount    { get; set; }
+        public string  Method    { get; set; } = "gcash"; // gcash | paymaya
+        public string  SaleDataJson { get; set; } = string.Empty;
     }
 
     public class ReceiptViewModel

@@ -4,75 +4,1388 @@
     Layout = "~/Views/Shared/_DashboardLayout.cshtml";
 }
 
+@section Styles {
+<style>
+/* ── MANAGER DASHBOARD DARK UPGRADE ── */
+.page-content { background:#060b14 !important; min-height:100vh; }
+
+/* Header */
+.dash-header {
+    background: linear-gradient(135deg,#0f1f3d 0%,#060b14 100%);
+    border:1px solid rgba(99,102,241,.2); border-radius:18px;
+    padding:2.5rem 2.5rem; margin-bottom:2rem;
+    position:relative; overflow:hidden;
+    box-shadow:0 0 60px rgba(99,102,241,.07), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.dash-header::before {
+    content:''; position:absolute; top:-80px; right:-80px;
+    width:350px; height:350px;
+    background:radial-gradient(circle,rgba(99,102,241,.12) 0%,transparent 65%);
+    border-radius:50%; pointer-events:none;
+}
+.dash-meta { color:#334155; font-size:.8rem; margin-top:.3rem; }
+
+/* Stat cards */
+.stat-card {
+    background:linear-gradient(135deg,rgba(13,21,38,.95),rgba(8,14,26,.9)) !important;
+    border:1px solid rgba(255,255,255,.07) !important;
+    border-radius:16px !important;
+    box-shadow:0 4px 20px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.04) !important;
+    transition:all .3s cubic-bezier(.4,0,.2,1) !important;
+}
+.stat-card:hover {
+    border-color:rgba(99,102,241,.25) !important;
+    transform:translateY(-4px) !important;
+    box-shadow:0 16px 40px rgba(0,0,0,.45) !important;
+}
+.stat-card.highlight { border-color:rgba(59,130,246,.25) !important; }
+.stat-card.highlight-red { border-color:rgba(239,68,68,.2) !important; }
+
+/* Dashboard cards */
+.dashboard-card {
+    background:linear-gradient(135deg,rgba(13,21,38,.95),rgba(8,14,26,.9)) !important;
+    border:1px solid rgba(255,255,255,.07) !important;
+    border-radius:16px !important;
+    box-shadow:0 4px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.04) !important;
+    transition:border-color .25s, box-shadow .25s !important;
+    overflow:hidden;
+}
+.dashboard-card:hover {
+    border-color:rgba(99,102,241,.2) !important;
+    box-shadow:0 8px 40px rgba(0,0,0,.4) !important;
+}
+.dashboard-card .card-header {
+    background:rgba(99,102,241,.04) !important;
+    border-bottom:1px solid rgba(255,255,255,.05) !important;
+    padding:1.25rem 1.75rem !important;
+}
+.dashboard-card .card-header h3 { color:#f1f5f9 !important; }
+
+/* KPI cards */
+.kpi-card {
+    background:rgba(255,255,255,.02) !important;
+    border:1px solid rgba(255,255,255,.07) !important;
+    border-radius:14px !important;
+    transition:all .25s !important;
+}
+.kpi-card:hover {
+    border-color:rgba(99,102,241,.25) !important;
+    transform:translateY(-3px) !important;
+    box-shadow:0 8px 24px rgba(0,0,0,.3) !important;
+}
+
+/* Alert cards */
+.alert-card {
+    border-radius:14px !important;
+    backdrop-filter:blur(8px) !important;
+}
+.alert-card.alert-danger { background:linear-gradient(135deg,rgba(239,68,68,.1),rgba(239,68,68,.05)) !important; border:1px solid rgba(239,68,68,.25) !important; border-left:4px solid #ef4444 !important; }
+.alert-card.alert-warning { background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(245,158,11,.05)) !important; border:1px solid rgba(245,158,11,.25) !important; border-left:4px solid #f59e0b !important; }
+.alert-card.alert-info { background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(59,130,246,.05)) !important; border:1px solid rgba(59,130,246,.25) !important; border-left:4px solid #3b82f6 !important; }
+
+/* Chart buttons */
+.chart-btn {
+    background:rgba(255,255,255,.04) !important;
+    border:1px solid rgba(255,255,255,.08) !important;
+    color:#64748b !important;
+    border-radius:8px !important;
+    padding:.35rem .875rem !important;
+    font-size:.78rem !important;
+    font-weight:700 !important;
+    cursor:pointer !important;
+    transition:all .2s !important;
+}
+.chart-btn:hover, .chart-btn.active {
+    background:rgba(99,102,241,.15) !important;
+    border-color:rgba(99,102,241,.4) !important;
+    color:#a5b4fc !important;
+}
+
+/* Product items */
+.product-item {
+    background:rgba(255,255,255,.02) !important;
+    border:1px solid rgba(255,255,255,.06) !important;
+    border-radius:12px !important;
+    transition:all .2s !important;
+}
+.product-item:hover {
+    background:rgba(99,102,241,.06) !important;
+    border-color:rgba(99,102,241,.2) !important;
+    transform:translateX(4px) !important;
+}
+
+/* Movement items */
+.movement-item {
+    background:rgba(255,255,255,.02) !important;
+    border:1px solid rgba(255,255,255,.05) !important;
+    border-radius:10px !important;
+    transition:all .2s !important;
+}
+.movement-item:hover { background:rgba(255,255,255,.04) !important; }
+
+/* Forecast items */
+.forecast-item {
+    background:rgba(255,255,255,.02) !important;
+    border:1px solid rgba(255,255,255,.06) !important;
+    border-radius:10px !important;
+}
+
+/* Payment items */
+.payment-item {
+    background:rgba(255,255,255,.02) !important;
+    border:1px solid rgba(255,255,255,.06) !important;
+    border-radius:10px !important;
+}
+
+/* Section header */
+.kpi-monitoring-section .section-header h2 { color:#f1f5f9 !important; }
+.kpi-monitoring-section .section-subtitle { color:#334155 !important; }
+
+/* Card link */
+.card-link { color:#6366f1 !important; font-weight:700 !important; }
+.card-link:hover { color:#a5b4fc !important; }
+
+/* Quick action buttons */
+.quick-action-btn {
+    border-radius:12px !important;
+    transition:all .25s !important;
+    border:1px solid rgba(255,255,255,.07) !important;
+}
+.quick-action-btn:hover { transform:translateY(-3px) !important; box-shadow:0 8px 24px rgba(0,0,0,.3) !important; }
+</style>
+}
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
 <div class="dash-header">
     <div>
-        <span class="dash-label">Operations Panel</span>
+        <span class="dash-label">Operations Command Center</span>
         <h1 class="dash-title">Manager Dashboard</h1>
         <p class="dash-sub">@Model.WelcomeMessage</p>
+        @if (Model.LastLoginAt.HasValue)
+        {
+            <p class="dash-meta">Last login: @Model.LastLoginAt.Value.ToString("MMM dd, yyyy HH:mm")</p>
+        }
     </div>
-    <div class="dash-badge manager-badge">Manager</div>
+    <div class="dash-badge manager-badge">
+        <i class="bi bi-briefcase"></i> @Model.Role
+    </div>
 </div>
 
-<div class="stats-grid">
-    <div class="stat-card">
+<!-- Alerts Section -->
+@if (Model.Alerts.Any())
+{
+    <div class="alerts-container">
+        @foreach (var alert in Model.Alerts)
+        {
+            <div class="alert-card alert-@alert.Type">
+                <div class="alert-icon">
+                    @switch (alert.Type)
+                    {
+                        case "danger": <i class="bi bi-exclamation-octagon-fill"></i>; break;
+                        case "warning": <i class="bi bi-exclamation-triangle-fill"></i>; break;
+                        case "info": <i class="bi bi-info-circle-fill"></i>; break;
+                        default: <i class="bi bi-bell-fill"></i>; break;
+                    }
+                </div>
+                <div class="alert-content">
+                    <h4>@alert.Title</h4>
+                    <p>@alert.Message</p>
+                    @if (!string.IsNullOrEmpty(alert.ActionUrl))
+                    {
+                        <a href="@alert.ActionUrl" class="alert-action">@alert.ActionText →</a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- KPI Cards -->
+<div class="stats-grid four-col">
+    <div class="stat-card highlight">
         <div class="stat-icon si-blue">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
-                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/>
-                <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-            </svg>
+            <i class="bi bi-currency-dollar"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-value">0</div>
-            <div class="stat-label">Stock Items</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon si-gold">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
-                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-        </div>
-        <div class="stat-info">
-            <div class="stat-value">0</div>
-            <div class="stat-label">Low Stock Alerts</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon si-green">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
-                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
-        </div>
-        <div class="stat-info">
-            <div class="stat-value">0</div>
-            <div class="stat-label">Today's Sales</div>
+            <div class="stat-value">₱@Model.TodaysRevenue.ToString("N0")</div>
+            <div class="stat-label">Today's Revenue</div>
+            <small class="stat-sub">@Model.TodaysTransactions transactions</small>
         </div>
     </div>
     <div class="stat-card">
         <div class="stat-icon si-purple">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
-                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-            </svg>
+            <i class="bi bi-calendar-week"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-value">0</div>
-            <div class="stat-label">Active Staff</div>
+            <div class="stat-value">₱@Model.WeeklyRevenue.ToString("N0")</div>
+            <div class="stat-label">This Week</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-gold">
+            <i class="bi bi-calendar-month"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">₱@Model.MonthlyRevenue.ToString("N0")</div>
+            <div class="stat-label">This Month</div>
+        </div>
+    </div>
+    <div class="stat-card highlight-red">
+        <div class="stat-icon si-red">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">₱@Model.TotalOutstandingPayables.ToString("N0")</div>
+            <div class="stat-label">Payables Due (@Model.SuppliersWithBalanceDue)</div>
         </div>
     </div>
 </div>
 
-<div class="quick-actions">
-    <h3 class="section-heading">Operations Modules</h3>
-    <div class="action-grid">
-        <a href="#" class="action-card">Inventory Control</a>
-        <a href="#" class="action-card">Sales Overview</a>
-        <a href="#" class="action-card">Staff Management</a>
-        <a href="#" class="action-card">Daily Reports</a>
+<!-- KPI MONITORING SECTION -->
+<div class="kpi-monitoring-section">
+    <div class="section-header">
+        <h2><i class="bi bi-speedometer2"></i> KPI Monitoring</h2>
+        <span class="section-subtitle">Real-time performance metrics</span>
+    </div>
+    
+    <div class="kpi-grid">
+        @foreach (var kpi in Model.KPIMetrics)
+        {
+            <div class="kpi-card kpi-status-@kpi.Status">
+                <div class="kpi-header">
+                    <div class="kpi-icon kpi-color-@kpi.Color">
+                        <i class="bi @kpi.Icon"></i>
+                    </div>
+                    <div class="kpi-title">
+                        <h4>@kpi.Name</h4>
+                        @if (!string.IsNullOrEmpty(kpi.Target))
+                        {
+                            <small class="kpi-target">Target: @kpi.Target</small>
+                        }
+                    </div>
+                </div>
+
+                <div class="kpi-body">
+                    <div class="kpi-value">
+                        @kpi.Value
+                        @if (kpi.ChangePercent.HasValue)
+                        {
+                            <span class="kpi-change @(kpi.ChangePercent > 0 ? "positive" : "negative")">
+                                @if (kpi.ChangePercent > 0)
+                                {
+                                    <i class="bi bi-arrow-up-short"></i>
+                                }
+                                else if (kpi.ChangePercent < 0)
+                                {
+                                    <i class="bi bi-arrow-down-short"></i>
+                                }
+                                @Math.Abs(kpi.ChangePercent.Value):F1%
+                            </span>
+                        }
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(kpi.Trend))
+                    {
+                        <div class="kpi-trend trend-@kpi.Trend">
+                            @switch (kpi.Trend)
+                            {
+                                case "increasing":
+                                    <i class="bi bi-graph-up"></i> <span>Increasing</span>
+                                    break;
+                                case "decreasing":
+                                    <i class="bi bi-graph-down"></i> <span>Decreasing</span>
+                                    break;
+                                default:
+                                    <i class="bi bi-dash"></i> <span>Stable</span>
+                                    break;
+                            }
+                        </div>
+                    }
+
+                    <div class="kpi-status-badge status-badge-@kpi.Status">
+                        @switch (kpi.Status)
+                        {
+                            case "good": <text>✓ Good</text>; break;
+                            case "warning": <text>⚠ Warning</text>; break;
+                            case "danger": <text>✗ Critical</text>; break;
+                            default: <text>→ Neutral</text>; break;
+                        }
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
+
+<!-- CHARTS SECTION -->
+<div class="dashboard-grid charts-section">
+    
+    <!-- Sales Chart -->
+    <div class="dashboard-card chart-card wide">
+        <div class="card-header">
+            <h3><i class="bi bi-graph-up"></i> Sales Performance</h3>
+            <div class="chart-controls">
+                <button class="chart-btn active" onclick="switchSalesChart('daily', this)">Daily</button>
+                <button class="chart-btn" onclick="switchSalesChart('weekly', this)">Weekly</button>
+                <button class="chart-btn" onclick="switchSalesChart('monthly', this)">Monthly</button>
+            </div>
+        </div>
+        <div class="card-body chart-body">
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Category Pie Chart -->
+    <div class="dashboard-card chart-card">
+        <div class="card-header">
+            <h3><i class="bi bi-pie-chart"></i> Sales by Category</h3>
+        </div>
+        <div class="card-body chart-body">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Inventory Movement Chart -->
+    <div class="dashboard-card chart-card wide">
+        <div class="card-header">
+            <h3><i class="bi bi-arrow-left-right"></i> Inventory Movement (30 Days)</h3>
+        </div>
+        <div class="card-body chart-body">
+            <canvas id="inventoryChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Product Performance Bar Chart -->
+    <div class="dashboard-card chart-card wide">
+        <div class="card-header">
+            <h3><i class="bi bi-bar-chart"></i> Product Performance Comparison</h3>
+        </div>
+        <div class="card-body chart-body">
+            <canvas id="productChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- Two Column Layout -->
+<div class="dashboard-grid">
+    <!-- Left Column -->
+    <div class="dashboard-col">
+        
+        <!-- Quick Actions -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="bi bi-lightning-charge"></i> Quick Actions</h3>
+            </div>
+            <div class="card-body">
+                <div class="quick-actions-grid">
+                    @foreach (var action in Model.QuickActions)
+                    {
+                        <a href="@action.Url" class="quick-action-btn action-@action.Color">
+                            <i class="bi @action.Icon"></i>
+                            <span>@action.Label</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Selling Products -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="bi bi-trophy"></i> Top Performing Products</h3>
+            </div>
+            <div class="card-body">
+                @if (!Model.TopSellingProducts.Any())
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-bar-chart"></i>
+                        <p>No sales data available yet.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="product-list">
+                        @foreach (var product in Model.TopSellingProducts)
+                        {
+                            <div class="product-item top-performer">
+                                <div class="product-rank rank-@(Model.TopSellingProducts.IndexOf(product) + 1)">
+                                    @(Model.TopSellingProducts.IndexOf(product) + 1)
+                                </div>
+                                <div class="product-emoji">@product.Emoji</div>
+                                <div class="product-info">
+                                    <strong>@product.ProductName</strong>
+                                    <small>@product.QuantitySold sold • Stock: @product.CurrentStock</small>
+                                </div>
+                                <div class="product-revenue">₱@product.Revenue.ToString("N0")</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Low Performing Products -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="bi bi-graph-down-arrow"></i> Low Performing Products</h3>
+            </div>
+            <div class="card-body">
+                @if (!Model.LowPerformingProducts.Any())
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle text-success"></i>
+                        <p>All products are performing well!</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="product-list">
+                        @foreach (var product in Model.LowPerformingProducts)
+                        {
+                            <div class="product-item low-performer">
+                                <div class="product-rank rank-low">↓</div>
+                                <div class="product-emoji">@product.Emoji</div>
+                                <div class="product-info">
+                                    <strong>@product.ProductName</strong>
+                                    <small>@product.QuantitySold sold in 30 days • Stock: @product.CurrentStock</small>
+                                </div>
+                                <div class="product-status @(product.QuantitySold == 0 ? "status-zero" : "status-low")">
+                                    @(product.QuantitySold == 0 ? "No Sales" : "Low")
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="dashboard-col">
+        
+        <!-- Inventory Movement Tracking -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="bi bi-activity"></i> Recent Stock Movements</h3>
+                <a href="/Inventory/Movements" class="card-link">View All →</a>
+            </div>
+            <div class="card-body">
+                @if (!Model.RecentStockMovements.Any())
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-box"></i>
+                        <p>No recent stock movements.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="movement-list">
+                        @foreach (var movement in Model.RecentStockMovements.Take(8))
+                        {
+                            <div class="movement-item @movement.Type.ToLower().Replace(" ", "-")">
+                                <div class="movement-icon">
+                                    @if (movement.Type == "Stock In")
+                                    {
+                                        <i class="bi bi-box-arrow-in-down text-success"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-box-arrow-up text-warning"></i>
+                                    }
+                                </div>
+                                <div class="movement-info">
+                                    <strong>@movement.ProductName</strong>
+                                    <small>@movement.Reference • @movement.Date.ToString("MMM dd, HH:mm")</small>
+                                </div>
+                                <div class="movement-qty @(movement.Type == "Stock In" ? "text-success" : "text-warning")">
+                                    @(movement.Type == "Stock In" ? "+" : "-")@movement.Quantity
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Inventory Forecast -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="bi bi-graph-down-arrow"></i> Stock Forecast Alert</h3>
+                <a href="/Inventory?status=low" class="card-link">View Inventory →</a>
+            </div>
+            <div class="card-body">
+                @if (!Model.LowStockForecasts.Any())
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle text-success"></i>
+                        <p>All stock levels are healthy!</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="forecast-list">
+                        @foreach (var forecast in Model.LowStockForecasts.OrderBy(f => f.DaysUntilStockout).Take(5))
+                        {
+                            <div class="forecast-item status-@forecast.Status.ToLower()">
+                                <div class="forecast-emoji">@forecast.Emoji</div>
+                                <div class="forecast-info">
+                                    <strong>@forecast.ProductName</strong>
+                                    <div class="forecast-bar">
+                                        <div class="forecast-progress" style="width: @(Math.Min(100, (forecast.DaysUntilStockout / 30.0) * 100))%"></div>
+                                    </div>
+                                    <small>
+                                        @forecast.CurrentStock units • 
+                                        @forecast.AverageDailySales/day • 
+                                        @(forecast.DaysUntilStockout == 999 ? "∞" : forecast.DaysUntilStockout + " days") left
+                                    </small>
+                                </div>
+                                <div class="forecast-badge badge-@forecast.Status.ToLower()">@forecast.Status</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Supplier Payments Due -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="bi bi-credit-card"></i> Supplier Payments Due</h3>
+                <a href="/Inventory/SupplierBalances" class="card-link">View All →</a>
+            </div>
+            <div class="card-body">
+                @if (!Model.UpcomingPayments.Any())
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle text-success"></i>
+                        <p>No outstanding payments. All suppliers are paid up!</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="payment-list">
+                        @foreach (var payment in Model.UpcomingPayments.OrderByDescending(p => p.BalanceDue).Take(5))
+                        {
+                            <div class="payment-item urgency-@payment.Urgency.ToLower()">
+                                <div class="payment-info">
+                                    <strong>@payment.SupplierName</strong>
+                                    <small>Last delivery: @(payment.LastDeliveryDate?.ToString("MMM dd") ?? "Never")</small>
+                                </div>
+                                <div class="payment-amount">
+                                    <span class="amount">₱@payment.BalanceDue.ToString("N2")</span>
+                                    <a href="/Inventory/PaySupplier/@payment.SupplierId" class="btn-pay-sm">Pay</a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Chart.js Defaults
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
+    Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+
+    let salesChartInstance = null;
+    let inventoryChartInstance = null;
+
+    // Initialize Charts on Load
+    document.addEventListener('DOMContentLoaded', function() {
+        initSalesChart('daily');
+        initCategoryChart();
+        initInventoryChart();
+        initProductChart();
+    });
+
+    // SALES CHART
+    function initSalesChart(period) {
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        
+        if (salesChartInstance) {
+            salesChartInstance.destroy();
+        }
+
+        const salesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesTrends));
+        
+        const labels = salesData.map(s => {
+            const date = new Date(s.date);
+            if (period === 'monthly') return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            if (period === 'weekly') return 'Week ' + getWeekNumber(date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        
+        const revenue = salesData.map(s => s.revenue);
+        const transactions = salesData.map(s => s.transactionCount);
+
+        const gradientRevenue = ctx.createLinearGradient(0, 0, 0, 400);
+        gradientRevenue.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+        gradientRevenue.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+        salesChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Revenue (₱)',
+                        data: revenue,
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradientRevenue,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Transactions',
+                        data: transactions,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: '#10b981',
+                        pointRadius: 3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#e2e8f0',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.label.includes('Revenue')) {
+                                    return context.dataset.label + ': ₱' + context.parsed.y.toLocaleString();
+                                }
+                                return context.dataset.label + ': ' + context.parsed.y;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₱' + (value / 1000).toFixed(0) + 'k';
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function switchSalesChart(period, btn) {
+        document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        fetch(`/ManagerDashboard/GetSalesData?period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                const labels = data.map(s => {
+                    const date = new Date(s.date);
+                    if (period === 'monthly') return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    if (period === 'weekly') return 'Week ' + getWeekNumber(date);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                });
+                
+                salesChartInstance.data.labels = labels;
+                salesChartInstance.data.datasets[0].data = data.map(s => s.revenue);
+                salesChartInstance.data.datasets[1].data = data.map(s => s.transactionCount);
+                salesChartInstance.update();
+            });
+    }
+
+    // CATEGORY PIE CHART
+    function initCategoryChart() {
+        const ctx = document.getElementById('categoryChart').getContext('2d');
+        const categoryData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CategoryPerformance));
+        
+        const colors = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', 
+            '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'
+        ];
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: categoryData.map(c => c.category),
+                datasets: [{
+                    data: categoryData.map(c => c.revenue),
+                    backgroundColor: colors,
+                    borderColor: 'rgba(15, 23, 42, 0.8)',
+                    borderWidth: 2,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = ((val / total) * 100).toFixed(1);
+                                return ` ${context.label}: ₱${val.toLocaleString()} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // INVENTORY MOVEMENT BAR CHART
+    function initInventoryChart() {
+        const ctx = document.getElementById('inventoryChart').getContext('2d');
+        const movementData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecentStockMovements));
+        
+        const days = 14;
+        const dates = [];
+        const stockInData = [];
+        const stockOutData = [];
+        
+        for (let i = days - 1; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            dates.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            
+            const dayIn = movementData
+                .filter(m => m.type === 'Stock In' && m.date.startsWith(dateStr))
+                .reduce((sum, m) => sum + m.quantity, 0);
+            const dayOut = movementData
+                .filter(m => m.type === 'Stock Out' && m.date.startsWith(dateStr))
+                .reduce((sum, m) => sum + m.quantity, 0);
+            
+            stockInData.push(dayIn);
+            stockOutData.push(dayOut);
+        }
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Stock In',
+                        data: stockInData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        borderColor: '#10b981',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        barPercentage: 0.7
+                    },
+                    {
+                        label: 'Stock Out',
+                        data: stockOutData,
+                        backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                        borderColor: '#f59e0b',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        barPercentage: 0.7
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${context.parsed.y} units`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)'
+                        },
+                        ticks: {
+                            stepSize: 10
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // PRODUCT PERFORMANCE BAR CHART
+    function initProductChart() {
+        const ctx = document.getElementById('productChart').getContext('2d');
+        const topProducts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopSellingProducts.Take(5)));
+        const lowProducts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LowPerformingProducts.Take(5)));
+        
+        const labels = [];
+        const topRevenue = [];
+        const lowRevenue = [];
+        
+        for (let i = 0; i < Math.max(topProducts.length, lowProducts.length); i++) {
+            if (i < topProducts.length) {
+                labels.push(topProducts[i].productName.substring(0, 12));
+                topRevenue.push(topProducts[i].revenue);
+            }
+            if (i < lowProducts.length) {
+                lowRevenue.push(lowProducts[i].revenue);
+            } else if (i < topProducts.length) {
+                lowRevenue.push(0);
+            }
+        }
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Top Performers',
+                        data: topRevenue,
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        borderColor: '#10b981',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.6
+                    },
+                    {
+                        label: 'Low Performers',
+                        data: lowRevenue,
+                        backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ₱${context.parsed.x.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: false,
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₱' + (value / 1000).toFixed(0) + 'k';
+                            }
+                        }
+                    },
+                    y: {
+                        stacked: false,
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+        return weekNo;
+    }
+</script>
+}
+
+    @* FIX: Load manager-dashboard.css so KPI grid, cards, and all section styles are applied. *@
+    <link rel="stylesheet" href="~/css/manager-dashboard.css" />
+
+<style>
+    /* =====================================================
+       FIX: KPI status top-border bars were hidden (opacity:0)
+       by default and only shown on hover. Show them always.
+    ====================================================== */
+    .kpi-status-good::before,
+    .kpi-status-warning::before,
+    .kpi-status-danger::before,
+    .kpi-status-neutral::before {
+        opacity: 1 !important;
+    }
+
+    /* Chart Section Styles */
+    .charts-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .chart-card {
+        min-height: 350px;
+    }
+    
+    .chart-card.wide {
+        grid-column: 1 / -1;
+    }
+    
+    .chart-body {
+        height: 300px;
+        position: relative;
+    }
+    
+    .chart-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .chart-btn {
+        padding: 0.375rem 0.875rem;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 6px;
+        color: #94a3b8;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .chart-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: #e2e8f0;
+    }
+    
+    .chart-btn.active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+    }
+
+    .dash-meta {
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-top: 0.25rem;
+    }
+
+    .alerts-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .alert-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-danger {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #f87171;
+    }
+
+    .alert-warning {
+        background: rgba(251, 191, 36, 0.1);
+        border-color: rgba(251, 191, 36, 0.3);
+        color: #fbbf24;
+    }
+
+    .alert-info {
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.3);
+        color: #60a5fa;
+    }
+
+    .alert-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .alert-content h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.95rem;
+    }
+
+    .alert-content p {
+        margin: 0;
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+
+    .alert-action {
+        display: inline-block;
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .alert-action:hover {
+        text-decoration: underline;
+    }
+
+    .stat-sub {
+        display: block;
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-top: 0.25rem;
+    }
+
+    .highlight-red {
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .dashboard-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .dashboard-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #f8fafc;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header h3 i {
+        color: #3b82f6;
+    }
+
+    .card-link {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .card-link:hover {
+        color: #60a5fa;
+    }
+
+    .card-body {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+    }
+
+    .quick-action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        color: #e2e8f0;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .quick-action-btn i { font-size: 1.5rem; }
+    .quick-action-btn span { font-size: 0.75rem; text-align: center; }
+    .quick-action-btn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.1); }
+
+    .action-blue:hover { border-color: #3b82f6; color: #60a5fa; }
+    .action-green:hover { border-color: #22c55e; color: #4ade80; }
+    .action-orange:hover { border-color: #f97316; color: #fb923c; }
+    .action-purple:hover { border-color: #a855f7; color: #c084fc; }
+    .action-gold:hover { border-color: #eab308; color: #facc15; }
+    .action-red:hover { border-color: #ef4444; color: #f87171; }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #64748b;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    .product-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .product-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.03);
+        border-radius: 10px;
+        transition: background 0.2s;
+    }
+
+    .product-item:hover { background: rgba(255,255,255,0.05); }
+
+    .product-rank {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .rank-1 { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+    .rank-2 { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+    .rank-3 { background: rgba(180, 83, 9, 0.2); color: #d97706; }
+    .rank-4, .rank-5 { background: rgba(255,255,255,0.05); color: #94a3b8; }
+    .rank-low { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+    .product-emoji { font-size: 1.5rem; }
+
+    .product-info { flex: 1; display: flex; flex-direction: column; }
+    .product-info strong { color: #f8fafc; font-size: 0.9rem; }
+    .product-info small { color: #64748b; font-size: 0.75rem; }
+    .product-revenue { font-weight: 700; color: #22c55e; }
+
+    .product-status {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-zero { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .status-low { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+
+    .movement-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .movement-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 0.75rem;
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+        border-left: 3px solid transparent;
+    }
+
+    .movement-item.stock-in { border-left-color: #22c55e; }
+    .movement-item.stock-out { border-left-color: #f59e0b; }
+
+    .movement-icon { font-size: 1.25rem; }
+    .movement-info { flex: 1; display: flex; flex-direction: column; }
+    .movement-info strong { color: #f8fafc; font-size: 0.85rem; }
+    .movement-info small { color: #64748b; font-size: 0.7rem; }
+    .movement-qty { font-weight: 700; font-size: 0.9rem; }
+
+    .payment-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .payment-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.875rem 1rem;
+        background: rgba(255,255,255,0.03);
+        border-radius: 10px;
+        border-left: 3px solid transparent;
+    }
+
+    .payment-item.urgency-high { border-left-color: #ef4444; }
+    .payment-item.urgency-medium { border-left-color: #fbbf24; }
+    .payment-item.urgency-low { border-left-color: #22c55e; }
+
+    .payment-info { display: flex; flex-direction: column; }
+    .payment-info strong { color: #f8fafc; font-size: 0.9rem; }
+    .payment-info small { color: #64748b; font-size: 0.75rem; }
+
+    .payment-amount { display: flex; align-items: center; gap: 0.75rem; }
+    .payment-amount .amount { font-weight: 700; color: #f87171; }
+
+    .btn-pay-sm {
+        padding: 0.375rem 0.75rem;
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: white;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .forecast-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .forecast-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.03);
+        border-radius: 10px;
+    }
+
+    .forecast-emoji { font-size: 1.5rem; }
+    .forecast-info { flex: 1; }
+    .forecast-info strong { color: #f8fafc; font-size: 0.9rem; display: block; margin-bottom: 0.25rem; }
+
+    .forecast-bar {
+        height: 4px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 2px;
+        margin-bottom: 0.25rem;
+        overflow: hidden;
+    }
+
+    .forecast-progress {
+        height: 100%;
+        background: linear-gradient(90deg, #ef4444, #fbbf24, #22c55e);
+        border-radius: 2px;
+    }
+
+    .forecast-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-critical { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .badge-warning { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+    .badge-caution { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .badge-normal { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+
+    @@media (max-width: 1200px) {
+        .dashboard-grid { grid-template-columns: 1fr; }
+        .chart-card.wide { grid-column: 1; }
+    }
+
+    @@media (max-width: 992px) {
+        .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @@media (max-width: 768px) {
+        .stats-grid.four-col { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>

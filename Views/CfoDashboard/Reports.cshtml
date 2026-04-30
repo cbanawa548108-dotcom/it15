@@ -1,0 +1,214 @@
+@model CRLFruitstandESS.Models.ViewModels.FinancialReportViewModel
+@{ 
+    ViewData["Title"] = "Financial Reports"; 
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+    
+    // FIX CS1526: Pre-compute the date string in a code block — never inline ?.ToString() inside href
+    var reportDateStr = Model.ReportDate.HasValue ? Model.ReportDate.Value.ToString("yyyy-MM-dd") : "";
+}
+
+<div class="dash-header">
+    <div>
+        <span class="dash-label">Finance</span>
+        <h1 class="dash-title">Financial Reports</h1>
+    </div>
+    <div style="display:flex;gap:.75rem;">
+        <a href="/CfoDashboard/ExportPdf?type=@Model.ReportType&month=@Model.ReportMonth&year=@Model.ReportYear&date=@reportDateStr"
+           class="btn-secondary" target="_blank">⬇ PDF</a>
+        <a href="/CfoDashboard/ExportExcel?type=@Model.ReportType&month=@Model.ReportMonth&year=@Model.ReportYear&date=@reportDateStr"
+           class="btn-primary">⬇ Excel</a>
+    </div>
+</div>
+
+<!-- Report Type Filter -->
+<div class="cfo-card" style="margin-bottom:1.5rem;">
+    <div class="cfo-card-body">
+        <form method="get" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+            @{
+                // FIX RZ1031: Pre-compute selected values for inline use
+                var rtDaily = Model.ReportType == "Daily" ? "selected" : null;
+                var rtMonthly = Model.ReportType == "Monthly" ? "selected" : null;
+            }
+            <select name="type" class="form-input" style="width:auto;" onchange="this.form.submit()">
+                <option value="Daily"   selected="@rtDaily">Daily Report</option>
+                <option value="Monthly" selected="@rtMonthly">Monthly Report</option>
+            </select>
+
+            @if (Model.ReportType == "Daily")
+            {
+                <input type="date" name="date" class="form-input" style="width:auto;"
+                       value="@reportDateStr" onchange="this.form.submit()" />
+            }
+            else
+            {
+                <select name="month" class="form-input" style="width:auto;">
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        @* FIX RZ1031: use if/else with selected attribute, not ternary *@
+                        if (Model.ReportMonth == m)
+                        {
+                            <option value="@m" selected="selected">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                        }
+                        else
+                        {
+                            <option value="@m">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                        }
+                    }
+                </select>
+                <select name="year" class="form-input" style="width:auto;">
+                    @for (int y = DateTime.Today.Year; y >= DateTime.Today.Year - 3; y--)
+                    {
+                        if (Model.ReportYear == y)
+                        {
+                            <option value="@y" selected="selected">@y</option>
+                        }
+                        else
+                        {
+                            <option value="@y">@y</option>
+                        }
+                    }
+                </select>
+                <button type="submit" class="btn-primary" style="padding:.5rem 1.2rem;">Generate</button>
+            }
+        </form>
+    </div>
+</div>
+
+<!-- KPI Summary -->
+<div class="stats-grid four-col" style="margin-bottom:1.5rem;">
+    <div class="stat-card">
+        <div class="stat-icon si-green"></div>
+        <div class="stat-info">
+            <div class="stat-value text-profit">₱@Model.TotalRevenue.ToString("N2")</div>
+            <div class="stat-label">Total Revenue</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-red"></div>
+        <div class="stat-info">
+            <div class="stat-value text-loss">₱@Model.TotalExpenses.ToString("N2")</div>
+            <div class="stat-label">Total Expenses</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon @(Model.NetProfit >= 0 ? "si-green" : "si-red")"></div>
+        <div class="stat-info">
+            <div class="stat-value @(Model.NetProfit >= 0 ? "text-profit" : "text-loss")">₱@Model.NetProfit.ToString("N2")</div>
+            <div class="stat-label">Net Profit</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-blue"></div>
+        <div class="stat-info">
+            <div class="stat-value">@Model.GrossMarginPercent.ToString("N1")%</div>
+            <div class="stat-label">Gross Margin</div>
+        </div>
+    </div>
+</div>
+
+<div class="cfo-grid-2" style="margin-bottom:1.5rem;">
+    <!-- Expense by Category -->
+    <div class="cfo-card">
+        <div class="cfo-card-header"><h3>Expense by Category</h3></div>
+        <div class="cfo-card-body">
+            @foreach (var cat in Model.ExpenseByCategory)
+            {
+                <div style="margin-bottom:.75rem;">
+                    <div class="progress-label">
+                        <span style="font-size:.85rem;color:var(--white);">@cat.Category</span>
+                        <span style="font-size:.82rem;color:var(--text-muted);">₱@cat.Total.ToString("N2") (@cat.Percent.ToString("N1")%)</span>
+                    </div>
+                    <div class="progress-bar-bg" style="margin-top:4px;">
+                        <div class="progress-bar-fill fill-red" style="width:@cat.Percent%"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Daily breakdown (monthly only) -->
+    @if (Model.ReportType == "Monthly" && Model.DailyBreakdown.Any())
+    {
+        <div class="cfo-card">
+            <div class="cfo-card-header"><h3>Daily Breakdown</h3></div>
+            <div class="cfo-card-body" style="max-height:300px;overflow-y:auto;">
+                <table class="cfo-table">
+                    <thead><tr><th>Date</th><th>Revenue</th><th>Expenses</th><th>Net</th></tr></thead>
+                    <tbody>
+                        @foreach (var d in Model.DailyBreakdown)
+                        {
+                            <tr>
+                                <td>@d.Date.ToString("MMM dd")</td>
+                                <td class="text-profit">₱@d.Revenue.ToString("N2")</td>
+                                <td class="text-loss">₱@d.Expenses.ToString("N2")</td>
+                                <td class="@(d.NetProfit >= 0 ? "text-profit" : "text-loss")">₱@d.NetProfit.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Revenue Table -->
+<div class="cfo-card" style="margin-bottom:1.5rem;">
+    <div class="cfo-card-header"><h3>Revenue Details</h3></div>
+    <div class="cfo-card-body">
+        <table class="cfo-table">
+            <thead><tr><th>Date</th><th>Source</th><th>Category</th><th>Amount</th><th>Notes</th></tr></thead>
+            <tbody>
+                @if (!Model.Revenues.Any())
+                {
+                    <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No revenue records.</td></tr>
+                }
+                @foreach (var r in Model.Revenues)
+                {
+                    <tr>
+                        <td>@r.TransactionDate.ToString("MMM dd, yyyy")</td>
+                        <td>@r.Source</td>
+                        <td><span class="badge badge-green">@r.Category</span></td>
+                        <td class="text-profit">₱@r.Amount.ToString("N2")</td>
+                        <td style="font-size:.82rem;color:var(--text-muted);">@(r.Notes ?? "—")</td>
+                    </tr>
+                }
+                <tr style="border-top:2px solid rgba(45,126,247,.2);">
+                    <td colspan="3"><strong>TOTAL</strong></td>
+                    <td class="text-profit"><strong>₱@Model.TotalRevenue.ToString("N2")</strong></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Expense Table -->
+<div class="cfo-card">
+    <div class="cfo-card-header"><h3>Expense Details</h3></div>
+    <div class="cfo-card-body">
+        <table class="cfo-table">
+            <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Supplier</th></tr></thead>
+            <tbody>
+                @if (!Model.Expenses.Any())
+                {
+                    <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No expense records.</td></tr>
+                }
+                @foreach (var e in Model.Expenses)
+                {
+                    <tr>
+                        <td>@e.ExpenseDate.ToString("MMM dd, yyyy")</td>
+                        <td>@e.Description</td>
+                        <td><span class="badge badge-red">@e.Category</span></td>
+                        <td class="text-loss">₱@e.Amount.ToString("N2")</td>
+                        <td style="font-size:.82rem;color:var(--text-muted);">@(e.Supplier ?? "—")</td>
+                    </tr>
+                }
+                <tr style="border-top:2px solid rgba(248,113,113,.2);">
+                    <td colspan="3"><strong>TOTAL</strong></td>
+                    <td class="text-loss"><strong>₱@Model.TotalExpenses.ToString("N2")</strong></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

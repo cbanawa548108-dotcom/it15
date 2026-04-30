@@ -1,0 +1,57 @@
+@using CRLFruitstandESS.Models.ViewModels
+@model ProductFormViewModel
+@{ ViewData["Title"] = "Edit Product"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#060d1a!important;min-height:100vh}
+.adm-header{background:linear-gradient(135deg,#0f2044,#0a1628);border:1px solid #1e3a6e;padding:2.5rem 2rem;border-radius:14px;margin-bottom:2rem}
+.blue-card{background:#0d1f3c;border:1px solid #1e3a6e;border-radius:14px;padding:2rem;margin-bottom:1.5rem;max-width:760px}
+.form-label{display:block;margin-bottom:.4rem;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#475569}
+.dark-input{width:100%;padding:.875rem 1rem;background:#060d1a;border:1px solid #1e3a6e;border-radius:8px;color:#e2e8f0;font-size:.9rem;box-sizing:border-box;outline:none;transition:border-color .2s,box-shadow .2s}
+.dark-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;margin-bottom:1.25rem}
+.btn-blue{padding:.875rem 2rem;background:#2563eb;color:white;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;outline:none}
+.btn-blue:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 16px rgba(37,99,235,.4)}
+.btn-back{padding:.875rem 1.5rem;background:transparent;color:#64748b;border:1px solid #1e3a6e;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s}
+.btn-back:hover{border-color:#3b82f6;color:#93c5fd}
+.section-label{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#3b82f6;margin:1.5rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid #1e3a6e}
+</style>
+}
+<div class="adm-header">
+    <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#3b82f6;display:block;margin-bottom:.5rem;">Administration</span>
+    <h1 style="font-size:2rem;font-weight:800;margin:0 0 .4rem;color:#f1f5f9;">Edit Product</h1>
+</div>
+<div class="blue-card">
+    <form method="post" action="/Admin/EditProduct">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id"/>
+        <div class="form-grid">
+            <div><label class="form-label">Product Name *</label><input asp-for="Name" class="dark-input"/></div>
+            <div>
+                <label class="form-label">Category *</label>
+                <input asp-for="Category" class="dark-input" list="catList"/>
+                <datalist id="catList">@foreach (var c in (List<string>)ViewBag.Categories) { <option value="@c"/> }</datalist>
+            </div>
+            <div style="grid-column:1/-1"><label class="form-label">Description</label><textarea asp-for="Description" class="dark-input" rows="2" style="resize:vertical;"></textarea></div>
+        </div>
+        <div class="form-grid">
+            <div><label class="form-label">Selling Price (₱) *</label><input asp-for="Price" type="number" step="0.01" class="dark-input"/></div>
+            <div><label class="form-label">Cost Price (₱)</label><input asp-for="CostPrice" type="number" step="0.01" class="dark-input"/></div>
+            <div><label class="form-label">Emoji</label><input asp-for="Emoji" class="dark-input"/></div>
+        </div>
+        <p class="section-label">Inventory Settings</p>
+        <div class="form-grid-3">
+            <div><label class="form-label">Min Stock Level</label><input asp-for="MinStockLevel" type="number" class="dark-input"/></div>
+            <div><label class="form-label">Reorder Point</label><input asp-for="ReorderPoint" type="number" class="dark-input"/></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;">
+            <input asp-for="IsActive" type="checkbox" id="isActive" style="width:18px;height:18px;accent-color:#3b82f6;"/>
+            <label for="isActive" style="color:#94a3b8;font-size:.9rem;cursor:pointer;">Active product</label>
+        </div>
+        <div style="display:flex;gap:1rem;">
+            <button type="submit" class="btn-blue"><i class="bi bi-check-lg"></i> Save Changes</button>
+            <a href="/Admin/Products" class="btn-back">Cancel</a>
+        </div>
+    </form>
+</div>

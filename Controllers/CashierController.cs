@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using CRLFruitstandESS.Data;
 using CRLFruitstandESS.Models;
 using CRLFruitstandESS.Models.ViewModels;
+using CRLFruitstandESS.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,11 +20,16 @@ namespace CRLFruitstandESS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IPayMongoService _payMongo;
+        private readonly ILogger<CashierController> _logger;
 
-        public CashierController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public CashierController(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
+            IPayMongoService payMongo, ILogger<CashierController> logger)
         {
-            _context = context;
+            _context  = context;
             _userManager = userManager;
+            _payMongo = payMongo;
+            _logger   = logger;
         }
 
         // GET: /Cashier/POS
@@ -150,6 +156,22 @@ namespace CRLFruitstandESS.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+
+                // ✨ NEW: Automatically create Revenue record for CFO module
+                var revenue = new Revenue
+                {
+                    Source = "POS Sale",
+                    Category = "Direct Sales",
+                    Amount = model.TotalAmount,
+                    TransactionDate = DateTime.Now,
+                    Notes = $"Sale ID: {sale.Id}, Cashier: {user.FullName}",
+                    RecordedBy = user.Id,
+                    CreatedAt = DateTime.Now,
+                    IsDeleted = false
+                };
+                _context.Revenues.Add(revenue);
+                await _context.SaveChangesAsync();
+
                 await transaction.CommitAsync();
 
                 return Json(new { success = true, saleId = sale.Id });
@@ -184,6 +206,135 @@ namespace CRLFruitstandESS.Controllers
             };
 
             return View(vm);
+        }
+
+        // ════════════════════════════════════════════
+        // PAYMONGO — Create GCash / Maya source
+        // ════════════════════════════════════════════
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateDigitalPayment([FromBody] DigitalPaymentRequest req)
+        {
+            if (req.Amount <= 0)
+                return Json(new { success = false, message = "Invalid amount." });
+
+            var user = await _userManager.GetUserAsync(User);
+            try
+            {
+                var baseUrl    = $"{Request.Scheme}://{Request.Host}";
+                var successUrl = $"{baseUrl}/Cashier/PaymentSuccess?saleData={Uri.EscapeDataString(req.SaleDataJson)}";
+                var failedUrl  = $"{baseUrl}/Cashier/PaymentFailed";
+
+                var source = await _payMongo.CreateSourceAsync(
+                    req.Amount,
+                    req.Method.ToLower(),   // "gcash" or "paymaya"
+                    successUrl,
+                    failedUrl,
+                    $"CRL Fruitstand POS — {req.Method}"
+                );
+
+                // Save pending transaction
+                var txn = new PaymentTransaction
+                {
+                    Method           = req.Method,
+                    Status           = "pending",
+                    Amount           = req.Amount,
+                    PayMongoSourceId = source.Id,
+                    CheckoutUrl      = source.CheckoutUrl,
+                    ProcessedBy      = user?.Id ?? ""
+                };
+                _context.PaymentTransactions.Add(txn);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, checkoutUrl = source.CheckoutUrl, txnId = txn.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PayMongo CreateSource failed");
+                return Json(new { success = false, message = "Payment gateway error. Please try cash." });
+            }
+        }
+
+        // ── PayMongo success redirect (customer comes back here after paying)
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> PaymentSuccess(string saleData)
+        {
+            try
+            {
+                var req = JsonSerializer.Deserialize<ProcessSaleViewModel>(Uri.UnescapeDataString(saleData));
+                if (req == null) return RedirectToAction("POS");
+
+                // Re-use existing ProcessSale logic but mark as digital
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null) return RedirectToAction("POS");
+
+                using var transaction = await _context.Database.BeginTransactionAsync();
+
+                var sale = new Sale
+                {
+                    CashierId   = user.Id,
+                    SaleDate    = DateTime.Now,
+                    TotalAmount = req.TotalAmount,
+                    AmountPaid  = req.TotalAmount,
+                    Change      = 0,
+                    Status      = "Completed"
+                };
+                _context.Sales.Add(sale);
+                await _context.SaveChangesAsync();
+
+                foreach (var item in req.Items!)
+                {
+                    var product = await _context.Products.Include(p => p.Inventory)
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                    if (product?.Inventory != null)
+                    {
+                        _context.SaleItems.Add(new SaleItem
+                        {
+                            SaleId = sale.Id, ProductId = item.ProductId,
+                            Quantity = item.Quantity, UnitPrice = item.UnitPrice,
+                            Subtotal = item.UnitPrice * item.Quantity
+                        });
+                        product.Inventory.Quantity -= item.Quantity;
+                        product.Inventory.LastUpdated = DateTime.Now;
+                    }
+                }
+
+                _context.Revenues.Add(new Revenue
+                {
+                    Source = $"POS Sale ({req.PaymentMethod})",
+                    Category = "Direct Sales",
+                    Amount = req.TotalAmount,
+                    TransactionDate = DateTime.Now,
+                    Notes = $"Sale ID: {sale.Id} — paid via {req.PaymentMethod}",
+                    RecordedBy = user.Id
+                });
+
+                // Mark transaction as paid
+                var txn = await _context.PaymentTransactions
+                    .Where(t => t.ProcessedBy == user.Id && t.Status == "pending")
+                    .OrderByDescending(t => t.CreatedAt).FirstOrDefaultAsync();
+                if (txn != null) { txn.Status = "paid"; txn.SaleId = sale.Id; txn.PaidAt = DateTime.UtcNow; }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                TempData["Success"] = $"Payment received via {req.PaymentMethod}!";
+                return RedirectToAction("Receipt", new { id = sale.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PaymentSuccess processing failed");
+                TempData["Error"] = "Payment was received but order processing failed. Please contact support.";
+                return RedirectToAction("POS");
+            }
+        }
+
+        [HttpGet]
+        public IActionResult PaymentFailed()
+        {
+            TempData["Error"] = "Payment was cancelled or failed. Please try again.";
+            return RedirectToAction("POS");
         }
 
         // GET: /Cashier/DailySummary

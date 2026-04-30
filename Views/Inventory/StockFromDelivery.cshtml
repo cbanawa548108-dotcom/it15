@@ -1,0 +1,272 @@
+@model CRLFruitstandESS.Models.ViewModels.StockInOutViewModel
+@{
+    ViewData["Title"] = "Stock From Delivery";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="stock-form-page">
+    <div class="form-card">
+        <div class="form-header">
+            <div class="header-icon success">
+                <i class="bi bi-box-arrow-in-down"></i>
+            </div>
+            <div>
+                <h2 class="form-title">Stock In from Delivery</h2>
+                <p class="form-subtitle">Add delivered goods to inventory</p>
+            </div>
+        </div>
+
+        <div class="delivery-info-banner">
+            <div class="info-item">
+                <span class="label">Supplier:</span>
+                <span class="value">@ViewBag.SupplierName</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Product:</span>
+                <span class="value">@Model.ProductName</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Unit Cost:</span>
+                <span class="value">₱@ViewBag.UnitCost</span>
+            </div>
+        </div>
+
+        <form asp-action="StockFromDelivery" method="post" class="stock-form">
+            @Html.AntiForgeryToken()
+            
+            <!-- Error Messages -->
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-bottom: 1.5rem; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 1rem; color: #f87171;">
+                    <i class="bi bi-exclamation-circle-fill" style="margin-right: 0.5rem;"></i>
+                    <div>
+                        @foreach (var modelState in ViewData.ModelState.Values)
+                        {
+                            @foreach (var error in modelState.Errors)
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        }
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="filter: invert(1);"></button>
+                </div>
+            }
+            
+            <input type="hidden" name="deliveryId" value="@ViewBag.DeliveryId" />
+            <input type="hidden" name="supplierId" value="@ViewBag.SupplierId" />
+            <input type="hidden" name="unitCost" value="@ViewBag.UnitCost" />
+            <input type="hidden" asp-for="ProductId" />
+            <input type="hidden" asp-for="ProductName" />
+
+            <div class="form-group">
+                <label class="form-label">Product</label>
+                <input type="text" class="form-control" value="@Model.ProductName" disabled />
+            </div>
+
+            <div class="current-stock-display">
+                <span class="label">Current Stock:</span>
+                <span class="value">@Model.CurrentStock</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Quantity to Stock <span class="required">*</span></label>
+                <input asp-for="Quantity" type="number" class="form-control form-control-lg" 
+                       min="1" required placeholder="Enter quantity to add to inventory" />
+                <small class="form-text">Original delivery quantity: @Model.Quantity</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Reference Number</label>
+                <input asp-for="ReferenceNumber" class="form-control" readonly />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea asp-for="Notes" class="form-control" rows="3" readonly></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle"></i> Confirm Stock In
+                </button>
+                <a href="/Inventory/Stocks" class="btn btn-outline-secondary btn-lg">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Styles {
+<style>
+    .stock-form-page {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .form-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .form-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .header-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+    }
+
+    .header-icon.success {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+    }
+
+    .form-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #f8fafc;
+        margin: 0;
+    }
+
+    .form-subtitle {
+        color: #94a3b8;
+        margin: 0.25rem 0 0;
+    }
+
+    .delivery-info-banner {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(59, 130, 246, 0.1);
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .info-item .label {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-transform: uppercase;
+    }
+
+    .info-item .value {
+        font-weight: 600;
+        color: #60a5fa;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #e2e8f0;
+    }
+
+    .required {
+        color: #ef4444;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(15, 23, 42, 0.5);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: #e2e8f0;
+        font-size: 0.9375rem;
+    }
+
+    .form-control:disabled, .form-control[readonly] {
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+    }
+
+    .form-control-lg {
+        font-size: 1.25rem;
+        padding: 1rem;
+    }
+
+    .form-text {
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .current-stock-display {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: rgba(59, 130, 246, 0.1);
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .current-stock-display .label {
+        color: #94a3b8;
+    }
+
+    .current-stock-display .value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #3b82f6;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .form-actions .btn {
+        flex: 1;
+        padding: 0.875rem;
+        border-radius: 10px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .btn-outline-secondary {
+        background: transparent;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        color: #94a3b8;
+    }
+
+    @@media (max-width: 768px) {
+        .delivery-info-banner { grid-template-columns: 1fr; }
+    }
+</style>
+}

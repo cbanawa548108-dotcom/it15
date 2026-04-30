@@ -1,0 +1,80 @@
+@using CRLFruitstandESS.Models
+@model List<PettyCashClaim>
+@{ ViewData["Title"] = "Petty Cash Review"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#0f172a!important;min-height:100vh}
+.pc-header{background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #334155;padding:2.5rem 2rem;border-radius:14px;margin-bottom:2rem;position:relative;overflow:hidden}
+.pc-header::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(16,185,129,.08) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.pc-header>div{position:relative;z-index:1}
+.dark-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:1.75rem;margin-bottom:1.5rem}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1.25rem;margin-bottom:1.5rem}
+.stat-tile{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1.25rem}
+.st-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:.5rem}
+.st-value{font-size:1.8rem;font-weight:800;line-height:1}
+.claim-card{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1.25rem;margin-bottom:.75rem;transition:border-color .2s}
+.claim-card:hover{border-color:#475569}
+.dark-input{padding:.5rem .875rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f1f5f9;font-size:.85rem;outline:none;transition:border-color .2s}
+.dark-input:focus{border-color:#3b82f6}
+.btn-approve{padding:.4rem 1rem;background:#10b981;color:white;border:none;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-approve:hover{background:#059669;transform:translateY(-1px)}
+.btn-reject{padding:.4rem 1rem;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-reject:hover{background:rgba(239,68,68,.25)}
+.badge-pill{display:inline-block;padding:.2rem .65rem;border-radius:999px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+</style>
+}
+<div class="pc-header">
+    <div>
+        <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#10b981;display:block;margin-bottom:.5rem;">CFO Review</span>
+        <h1 style="font-size:2.25rem;font-weight:800;margin:0 0 .5rem;color:#f1f5f9;">Petty Cash Claims</h1>
+        <p style="margin:0;font-size:.95rem;color:#94a3b8;">Review and approve cashier expense requests</p>
+    </div>
+</div>
+<div class="stat-row">
+    <div class="stat-tile" style="border-top:3px solid #f59e0b"><div class="st-label">Pending</div><div class="st-value" style="color:#fcd34d">@ViewBag.PendingCount</div></div>
+    <div class="stat-tile" style="border-top:3px solid #10b981"><div class="st-label">Approved</div><div class="st-value" style="color:#34d399">@Model.Count(c=>c.Status=="Approved")</div></div>
+    <div class="stat-tile" style="border-top:3px solid #ef4444"><div class="st-label">Rejected</div><div class="st-value" style="color:#fca5a5">@Model.Count(c=>c.Status=="Rejected")</div></div>
+    <div class="stat-tile" style="border-top:3px solid #3b82f6"><div class="st-label">Total Amount</div><div class="st-value" style="color:#60a5fa;font-size:1.3rem;">₱@Model.Where(c=>c.Status=="Approved").Sum(c=>c.Amount).ToString("N0")</div></div>
+</div>
+@if (TempData["Success"] != null) {
+    <div style="padding:1rem 1.5rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;color:#34d399;margin-bottom:1.5rem;font-weight:600;">✓ @TempData["Success"]</div>
+}
+<div class="dark-card">
+    <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;">All Claims</p>
+    @if (!Model.Any()) { <p style="color:#475569;text-align:center;padding:2rem;">No claims submitted yet.</p> }
+    @foreach (var c in Model) {
+        <div class="claim-card">
+            <div style="display:flex;align-items:start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+                <div style="flex:1">
+                    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem;flex-wrap:wrap;">
+                        <span style="color:#f1f5f9;font-weight:600;">@c.Description</span>
+                        <span class="badge-pill" style="background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3);">@c.Category</span>
+                        <span class="badge-pill" style="background:@(c.Status=="Approved"?"rgba(16,185,129,.15)":c.Status=="Rejected"?"rgba(239,68,68,.15)":"rgba(245,158,11,.15)");color:@(c.Status=="Approved"?"#34d399":c.Status=="Rejected"?"#fca5a5":"#fcd34d");border:1px solid @(c.Status=="Approved"?"rgba(16,185,129,.3)":c.Status=="Rejected"?"rgba(239,68,68,.3)":"rgba(245,158,11,.3)");">@c.Status</span>
+                    </div>
+                    <div style="color:#34d399;font-weight:700;font-size:1.1rem;margin-bottom:.3rem;">₱@c.Amount.ToString("N2")</div>
+                    <small style="color:#475569;">By @c.SubmittedByName · @c.SubmittedAt.ToString("MMM dd, yyyy HH:mm")</small>
+                    @if (!string.IsNullOrEmpty(c.Notes)) { <p style="color:#64748b;font-size:.82rem;margin:.4rem 0 0;">@c.Notes</p> }
+                    @if (c.Status != "Pending" && !string.IsNullOrEmpty(c.ReviewNotes)) {
+                        <p style="color:#64748b;font-size:.82rem;margin:.4rem 0 0;font-style:italic;">Review note: @c.ReviewNotes</p>
+                    }
+                </div>
+                @if (c.Status == "Pending") {
+                    <div style="display:flex;flex-direction:column;gap:.5rem;min-width:200px;">
+                        <form method="post" action="/PettyCash/Approve" style="display:flex;gap:.5rem;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@c.Id"/>
+                            <input name="reviewNotes" class="dark-input" placeholder="Notes..." style="flex:1"/>
+                            <button type="submit" class="btn-approve">Approve</button>
+                        </form>
+                        <form method="post" action="/PettyCash/Reject" style="display:flex;gap:.5rem;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@c.Id"/>
+                            <input name="reviewNotes" class="dark-input" placeholder="Reason..." style="flex:1"/>
+                            <button type="submit" class="btn-reject">Reject</button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

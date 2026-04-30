@@ -1,0 +1,79 @@
+@using CRLFruitstandESS.Models.ViewModels
+@model CreateUserViewModel
+@{ ViewData["Title"] = "Create User"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#060d1a!important;min-height:100vh}
+.adm-header{background:linear-gradient(135deg,#0f2044,#0a1628);border:1px solid #1e3a6e;padding:2.5rem 2rem;border-radius:14px;margin-bottom:2rem}
+.blue-card{background:#0d1f3c;border:1px solid #1e3a6e;border-radius:14px;padding:2rem;margin-bottom:1.5rem;max-width:700px}
+.form-label{display:block;margin-bottom:.4rem;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#475569}
+.dark-input{width:100%;padding:.875rem 1rem;background:#060d1a;border:1px solid #1e3a6e;border-radius:8px;color:#e2e8f0;font-size:.9rem;box-sizing:border-box;outline:none;transition:border-color .2s,box-shadow .2s}
+.dark-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem}
+.btn-blue{padding:.875rem 2rem;background:#2563eb;color:white;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;outline:none}
+.btn-blue:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 16px rgba(37,99,235,.4)}
+.btn-back{padding:.875rem 1.5rem;background:transparent;color:#64748b;border:1px solid #1e3a6e;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s}
+.btn-back:hover{border-color:#3b82f6;color:#93c5fd}
+.field-error{color:#fca5a5;font-size:.78rem;margin-top:.3rem}
+</style>
+}
+<div class="adm-header">
+    <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#3b82f6;display:block;margin-bottom:.5rem;">Administration</span>
+    <h1 style="font-size:2rem;font-weight:800;margin:0 0 .4rem;color:#f1f5f9;">Create New User</h1>
+    <p style="margin:0;font-size:.9rem;color:#475569;">Add a new system user and assign their role</p>
+</div>
+<div class="blue-card">
+    <form method="post" action="/Admin/CreateUser">
+        @Html.AntiForgeryToken()
+        <div class="form-grid">
+            <div>
+                <label class="form-label">Full Name *</label>
+                <input asp-for="FullName" class="dark-input" placeholder="e.g. Juan dela Cruz"/>
+                <span asp-validation-for="FullName" class="field-error"></span>
+            </div>
+            <div>
+                <label class="form-label">Username *</label>
+                <input asp-for="UserName" class="dark-input" placeholder="e.g. jdelacruz"/>
+                <span asp-validation-for="UserName" class="field-error"></span>
+            </div>
+            <div>
+                <label class="form-label">Email *</label>
+                <input asp-for="Email" type="email" class="dark-input" placeholder="user@crlfruitstand.com"/>
+                <span asp-validation-for="Email" class="field-error"></span>
+            </div>
+            <div>
+                <label class="form-label">Department</label>
+                <input asp-for="Department" class="dark-input" placeholder="e.g. Operations"/>
+            </div>
+            <div>
+                <label class="form-label">Password *</label>
+                <input asp-for="Password" type="password" class="dark-input" placeholder="Min 8 chars"/>
+                <span asp-validation-for="Password" class="field-error"></span>
+            </div>
+            <div>
+                <label class="form-label">Confirm Password *</label>
+                <input asp-for="ConfirmPassword" type="password" class="dark-input"/>
+                <span asp-validation-for="ConfirmPassword" class="field-error"></span>
+            </div>
+            <div>
+                <label class="form-label">Role *</label>
+                <select asp-for="Role" class="dark-input">
+                    @foreach (var r in (List<string>)ViewBag.Roles) { <option value="@r">@r</option> }
+                </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75rem;padding-top:1.5rem;">
+                <input asp-for="IsActive" type="checkbox" id="isActive" style="width:18px;height:18px;accent-color:#3b82f6;"/>
+                <label for="isActive" style="color:#94a3b8;font-size:.9rem;cursor:pointer;">Active account</label>
+            </div>
+        </div>
+        @if (!ViewData.ModelState.IsValid) {
+            <div style="padding:1rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#fca5a5;margin-bottom:1.25rem;font-size:.85rem;">
+                @foreach (var e in ViewData.ModelState.Values.SelectMany(v => v.Errors)) { <div>• @e.ErrorMessage</div> }
+            </div>
+        }
+        <div style="display:flex;gap:1rem;">
+            <button type="submit" class="btn-blue"><i class="bi bi-person-plus-fill"></i> Create User</button>
+            <a href="/Admin/Users" class="btn-back">Cancel</a>
+        </div>
+    </form>
+</div>

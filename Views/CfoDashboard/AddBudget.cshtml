@@ -1,0 +1,95 @@
+@model CRLFruitstandESS.Models.ViewModels.BudgetFormViewModel
+@{ 
+    ViewData["Title"] = "Create Budget"; 
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+    // FIX CS1526: Pre-compute month names — new DateTime() inside <option> attributes causes parse errors
+    var monthNames = new System.Globalization.DateTimeFormatInfo().MonthNames;
+}
+
+<div class="dash-header">
+    <div>
+        <span class="dash-label">Finance</span>
+        <h1 class="dash-title">@(Model.Id > 0 ? "Edit" : "Create") Budget Plan</h1>
+    </div>
+    <a href="/CfoDashboard/Budget" class="btn-secondary">← Back</a>
+</div>
+
+<div class="cfo-card" style="max-width:600px;">
+    <div class="cfo-card-body">
+        <form asp-action="@(Model.Id > 0 ? "EditBudget" : "AddBudget")" method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+
+            <div class="form-group">
+                <label asp-for="Title">Budget Title</label>
+                <input asp-for="Title" class="form-input" placeholder="e.g. Monthly Purchasing Budget" />
+                <span asp-validation-for="Title" class="field-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Category">Category</label>
+                <select asp-for="Category" class="form-input">
+                    <option value="">-- Select Category --</option>
+                    <option value="Purchasing">Purchasing (Fruits)</option>
+                    <option value="Labor">Labor / Wages</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Transport">Transport / Delivery</option>
+                    <option value="Spoilage">Spoilage Loss</option>
+                    <option value="Other">Other</option>
+                </select>
+                <span asp-validation-for="Category" class="field-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="AllocatedAmount">Allocated Amount (₱)</label>
+                <input asp-for="AllocatedAmount" class="form-input" type="number" step="0.01" min="1" placeholder="0.00" />
+                <span asp-validation-for="AllocatedAmount" class="field-error"></span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="form-group">
+                    <label asp-for="Month">Month</label>
+                    <select asp-for="Month" class="form-input">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            if (Model.Month == m)
+                            {
+                                <option value="@m" selected="selected">@monthNames[m - 1]</option>
+                            }
+                            else
+                            {
+                                <option value="@m">@monthNames[m - 1]</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Year">Year</label>
+                    <select asp-for="Year" class="form-input">
+                        @for (int y = DateTime.Today.Year; y <= DateTime.Today.Year + 2; y++)
+                        {
+                            if (Model.Year == y)
+                            {
+                                <option value="@y" selected="selected">@y</option>
+                            }
+                            else
+                            {
+                                <option value="@y">@y</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Notes">Notes (optional)</label>
+                <textarea asp-for="Notes" class="form-input" rows="3" placeholder="Budget notes..."></textarea>
+            </div>
+
+            <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                <button type="submit" class="btn-primary">@(Model.Id > 0 ? "Update" : "Save") Budget</button>
+                <a href="/CfoDashboard/Budget" class="btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

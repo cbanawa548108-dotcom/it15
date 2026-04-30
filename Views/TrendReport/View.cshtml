@@ -1,0 +1,49 @@
+@using CRLFruitstandESS.Models
+@model TrendReport
+@{ ViewData["Title"] = Model.Title; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#0f172a!important;min-height:100vh}
+.dark-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:1.75rem;margin-bottom:1.5rem}
+.chart-wrap{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1.5rem}
+</style>
+}
+<div style="background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #334155;padding:2rem;border-radius:14px;margin-bottom:2rem;">
+    <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#6366f1;display:block;margin-bottom:.5rem;">@Model.ReportType Trend Report</span>
+    <h1 style="font-size:2rem;font-weight:800;margin:0 0 .4rem;color:#f1f5f9;">@Model.Title</h1>
+    <p style="margin:0;color:#64748b;font-size:.9rem;">@Model.PeriodFrom.ToString("MMMM dd, yyyy") – @Model.PeriodTo.ToString("MMMM dd, yyyy") · Created by @Model.CreatedBy</p>
+</div>
+@if (!string.IsNullOrEmpty(Model.Summary)) {
+    <div class="dark-card">
+        <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:0 0 .75rem;">Summary</p>
+        <p style="color:#94a3b8;line-height:1.7;margin:0;">@Model.Summary</p>
+    </div>
+}
+<div class="dark-card">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:0 0 1.25rem;">Revenue vs Expenses</p>
+    <div class="chart-wrap"><canvas id="trendChart" height="100"></canvas></div>
+</div>
+<div style="margin-top:1rem;"><a href="/TrendReport/Index" style="color:#6366f1;text-decoration:none;font-size:.9rem;font-weight:600;">← Back to Reports</a></div>
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const raw = @Html.Raw(Model.DataJson);
+Chart.defaults.color='#475569'; Chart.defaults.borderColor='rgba(255,255,255,.04)';
+new Chart(document.getElementById('trendChart'),{
+    type:'line',
+    data:{
+        labels:raw.labels||[],
+        datasets:[
+            {label:'Revenue',data:raw.revenue||[],borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.1)',borderWidth:2,tension:.4,fill:true,pointRadius:2},
+            {label:'Expenses',data:raw.expense||[],borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.08)',borderWidth:2,tension:.4,fill:true,pointRadius:2}
+        ]
+    },
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{labels:{color:'#64748b',usePointStyle:true}},
+            tooltip:{backgroundColor:'#0d1526',borderColor:'rgba(99,102,241,.3)',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b',
+                callbacks:{label:c=>' '+c.dataset.label+': ₱'+Number(c.parsed.y).toLocaleString()}}},
+        scales:{x:{ticks:{color:'#334155'},grid:{color:'rgba(255,255,255,.03)'}},
+                y:{ticks:{color:'#334155',callback:v=>'₱'+(v>=1000?(v/1000).toFixed(0)+'k':v)},grid:{color:'rgba(255,255,255,.03)'}}}}
+});
+</script>
+}

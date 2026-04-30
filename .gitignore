@@ -480,3 +480,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Protect API keys
+appsettings.json
+appsettings.*.json

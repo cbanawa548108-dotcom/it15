@@ -1,0 +1,744 @@
+@model CRLFruitstandESS.Models.ViewModels.SalesReportViewModel
+@{
+    ViewData["Title"] = "Sales Report";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+@section Styles {
+<link rel="stylesheet" href="~/css/manager-dashboard.css" asp-append-version="true" />
+<style>
+    .page-content { background:#060b14 !important; min-height:100vh; }
+
+    /* ── Google Font ── */
+    @@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap');
+
+    /* ════════════════════════════════════════
+       SALES REPORT — ENHANCED DESIGN
+    ════════════════════════════════════════ */
+
+    :root {
+        --accent:        #3b82f6;
+        --accent-glow:   rgba(59,130,246,0.18);
+        --green:         #22c55e;
+        --green-glow:    rgba(34,197,94,0.15);
+        --gold:          #f59e0b;
+        --gold-glow:     rgba(245,158,11,0.15);
+        --red:           #ef4444;
+        --red-glow:      rgba(239,68,68,0.12);
+        --surface:       rgba(255,255,255,0.03);
+        --border:        rgba(255,255,255,0.07);
+        --border-hover:  rgba(255,255,255,0.14);
+        --text-primary:  #f1f5f9;
+        --text-muted:    #64748b;
+        --text-dim:      #94a3b8;
+        --mono:          'DM Mono', monospace;
+        --display:       'Syne', sans-serif;
+    }
+
+    /* ── Page Header ── */
+    .sr-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        position: relative;
+    }
+
+    .sr-header::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 80px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .sr-eyebrow {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 0.4rem;
+    }
+
+    .sr-title {
+        font-family: var(--display);
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin: 0 0 0.25rem;
+        line-height: 1.1;
+    }
+
+    .sr-subtitle {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    /* ── Period Tabs ── */
+    .sr-period-tabs {
+        display: flex;
+        gap: 0.375rem;
+        background: rgba(0,0,0,0.2);
+        padding: 0.3rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+    }
+
+    .sr-tab {
+        padding: 0.5rem 1.1rem;
+        border-radius: 7px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        font-family: var(--mono);
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .sr-tab:hover {
+        color: var(--text-dim);
+        background: rgba(255,255,255,0.04);
+    }
+
+    .sr-tab.active {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 2px 12px rgba(59,130,246,0.35);
+    }
+
+    /* ── Summary Stat Cards ── */
+    .sr-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .sr-stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.25s, transform 0.25s;
+        animation: fadeSlideUp 0.5s both;
+    }
+
+    .sr-stat:nth-child(1) { animation-delay: 0.05s; }
+    .sr-stat:nth-child(2) { animation-delay: 0.10s; }
+    .sr-stat:nth-child(3) { animation-delay: 0.15s; }
+    .sr-stat:nth-child(4) { animation-delay: 0.20s; }
+
+    @@keyframes fadeSlideUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .sr-stat:hover {
+        border-color: var(--border-hover);
+        transform: translateY(-3px);
+    }
+
+    .sr-stat-glow {
+        position: absolute;
+        top: -30px; right: -30px;
+        width: 100px; height: 100px;
+        border-radius: 50%;
+        opacity: 0.5;
+        filter: blur(30px);
+        pointer-events: none;
+    }
+
+    .sr-stat.blue  .sr-stat-glow { background: var(--accent-glow); }
+    .sr-stat.green .sr-stat-glow { background: var(--green-glow); }
+    .sr-stat.purple .sr-stat-glow { background: rgba(168,85,247,0.18); }
+    .sr-stat.gold  .sr-stat-glow { background: var(--gold-glow); }
+
+    .sr-stat-label {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 0.6rem;
+    }
+
+    .sr-stat-value {
+        font-family: var(--display);
+        font-size: 1.9rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+        margin-bottom: 0.35rem;
+    }
+
+    .sr-stat.blue  .sr-stat-value { color: #60a5fa; }
+    .sr-stat.green .sr-stat-value { color: #4ade80; }
+    .sr-stat.gold  .sr-stat-value { color: #fbbf24; }
+
+    .sr-stat-sub {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-family: var(--mono);
+    }
+
+    .sr-stat-accent-bar {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 2px;
+    }
+
+    .sr-stat.blue  .sr-stat-accent-bar { background: linear-gradient(90deg, var(--accent), transparent); }
+    .sr-stat.green .sr-stat-accent-bar { background: linear-gradient(90deg, var(--green), transparent); }
+    .sr-stat.purple .sr-stat-accent-bar { background: linear-gradient(90deg, #a855f7, transparent); }
+    .sr-stat.gold  .sr-stat-accent-bar { background: linear-gradient(90deg, var(--gold), transparent); }
+
+    /* ── Chart Card ── */
+    .sr-chart-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        animation: fadeSlideUp 0.5s 0.25s both;
+    }
+
+    .sr-chart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 1.75rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sr-chart-title {
+        font-family: var(--display);
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin: 0;
+    }
+
+    .sr-chart-title i { color: var(--accent); }
+
+    .sr-chart-meta {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .sr-chart-meta-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.3rem;
+    }
+
+    .sr-chart-body {
+        height: 380px;
+        padding: 1.25rem 1.25rem 0.75rem;
+        position: relative;
+    }
+
+    /* ── Tables Section ── */
+    .sr-tables {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        animation: fadeSlideUp 0.5s 0.35s both;
+    }
+
+    .sr-table-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .sr-table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sr-table-title {
+        font-family: var(--display);
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0;
+    }
+
+    .sr-table-title i { color: var(--accent); }
+    .sr-table-title.low i { color: var(--red); }
+
+    .sr-table-count {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        background: rgba(255,255,255,0.05);
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+    }
+
+    /* ── Enhanced Table ── */
+    .sr-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .sr-table thead tr {
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sr-table thead th {
+        padding: 0.7rem 1.5rem;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 500;
+        text-align: left;
+    }
+
+    .sr-table thead th.r { text-align: right; }
+
+    .sr-table tbody tr {
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        transition: background 0.15s;
+    }
+
+    .sr-table tbody tr:last-child { border-bottom: none; }
+
+    .sr-table tbody tr:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .sr-table tbody td {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.875rem;
+        color: var(--text-dim);
+        vertical-align: middle;
+    }
+
+    .sr-table tbody td.r { text-align: right; }
+
+    .sr-product-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .sr-product-emoji {
+        font-size: 1.25rem;
+        line-height: 1;
+    }
+
+    .sr-product-name {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .sr-rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .sr-rank-1 { background: rgba(251,191,36,0.2); color: #fbbf24; }
+    .sr-rank-2 { background: rgba(148,163,184,0.2); color: #cbd5e1; }
+    .sr-rank-3 { background: rgba(180,83,9,0.2); color: #d97706; }
+    .sr-rank-n { background: rgba(255,255,255,0.05); color: #64748b; }
+
+    .sr-qty {
+        font-family: var(--mono);
+        font-size: 0.85rem;
+    }
+
+    .sr-revenue {
+        font-family: var(--mono);
+        font-weight: 500;
+        color: #4ade80;
+    }
+
+    .sr-revenue.low-rev {
+        color: var(--text-muted);
+    }
+
+    .sr-zero {
+        color: #f87171;
+        font-family: var(--mono);
+    }
+
+    /* ── Progress bar in table rows ── */
+    .sr-bar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        justify-content: flex-end;
+    }
+
+    .sr-bar-track {
+        width: 60px;
+        height: 4px;
+        background: rgba(255,255,255,0.07);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .sr-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, var(--accent), #60a5fa);
+        transition: width 0.4s;
+    }
+
+    .sr-bar-fill.low {
+        background: linear-gradient(90deg, #ef4444, #f87171);
+    }
+
+    /* ── Empty state ── */
+    .sr-empty {
+        text-align: center;
+        padding: 2.5rem;
+        color: var(--text-muted);
+    }
+
+    .sr-empty i {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 0.75rem;
+        opacity: 0.4;
+    }
+
+    /* ── Responsive ── */
+    @@media (max-width: 1100px) {
+        .sr-stats { grid-template-columns: repeat(2, 1fr); }
+        .sr-tables { grid-template-columns: 1fr; }
+    }
+
+    @@media (max-width: 650px) {
+        .sr-stats { grid-template-columns: 1fr; }
+        .sr-header { flex-direction: column; align-items: flex-start; }
+        .sr-title { font-size: 1.5rem; }
+    }
+</style>
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+@{
+    /* Pre-compute max revenue for bar widths */
+    var maxRev = Model.TopProducts.Any() ? Model.TopProducts.Max(p => p.Revenue) : 1;
+    var maxLowRev = Model.LowProducts.Any() ? (Model.LowProducts.Max(p => p.Revenue) == 0 ? 1 : Model.LowProducts.Max(p => p.Revenue)) : 1;
+}
+
+<!-- ══ HEADER ══ -->
+<div class="sr-header">
+    <div>
+        <div class="sr-eyebrow">Analytics · CRL Fruitstand</div>
+        <h1 class="sr-title">Sales Report</h1>
+        <p class="sr-subtitle">Detailed sales performance analysis</p>
+    </div>
+    <div class="sr-period-tabs">
+        <a href="?period=daily"   class="sr-tab @(Model.Period == "daily"   ? "active" : "")">Daily</a>
+        <a href="?period=weekly"  class="sr-tab @(Model.Period == "weekly"  ? "active" : "")">Weekly</a>
+        <a href="?period=monthly" class="sr-tab @(Model.Period == "monthly" ? "active" : "")">Monthly</a>
+    </div>
+</div>
+
+<!-- ══ STAT CARDS ══ -->
+<div class="sr-stats">
+    <div class="sr-stat blue">
+        <div class="sr-stat-glow"></div>
+        <div class="sr-stat-label">Total Revenue</div>
+        <div class="sr-stat-value">₱@Model.TotalRevenue.ToString("N0")</div>
+        <div class="sr-stat-sub">Period total</div>
+        <div class="sr-stat-accent-bar"></div>
+    </div>
+    <div class="sr-stat green">
+        <div class="sr-stat-glow"></div>
+        <div class="sr-stat-label">Transactions</div>
+        <div class="sr-stat-value">@Model.TotalTransactions.ToString("N0")</div>
+        <div class="sr-stat-sub">Completed orders</div>
+        <div class="sr-stat-accent-bar"></div>
+    </div>
+    <div class="sr-stat purple">
+        <div class="sr-stat-glow"></div>
+        <div class="sr-stat-label">Avg Transaction</div>
+        <div class="sr-stat-value">₱@Model.AverageTransactionValue.ToString("N0")</div>
+        <div class="sr-stat-sub">Per order value</div>
+        <div class="sr-stat-accent-bar"></div>
+    </div>
+    <div class="sr-stat gold">
+        <div class="sr-stat-glow"></div>
+        <div class="sr-stat-label">Best Day</div>
+        <div class="sr-stat-value">₱@(Model.BestDay?.Revenue.ToString("N0") ?? "0")</div>
+        @if (Model.BestDay != null)
+        {
+            <div class="sr-stat-sub">@Model.BestDay.Date.ToString("MMM dd, yyyy")</div>
+        }
+        else
+        {
+            <div class="sr-stat-sub">No data yet</div>
+        }
+        <div class="sr-stat-accent-bar"></div>
+    </div>
+</div>
+
+<!-- ══ CHART ══ -->
+<div class="sr-chart-card">
+    <div class="sr-chart-header">
+        <h3 class="sr-chart-title"><i class="bi bi-graph-up-arrow"></i> Revenue Trend</h3>
+        <div class="sr-chart-meta">
+            <span><span class="sr-chart-meta-dot" style="background:#3b82f6;"></span>Revenue</span>
+            <span style="color: var(--text-muted);">
+                @(Model.Period == "daily" ? "Last 30 days" : Model.Period == "weekly" ? "Last 12 weeks" : "Last 12 months")
+            </span>
+        </div>
+    </div>
+    <div class="sr-chart-body">
+        <canvas id="reportChart"></canvas>
+    </div>
+</div>
+
+<!-- ══ PRODUCT TABLES ══ -->
+<div class="sr-tables">
+
+    <!-- Top Products -->
+    <div class="sr-table-card">
+        <div class="sr-table-header">
+            <h3 class="sr-table-title"><i class="bi bi-trophy-fill"></i> Top Products</h3>
+            <span class="sr-table-count">@Model.TopProducts.Count() items</span>
+        </div>
+        @if (!Model.TopProducts.Any())
+        {
+            <div class="sr-empty">
+                <i class="bi bi-bar-chart"></i>
+                <p>No sales data available yet.</p>
+            </div>
+        }
+        else
+        {
+            <table class="sr-table">
+                <thead>
+                    <tr>
+                        <th colspan="2">Product</th>
+                        <th class="r">Sold</th>
+                        <th class="r">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ int topRank = 1; }
+                    @foreach (var p in Model.TopProducts)
+                    {
+                        var rankClass = topRank == 1 ? "sr-rank-1" : topRank == 2 ? "sr-rank-2" : topRank == 3 ? "sr-rank-3" : "sr-rank-n";
+                        var barPct = maxRev > 0 ? (int)((p.Revenue / maxRev) * 100) : 0;
+                        <tr>
+                            <td style="width:28px; padding-right:0;">
+                                <span class="sr-rank-badge @rankClass">@topRank</span>
+                            </td>
+                            <td>
+                                <div class="sr-product-cell">
+                                    <span class="sr-product-emoji">@p.Emoji</span>
+                                    <span class="sr-product-name">@p.ProductName</span>
+                                </div>
+                            </td>
+                            <td class="r"><span class="sr-qty">@p.QuantitySold</span></td>
+                            <td class="r">
+                                <div class="sr-bar-wrap">
+                                    <div class="sr-bar-track">
+                                        <div class="sr-bar-fill" style="width:@barPct%"></div>
+                                    </div>
+                                    <span class="sr-revenue">₱@p.Revenue.ToString("N0")</span>
+                                </div>
+                            </td>
+                        </tr>
+                        topRank++;
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <!-- Low Products -->
+    <div class="sr-table-card">
+        <div class="sr-table-header">
+            <h3 class="sr-table-title low"><i class="bi bi-graph-down-arrow"></i> Low Products</h3>
+            <span class="sr-table-count">@Model.LowProducts.Count() items</span>
+        </div>
+        @if (!Model.LowProducts.Any())
+        {
+            <div class="sr-empty">
+                <i class="bi bi-check-circle"></i>
+                <p>All products performing well!</p>
+            </div>
+        }
+        else
+        {
+            <table class="sr-table">
+                <thead>
+                    <tr>
+                        <th colspan="2">Product</th>
+                        <th class="r">Sold</th>
+                        <th class="r">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.LowProducts)
+                    {
+                        var barPct = maxLowRev > 0 ? (int)((p.Revenue / maxLowRev) * 100) : 0;
+                        <tr>
+                            <td style="width:28px; padding-right:0;">
+                                <span class="sr-rank-badge sr-rank-n">↓</span>
+                            </td>
+                            <td>
+                                <div class="sr-product-cell">
+                                    <span class="sr-product-emoji">@p.Emoji</span>
+                                    <span class="sr-product-name">@p.ProductName</span>
+                                </div>
+                            </td>
+                            <td class="r">
+                                @if (p.QuantitySold == 0)
+                                {
+                                    <span class="sr-zero">0</span>
+                                }
+                                else
+                                {
+                                    <span class="sr-qty">@p.QuantitySold</span>
+                                }
+                            </td>
+                            <td class="r">
+                                <div class="sr-bar-wrap">
+                                    <div class="sr-bar-track">
+                                        <div class="sr-bar-fill low" style="width:@(p.QuantitySold == 0 ? 100 : barPct)%"></div>
+                                    </div>
+                                    <span class="sr-revenue @(p.QuantitySold == 0 ? "low-rev" : "")">₱@p.Revenue.ToString("N0")</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        Chart.defaults.color = '#64748b';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+        Chart.defaults.font.family = "'DM Mono', monospace";
+
+        const ctx = document.getElementById('reportChart').getContext('2d');
+        const trendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Trends));
+        const period = '@Model.Period';
+
+        const labels = trendData.map(t => {
+            const d = new Date(t.date);
+            if (period === 'monthly') return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            if (period === 'weekly')  return 'W' + getWeek(d);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+
+        const revenue = trendData.map(t => t.revenue);
+
+        /* Gradient fill */
+        const grad = ctx.createLinearGradient(0, 0, 0, 380);
+        grad.addColorStop(0,   'rgba(59,130,246,0.28)');
+        grad.addColorStop(0.6, 'rgba(59,130,246,0.06)');
+        grad.addColorStop(1,   'rgba(59,130,246,0.0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: revenue,
+                    borderColor: '#3b82f6',
+                    backgroundColor: grad,
+                    fill: true,
+                    tension: 0.42,
+                    borderWidth: 2.5,
+                    pointRadius: revenue.length > 20 ? 0 : 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#3b82f6',
+                    pointBorderColor: '#0f172a',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.95)',
+                        titleColor: '#94a3b8',
+                        bodyColor: '#f1f5f9',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        padding: 12,
+                        titleFont: { family: "'DM Mono', monospace", size: 11 },
+                        bodyFont: { family: "'DM Mono', monospace", size: 13, weight: '500' },
+                        callbacks: {
+                            label: c => '  ₱ ' + c.parsed.y.toLocaleString('en-PH', { minimumFractionDigits: 2 })
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { maxTicksLimit: 12 }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            callback: v => v >= 1000 ? '₱' + (v/1000).toFixed(0) + 'k' : '₱' + v
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    function getWeek(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
+</script>
+}

@@ -1,0 +1,776 @@
+@using CRLFruitstandESS.Models.ViewModels
+@using System.Text.Json
+@model AnalyticsViewModel
+@{
+    ViewData["Title"] = "Analytics";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+    var jo = new JsonSerializerOptions();
+    string J(object o) => JsonSerializer.Serialize(o, jo);
+}
+
+@section Styles {
+<style>
+/* ═══════════════════════════════════════════════════
+   ANALYTICS — UNIQUE DESIGN SYSTEM
+   Mesh gradient bg · Neon glow accents · Side panel
+═══════════════════════════════════════════════════ */
+
+.page-content {
+    background: #060b14 !important;
+    min-height: 100vh;
+}
+
+/* Animated mesh background */
+.an-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(ellipse 80% 50% at 20% 10%,  rgba(59,130,246,.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%,  rgba(139,92,246,.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 60% 30%,  rgba(16,185,129,.04) 0%, transparent 60%),
+        #060b14;
+}
+.an-wrap { position: relative; z-index: 1; }
+
+/* ── HERO HEADER ── */
+.an-hero {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 2rem;
+    padding: 2.5rem 2.5rem 2rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.an-hero-eyebrow {
+    font-size: .68rem; font-weight: 800; letter-spacing: .18em;
+    text-transform: uppercase; color: transparent;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text; background-clip: text;
+    margin-bottom: .6rem;
+}
+.an-hero h1 {
+    font-size: 2.6rem; font-weight: 900; color: #f8fafc;
+    margin: 0 0 .4rem; letter-spacing: -.03em;
+    line-height: 1.1;
+}
+.an-hero p { margin: 0; color: #475569; font-size: .9rem; }
+
+/* Period pills */
+.period-pills { display: flex; gap: .4rem; }
+.period-pill {
+    padding: .45rem 1rem; border-radius: 999px;
+    font-size: .78rem; font-weight: 700; letter-spacing: .04em;
+    border: 1px solid rgba(255,255,255,.07);
+    background: rgba(255,255,255,.03);
+    color: #475569; text-decoration: none;
+    transition: all .2s ease; outline: none;
+}
+.period-pill:hover { border-color: rgba(59,130,246,.5); color: #93c5fd; background: rgba(59,130,246,.08); }
+.period-pill.active {
+    background: linear-gradient(135deg, rgba(59,130,246,.2), rgba(139,92,246,.2));
+    border-color: rgba(99,102,241,.6);
+    color: #a5b4fc;
+    box-shadow: 0 0 12px rgba(99,102,241,.2);
+}
+.period-pill:active { transform: scale(.96); }
+
+/* ── STAT STRIP ── */
+.stat-strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: rgba(255,255,255,.04);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(255,255,255,.05);
+}
+.stat-cell {
+    background: rgba(10,16,28,.8);
+    padding: 1.4rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: background .2s;
+}
+.stat-cell::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    opacity: 0; transition: opacity .3s;
+}
+.stat-cell:hover { background: rgba(20,30,50,.9); }
+.stat-cell:hover::before { opacity: 1; }
+.stat-cell.c-blue::before   { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+.stat-cell.c-red::before    { background: linear-gradient(90deg,#ef4444,#f87171); }
+.stat-cell.c-green::before  { background: linear-gradient(90deg,#10b981,#34d399); }
+.stat-cell.c-teal::before   { background: linear-gradient(90deg,#06b6d4,#22d3ee); }
+.stat-cell.c-amber::before  { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+.stat-cell.c-purple::before { background: linear-gradient(90deg,#8b5cf6,#a78bfa); }
+.stat-cell .sc-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #334155; margin-bottom: .5rem; }
+.stat-cell .sc-value { font-size: 1.5rem; font-weight: 800; line-height: 1; margin-bottom: .3rem; }
+.stat-cell .sc-sub   { font-size: .72rem; color: #334155; }
+.stat-cell.c-blue   .sc-value { color: #60a5fa; }
+.stat-cell.c-red    .sc-value { color: #fca5a5; }
+.stat-cell.c-green  .sc-value { color: #34d399; }
+.stat-cell.c-teal   .sc-value { color: #22d3ee; }
+.stat-cell.c-amber  .sc-value { color: #fbbf24; }
+.stat-cell.c-purple .sc-value { color: #a78bfa; }
+
+/* ── CHART PANELS ── */
+.chart-panel {
+    background: rgba(10,16,28,.85);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: border-color .25s, box-shadow .25s;
+    position: relative;
+    overflow: hidden;
+}
+.chart-panel::after {
+    content: '';
+    position: absolute; inset: 0; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255,255,255,.015) 0%, transparent 60%);
+    pointer-events: none;
+}
+.chart-panel.clickable { cursor: pointer; }
+.chart-panel.clickable:hover {
+    border-color: rgba(99,102,241,.4);
+    box-shadow: 0 0 0 1px rgba(99,102,241,.2), 0 8px 32px rgba(0,0,0,.4);
+}
+.chart-panel.clickable:active { transform: scale(.995); }
+
+.cp-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+.cp-title {
+    font-size: .78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .09em; color: #475569;
+    display: flex; align-items: center; gap: .5rem;
+}
+.cp-title .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
+}
+.cp-badge {
+    font-size: .65rem; font-weight: 700; padding: .2rem .6rem;
+    border-radius: 999px; letter-spacing: .05em;
+    background: rgba(99,102,241,.12); color: #818cf8;
+    border: 1px solid rgba(99,102,241,.2);
+    display: flex; align-items: center; gap: .3rem;
+    transition: color .2s;
+}
+.chart-panel.clickable:hover .cp-badge { color: #a5b4fc; }
+
+/* Layout grids */
+.grid-main { display: grid; grid-template-columns: 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+.grid-2    { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px,1fr)); gap: 1.25rem; margin-bottom: 1.25rem; }
+.grid-3    { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1.25rem; margin-bottom: 1.25rem; }
+
+/* ── SIDE PANEL DRILL-DOWN ── */
+.drill-panel {
+    position: fixed; top: 0; right: -520px; width: 500px; height: 100vh;
+    background: #080e1a;
+    border-left: 1px solid rgba(255,255,255,.07);
+    z-index: 900; transition: right .35s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+    box-shadow: -20px 0 60px rgba(0,0,0,.6);
+}
+.drill-panel.open { right: 0; }
+.drill-panel-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+}
+.drill-panel-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+.drill-panel-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+    color: #64748b; cursor: pointer; font-size: .9rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+}
+.drill-panel-close:hover { background: rgba(239,68,68,.15); color: #fca5a5; border-color: rgba(239,68,68,.3); }
+.drill-panel-body { flex: 1; overflow-y: auto; padding: 1.5rem; }
+.drill-panel-body::-webkit-scrollbar { width: 4px; }
+.drill-panel-body::-webkit-scrollbar-track { background: transparent; }
+.drill-panel-body::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
+
+/* Backdrop */
+.drill-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    z-index: 899; opacity: 0; pointer-events: none;
+    transition: opacity .35s ease; 
+}
+.drill-backdrop.open { opacity: 1; pointer-events: all; }
+
+/* Drill table */
+.drill-tbl { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: 1rem; }
+.drill-tbl thead th { padding: .6rem .75rem; text-align: left; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #334155; border-bottom: 1px solid rgba(255,255,255,.05); }
+.drill-tbl tbody tr { border-bottom: 1px solid rgba(255,255,255,.03); transition: background .15s; }
+.drill-tbl tbody tr:hover { background: rgba(255,255,255,.03); }
+.drill-tbl tbody td { padding: .55rem .75rem; color: #94a3b8; }
+
+/* Scrollbar for main content */
+.page-content::-webkit-scrollbar { width: 5px; }
+.page-content::-webkit-scrollbar-track { background: transparent; }
+.page-content::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+
+@@media (max-width: 768px) {
+    .stat-strip { grid-template-columns: repeat(3,1fr); }
+    .an-hero { grid-template-columns: 1fr; }
+    .drill-panel { width: 100%; right: -100%; }
+}
+</style>
+}
+
+<!-- MESH BG removed — caused blur artifacts -->
+
+<div class="an-wrap">
+
+<!-- ── HERO ── -->
+<div class="an-hero">
+    <div>
+        <div class="an-hero-eyebrow">Business Intelligence · Data Visualization</div>
+        <h1>Analytics<br><span style="color:#6366f1;">Dashboard</span></h1>
+        <p>@Model.DateFrom.ToString("MMM dd") &ndash; @Model.DateTo.ToString("MMM dd, yyyy") &nbsp;·&nbsp; Interactive drill-down enabled</p>
+    </div>
+    <div class="period-pills">
+        @foreach (var p in new[] { ("7d","7D"), ("30d","30D"), ("90d","90D"), ("ytd","YTD") })
+        {
+            <a href="@Url.Action("Index","Analytics",new{period=p.Item1})"
+               class="period-pill @(Model.Period==p.Item1?"active":"")">@p.Item2</a>
+        }
+    </div>
+</div>
+
+<!-- ── STAT STRIP ── -->
+<div class="stat-strip">
+    <div class="stat-cell c-blue">
+        <div class="sc-label">Revenue</div>
+        <div class="sc-value" data-count="@Model.TotalRevenue">₱@Model.TotalRevenue.ToString("N0")</div>
+        <div class="sc-sub">Period total</div>
+    </div>
+    <div class="stat-cell c-red">
+        <div class="sc-label">Expenses</div>
+        <div class="sc-value">₱@Model.TotalExpenses.ToString("N0")</div>
+        <div class="sc-sub">Period total</div>
+    </div>
+    <div class="stat-cell @(Model.NetProfit>=0?"c-green":"c-red")">
+        <div class="sc-label">Net Profit</div>
+        <div class="sc-value">₱@Model.NetProfit.ToString("N0")</div>
+        <div class="sc-sub">@Model.GrossMargin.ToString("F1")% margin</div>
+    </div>
+    <div class="stat-cell c-teal">
+        <div class="sc-label">Sales</div>
+        <div class="sc-value">@Model.TotalSales</div>
+        <div class="sc-sub">Avg ₱@Model.AvgOrderValue.ToString("N0")</div>
+    </div>
+    <div class="stat-cell c-amber">
+        <div class="sc-label">Products</div>
+        <div class="sc-value">@Model.TotalProducts</div>
+        <div class="sc-sub">@Model.LowStockCount low stock</div>
+    </div>
+    <div class="stat-cell c-purple">
+        <div class="sc-label">Gross Margin</div>
+        <div class="sc-value">@Model.GrossMargin.ToString("F1")%</div>
+        <div class="sc-sub">Efficiency</div>
+    </div>
+</div>
+
+<!-- ── TREND (full width) ── -->
+<div class="grid-main">
+    <div class="chart-panel clickable" onclick="drillTrend()">
+        <div class="cp-header">
+            <div class="cp-title">
+                <span class="dot" style="color:#3b82f6;background:#3b82f6;"></span>
+                Revenue vs Expenses — Daily Trend
+            </div>
+            <div class="cp-badge"><i class="bi bi-zoom-in"></i> Drill down</div>
+        </div>
+        <canvas id="trendChart" height="75"></canvas>
+    </div>
+</div>
+
+<!-- ── MONTHLY + EXPENSE PIE ── -->
+<div class="grid-2">
+    <div class="chart-panel clickable" id="monthlyPanel">
+        <div class="cp-header">
+            <div class="cp-title">
+                <span class="dot" style="color:#10b981;background:#10b981;"></span>
+                6-Month P&amp;L Overview
+            </div>
+            <div class="cp-badge"><i class="bi bi-zoom-in"></i> Click bar</div>
+        </div>
+        <canvas id="monthlyChart" height="150"></canvas>
+    </div>
+    <div class="chart-panel clickable" onclick="drillExpensePie()">
+        <div class="cp-header">
+            <div class="cp-title">
+                <span class="dot" style="color:#ef4444;background:#ef4444;"></span>
+                Expense Breakdown
+            </div>
+            <div class="cp-badge"><i class="bi bi-zoom-in"></i> Click slice</div>
+        </div>
+        <canvas id="expensePieChart" height="150"></canvas>
+    </div>
+</div>
+
+<!-- ── TOP PRODUCTS + REVENUE PIE ── -->
+<div class="grid-2">
+    <div class="chart-panel clickable" id="topProductsPanel">
+        <div class="cp-header">
+            <div class="cp-title">
+                <span class="dot" style="color:#f59e0b;background:#f59e0b;"></span>
+                Top Products by Sales Volume
+            </div>
+            <div class="cp-badge"><i class="bi bi-zoom-in"></i> Click bar</div>
+        </div>
+        <canvas id="topProductsChart" height="150"></canvas>
+    </div>
+    <div class="chart-panel clickable" onclick="drillRevenuePie()">
+        <div class="cp-header">
+            <div class="cp-title">
+                <span class="dot" style="color:#6366f1;background:#6366f1;"></span>
+                Revenue by Category
+            </div>
+            <div class="cp-badge"><i class="bi bi-zoom-in"></i> Click slice</div>
+        </div>
+        <canvas id="revenuePieChart" height="150"></canvas>
+    </div>
+</div>
+
+<!-- ── STOCK LEVELS ── -->
+<div class="grid-main" style="margin-bottom:1.5rem;">
+    <div class="chart-panel">
+        <div class="cp-header">
+            <div class="cp-title">
+                <span class="dot" style="color:#8b5cf6;background:#8b5cf6;"></span>
+                Inventory Stock Levels
+            </div>
+            <div class="cp-badge" style="background:rgba(239,68,68,.1);color:#fca5a5;border-color:rgba(239,68,68,.2);">
+                <i class="bi bi-exclamation-triangle"></i> Red = below reorder
+            </div>
+        </div>
+        <canvas id="stockChart" height="75"></canvas>
+    </div>
+</div>
+
+<!-- ── HEAT MAP + FORECAST ACCURACY ── -->
+<div class="grid-2">
+    <div class="chart-panel">
+        <div class="cp-header">
+            <div class="cp-title"><span class="dot" style="color:#06b6d4;background:#06b6d4;"></span> Sales Heat Map (Hour × Day)</div>
+            <div class="cp-badge" style="background:rgba(6,182,212,.1);color:#22d3ee;border-color:rgba(6,182,212,.2);">Activity density</div>
+        </div>
+        <canvas id="heatChart" height="150"></canvas>
+    </div>
+    <div class="chart-panel">
+        <div class="cp-header">
+            <div class="cp-title"><span class="dot" style="color:#f59e0b;background:#f59e0b;"></span> Forecast Accuracy Benchmarker</div>
+            <div class="cp-badge" id="accuracyBadge" style="background:rgba(245,158,11,.1);color:#fbbf24;border-color:rgba(245,158,11,.2);">Loading…</div>
+        </div>
+        <canvas id="forecastAccChart" height="150"></canvas>
+    </div>
+</div>
+
+<!-- ── STOCK DEMAND PREDICTOR ── -->
+<div class="grid-main" style="margin-bottom:0;">
+    <div class="chart-panel">
+        <div class="cp-header">
+            <div class="cp-title"><span class="dot" style="color:#10b981;background:#10b981;"></span> Stock Velocity &amp; Demand Predictor</div>
+            <div class="cp-badge" style="background:rgba(239,68,68,.1);color:#fca5a5;border-color:rgba(239,68,68,.2);"><i class="bi bi-exclamation-triangle"></i> Red = &lt;3 days left</div>
+        </div>
+        <div id="demandTable" style="overflow-x:auto;border-radius:8px;border:1px solid rgba(255,255,255,.05);">
+            <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+                <thead><tr style="background:#060b14;">
+                    <th style="padding:.75rem 1rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#334155;border-bottom:1px solid rgba(255,255,255,.04);">Product</th>
+                    <th style="padding:.75rem 1rem;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#334155;border-bottom:1px solid rgba(255,255,255,.04);">Daily Avg</th>
+                    <th style="padding:.75rem 1rem;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#334155;border-bottom:1px solid rgba(255,255,255,.04);">Stock</th>
+                    <th style="padding:.75rem 1rem;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#334155;border-bottom:1px solid rgba(255,255,255,.04);">Days Left</th>
+                    <th style="padding:.75rem 1rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#334155;border-bottom:1px solid rgba(255,255,255,.04);">Status</th>
+                </tr></thead>
+                <tbody id="demandBody"><tr><td colspan="5" style="padding:2rem;text-align:center;color:#334155;">Loading…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</div><!-- /an-wrap -->
+
+<!-- ── DRILL BACKDROP ── -->
+<div class="drill-backdrop" id="drillBackdrop" onclick="closeDrill()"></div>
+
+<!-- ── DRILL SIDE PANEL ── -->
+<div class="drill-panel" id="drillPanel">
+    <div class="drill-panel-header">
+        <span class="drill-panel-title" id="drillTitle">Loading…</span>
+        <button class="drill-panel-close" onclick="closeDrill()">✕</button>
+    </div>
+    <div class="drill-panel-body">
+        <canvas id="drillChart" height="160" style="margin-bottom:1.5rem;"></canvas>
+        <div id="drillTableWrap" style="display:none;">
+            <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#334155;margin:0 0 .75rem;">Transaction Detail</p>
+            <div style="border-radius:8px;border:1px solid rgba(255,255,255,.05);overflow:hidden;">
+                <table class="drill-tbl">
+                    <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr></thead>
+                    <tbody id="drillTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── Global defaults
+Chart.defaults.color = '#334155';
+Chart.defaults.borderColor = 'rgba(255,255,255,.04)';
+Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+Chart.defaults.font.size = 11;
+
+const PERIOD = '@Model.Period';
+const PALETTE = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#f97316','#ec4899','#8b5cf6'];
+
+// ── Server data
+const trendLabels   = @Html.Raw(J(Model.TrendLabels));
+const trendRevenue  = @Html.Raw(J(Model.TrendRevenue));
+const trendExpenses = @Html.Raw(J(Model.TrendExpenses));
+const monthlyLabels  = @Html.Raw(J(Model.MonthlyLabels));
+const monthlyRevenue = @Html.Raw(J(Model.MonthlyRevenue));
+const monthlyExpense = @Html.Raw(J(Model.MonthlyExpense));
+const monthlyProfit  = @Html.Raw(J(Model.MonthlyProfit));
+const expCatLabels = @Html.Raw(J(Model.ExpenseCatLabels));
+const expCatValues = @Html.Raw(J(Model.ExpenseCatValues));
+const revCatLabels = @Html.Raw(J(Model.RevenueCatLabels));
+const revCatValues = @Html.Raw(J(Model.RevenueCatValues));
+const topProdLabels = @Html.Raw(J(Model.TopProductLabels));
+const topProdQty    = @Html.Raw(J(Model.TopProductQty));
+const topProdRev    = @Html.Raw(J(Model.TopProductRev));
+const stockLabels  = @Html.Raw(J(Model.StockLabels));
+const stockQty     = @Html.Raw(J(Model.StockQty));
+const stockReorder = @Html.Raw(J(Model.StockReorder));
+
+// ── Shared tooltip config
+const tip = (extra) => ({
+    backgroundColor: '#0d1526',
+    borderColor: 'rgba(99,102,241,.3)',
+    borderWidth: 1,
+    titleColor: '#e2e8f0',
+    bodyColor: '#64748b',
+    padding: 12,
+    cornerRadius: 8,
+    ...extra
+});
+
+// ── Gradient helper
+function grad(ctx, c1, c2) {
+    const g = ctx.createLinearGradient(0, 0, 0, 300);
+    g.addColorStop(0, c1); g.addColorStop(1, c2); return g;
+}
+
+// ── 1. TREND LINE
+const tCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(tCtx, {
+    type: 'line',
+    data: {
+        labels: trendLabels,
+        datasets: [
+            {
+                label: 'Revenue',
+                data: trendRevenue,
+                borderColor: '#6366f1',
+                backgroundColor: grad(tCtx, 'rgba(99,102,241,.18)', 'rgba(99,102,241,0)'),
+                borderWidth: 2, pointRadius: 0, pointHoverRadius: 5,
+                tension: .45, fill: true
+            },
+            {
+                label: 'Expenses',
+                data: trendExpenses,
+                borderColor: '#ef4444',
+                backgroundColor: grad(tCtx, 'rgba(239,68,68,.12)', 'rgba(239,68,68,0)'),
+                borderWidth: 2, pointRadius: 0, pointHoverRadius: 5,
+                tension: .45, fill: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { labels: { color: '#475569', usePointStyle: true, pointStyleWidth: 8 } },
+            tooltip: tip({ callbacks: { label: c => ' ' + c.dataset.label + ': ₱' + Number(c.parsed.y).toLocaleString() } })
+        },
+        scales: {
+            x: { ticks: { color: '#334155', maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,.03)' } },
+            y: { ticks: { color: '#334155', callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) }, grid: { color: 'rgba(255,255,255,.03)' } }
+        }
+    }
+});
+
+// ── 2. MONTHLY P&L
+const mCtx = document.getElementById('monthlyChart').getContext('2d');
+const monthlyChart = new Chart(mCtx, {
+    type: 'bar',
+    data: {
+        labels: monthlyLabels,
+        datasets: [
+            { label: 'Revenue',  data: monthlyRevenue, backgroundColor: 'rgba(99,102,241,.55)',  borderColor: '#6366f1', borderWidth: 1, borderRadius: 4 },
+            { label: 'Expenses', data: monthlyExpense, backgroundColor: 'rgba(239,68,68,.45)',   borderColor: '#ef4444', borderWidth: 1, borderRadius: 4 },
+            { label: 'Profit',   data: monthlyProfit,  type: 'line', borderColor: '#10b981', backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 5, pointBackgroundColor: '#10b981', tension: .4 }
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { labels: { color: '#475569', usePointStyle: true } },
+            tooltip: tip({ callbacks: { label: c => ' ' + c.dataset.label + ': ₱' + Number(c.parsed.y).toLocaleString() } })
+        },
+        scales: {
+            x: { ticks: { color: '#334155' }, grid: { display: false } },
+            y: { ticks: { color: '#334155', callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) }, grid: { color: 'rgba(255,255,255,.03)' } }
+        },
+        onClick(e, els) {
+            if (!els.length) return;
+            const lbl = monthlyLabels[els[0].index];
+            const [mon, yr] = lbl.split(' ');
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            openDrill(`/Analytics/DrillMonth?year=${2000+parseInt(yr)}&month=${months.indexOf(mon)+1}`);
+        }
+    }
+});
+
+// ── 3. EXPENSE DOUGHNUT
+new Chart(document.getElementById('expensePieChart'), {
+    type: 'doughnut',
+    data: {
+        labels: expCatLabels,
+        datasets: [{ data: expCatValues, backgroundColor: PALETTE, borderColor: '#060b14', borderWidth: 3, hoverOffset: 10 }]
+    },
+    options: {
+        responsive: true, cutout: '65%',
+        plugins: {
+            legend: { position: 'right', labels: { color: '#475569', boxWidth: 10, padding: 12 } },
+            tooltip: tip({ callbacks: { label: c => ' ₱' + Number(c.parsed).toLocaleString() } })
+        },
+        onClick(e, els) {
+            if (!els.length) return;
+            openDrill(`/Analytics/DrillExpense?category=${encodeURIComponent(expCatLabels[els[0].index])}&period=${PERIOD}`);
+        }
+    }
+});
+
+// ── 4. TOP PRODUCTS
+new Chart(document.getElementById('topProductsChart'), {
+    type: 'bar',
+    data: {
+        labels: topProdLabels,
+        datasets: [
+            { label: 'Qty Sold', data: topProdQty, backgroundColor: topProdQty.map((_,i) => PALETTE[i % PALETTE.length] + 'aa'), borderColor: topProdQty.map((_,i) => PALETTE[i % PALETTE.length]), borderWidth: 1, borderRadius: 4 }
+        ]
+    },
+    options: {
+        indexAxis: 'y', responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: tip({ callbacks: { label: c => ' Qty: ' + c.parsed.x } })
+        },
+        scales: {
+            x: { ticks: { color: '#334155' }, grid: { color: 'rgba(255,255,255,.03)' } },
+            y: { ticks: { color: '#64748b' }, grid: { display: false } }
+        }
+    }
+});
+
+// ── 5. REVENUE DOUGHNUT
+new Chart(document.getElementById('revenuePieChart'), {
+    type: 'doughnut',
+    data: {
+        labels: revCatLabels,
+        datasets: [{ data: revCatValues, backgroundColor: [...PALETTE].reverse(), borderColor: '#060b14', borderWidth: 3, hoverOffset: 10 }]
+    },
+    options: {
+        responsive: true, cutout: '65%',
+        plugins: {
+            legend: { position: 'right', labels: { color: '#475569', boxWidth: 10, padding: 12 } },
+            tooltip: tip({ callbacks: { label: c => ' ₱' + Number(c.parsed).toLocaleString() } })
+        },
+        onClick(e, els) {
+            if (!els.length) return;
+            openDrill(`/Analytics/DrillRevenue?category=${encodeURIComponent(revCatLabels[els[0].index])}&period=${PERIOD}`);
+        }
+    }
+});
+
+// ── 6. STOCK LEVELS
+new Chart(document.getElementById('stockChart'), {
+    type: 'bar',
+    data: {
+        labels: stockLabels,
+        datasets: [
+            {
+                label: 'Stock',
+                data: stockQty,
+                backgroundColor: stockQty.map((q,i) => q <= stockReorder[i] ? 'rgba(239,68,68,.6)' : 'rgba(99,102,241,.55)'),
+                borderColor:     stockQty.map((q,i) => q <= stockReorder[i] ? '#ef4444' : '#6366f1'),
+                borderWidth: 1, borderRadius: 4
+            },
+            {
+                label: 'Reorder Point',
+                data: stockReorder,
+                type: 'line', borderColor: '#f59e0b', backgroundColor: 'transparent',
+                borderWidth: 1.5, borderDash: [5,4], pointRadius: 0
+            }
+        ]
+    },
+    options: {
+        indexAxis: 'y', responsive: true,
+        plugins: {
+            legend: { labels: { color: '#475569', usePointStyle: true } },
+            tooltip: tip()
+        },
+        scales: {
+            x: { ticks: { color: '#334155' }, grid: { color: 'rgba(255,255,255,.03)' } },
+            y: { ticks: { color: '#64748b' }, grid: { display: false } }
+        }
+    }
+});
+
+// ════════════════════════════════════════════
+// DRILL-DOWN SIDE PANEL
+// ════════════════════════════════════════════
+let drillInst = null;
+
+async function openDrill(url) {
+    document.getElementById('drillPanel').classList.add('open');
+    document.getElementById('drillBackdrop').classList.add('open');
+    document.getElementById('drillTitle').textContent = 'Loading…';
+    document.getElementById('drillTableWrap').style.display = 'none';
+    if (drillInst) { drillInst.destroy(); drillInst = null; }
+
+    const data = await fetch(url).then(r => r.json());
+    document.getElementById('drillTitle').textContent = data.title;
+
+    const ctx = document.getElementById('drillChart').getContext('2d');
+    drillInst = new Chart(ctx, {
+        type: data.type,
+        data: {
+            labels: data.labels,
+            datasets: data.datasets.map((ds, i) => ({
+                label: ds.label, data: ds.data,
+                backgroundColor: ds.backgroundColor || PALETTE[i] + '88',
+                borderColor:     ds.borderColor     || PALETTE[i],
+                borderWidth: data.type === 'line' ? 2 : 1,
+                borderRadius: 4, tension: .4,
+                fill: data.type === 'line',
+                pointRadius: data.type === 'line' ? 3 : undefined
+            }))
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: '#475569', usePointStyle: true } },
+                tooltip: tip({ callbacks: { label: c => ' ₱' + Number(c.parsed.y ?? c.parsed).toLocaleString() } })
+            },
+            scales: data.type !== 'doughnut' && data.type !== 'pie' ? {
+                x: { ticks: { color: '#334155' }, grid: { color: 'rgba(255,255,255,.03)' } },
+                y: { ticks: { color: '#334155', callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) }, grid: { color: 'rgba(255,255,255,.03)' } }
+            } : {}
+        }
+    });
+
+    if (data.rows?.length) {
+        document.getElementById('drillTableBody').innerHTML = data.rows.slice(0,40).map(r =>
+            `<tr>
+                <td style="color:#475569;white-space:nowrap;">${r.date}</td>
+                <td style="color:#94a3b8;">${r.label}</td>
+                <td><span style="padding:.15rem .5rem;border-radius:999px;background:rgba(99,102,241,.12);color:#818cf8;font-size:.65rem;font-weight:700;">${r.category}</span></td>
+                <td style="color:#34d399;font-weight:700;">₱${Number(r.amount).toLocaleString()}</td>
+            </tr>`
+        ).join('');
+        document.getElementById('drillTableWrap').style.display = 'block';
+    }
+}
+
+function closeDrill() {
+    document.getElementById('drillPanel').classList.remove('open');
+    document.getElementById('drillBackdrop').classList.remove('open');
+    if (drillInst) { drillInst.destroy(); drillInst = null; }
+}
+
+function drillTrend()      { openDrill(`/Analytics/DrillRevenue?category=all&period=${PERIOD}`); }
+function drillExpensePie() { openDrill(`/Analytics/DrillExpense?category=all&period=${PERIOD}`); }
+function drillRevenuePie() { openDrill(`/Analytics/DrillRevenue?category=all&period=${PERIOD}`); }
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrill(); });
+
+// ── HEAT MAP
+fetch(`/Analytics/HeatMapData?period=${PERIOD}`).then(r=>r.json()).then(rows=>{
+    const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const maxVal=Math.max(...rows.map(r=>Number(r.value)),1);
+    const datasets=days.map((d,di)=>({
+        label:d,
+        data:rows.filter(r=>r.day===d).map(r=>({x:r.hour,y:di,r:Math.max(4,Math.sqrt(Number(r.value)/maxVal)*18)})),
+        backgroundColor:`hsla(${di*50},70%,60%,.6)`
+    }));
+    new Chart(document.getElementById('heatChart'),{
+        type:'bubble', data:{datasets},
+        options:{responsive:true,
+            plugins:{legend:{display:false},
+                tooltip:{backgroundColor:'#0d1526',borderColor:'rgba(99,102,241,.3)',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b',
+                    callbacks:{label:c=>`${days[c.parsed.y]} ${c.parsed.x}:00 — ₱${(rows.find(r=>r.day===days[c.parsed.y]&&r.hour===c.parsed.x)?.value||0).toLocaleString()}`}}},
+            scales:{
+                x:{min:0,max:23,ticks:{color:'#334155',callback:v=>v+':00',stepSize:3},grid:{color:'rgba(255,255,255,.03)'}},
+                y:{min:-0.5,max:6.5,ticks:{color:'#475569',callback:v=>days[v]||''},grid:{color:'rgba(255,255,255,.03)'}}
+            }}
+    });
+});
+
+// ── FORECAST ACCURACY
+fetch('/Analytics/ForecastAccuracy').then(r=>r.json()).then(d=>{
+    document.getElementById('accuracyBadge').textContent=`${d.accuracy}% accurate`;
+    new Chart(document.getElementById('forecastAccChart'),{
+        type:'line',
+        data:{labels:d.labels,datasets:[
+            {label:'Actual',data:d.actualData,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.08)',borderWidth:2,tension:.4,fill:true,pointRadius:2},
+            {label:'Forecast',data:d.forecastData,borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:2,borderDash:[5,4],tension:0,pointRadius:0}
+        ]},
+        options:{responsive:true,interaction:{mode:'index',intersect:false},
+            plugins:{legend:{labels:{color:'#475569',usePointStyle:true}},
+                tooltip:{backgroundColor:'#0d1526',borderColor:'rgba(245,158,11,.3)',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b',
+                    callbacks:{label:c=>' '+c.dataset.label+': ₱'+Number(c.parsed.y).toLocaleString()}}},
+            scales:{x:{ticks:{color:'#334155'},grid:{color:'rgba(255,255,255,.03)'}},
+                    y:{ticks:{color:'#334155',callback:v=>'₱'+(v>=1000?(v/1000).toFixed(0)+'k':v)},grid:{color:'rgba(255,255,255,.03)'}}}}
+    });
+});
+
+// ── STOCK DEMAND PREDICTOR
+fetch('/Analytics/StockDemand').then(r=>r.json()).then(rows=>{
+    const sc={critical:'#fca5a5',warning:'#fcd34d',ok:'#34d399'};
+    const sb={critical:'rgba(239,68,68,.15)',warning:'rgba(245,158,11,.15)',ok:'rgba(16,185,129,.15)'};
+    const sd={critical:'rgba(239,68,68,.3)',warning:'rgba(245,158,11,.3)',ok:'rgba(16,185,129,.3)'};
+    document.getElementById('demandBody').innerHTML=rows.map(r=>`
+        <tr style="border-bottom:1px solid rgba(255,255,255,.03);">
+            <td style="padding:.65rem 1rem;color:#f1f5f9;font-weight:500;">${r.name}</td>
+            <td style="padding:.65rem 1rem;text-align:right;color:#94a3b8;">${r.dailyAvg}/day</td>
+            <td style="padding:.65rem 1rem;text-align:right;color:#94a3b8;">${r.currentStock}</td>
+            <td style="padding:.65rem 1rem;text-align:right;color:${sc[r.status]};font-weight:700;">${r.daysLeft}d</td>
+            <td style="padding:.65rem 1rem;"><span style="padding:.2rem .6rem;border-radius:999px;font-size:.68rem;font-weight:700;text-transform:uppercase;background:${sb[r.status]};color:${sc[r.status]};border:1px solid ${sd[r.status]};">${r.status}</span></td>
+        </tr>`).join('');
+});
+
+// ── Entrance animation
+document.querySelectorAll('.chart-panel, .stat-cell').forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(16px)';
+    el.style.transition = `opacity .5s ease ${i * 0.04}s, transform .5s ease ${i * 0.04}s`;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+    }));
+});
+</script>
+}

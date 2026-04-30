@@ -1,0 +1,32 @@
+@{ ViewData["Title"] = "Submit Expense Claim"; Layout = "~/Views/Shared/_CashierLayout.cshtml"; }
+<style>
+.page-content{background:#0f172a!important;min-height:100vh}
+.dark-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:2rem;max-width:560px;margin:2rem auto}
+.dark-input{width:100%;padding:.875rem 1rem;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f1f5f9;font-size:.95rem;box-sizing:border-box;outline:none;transition:border-color .2s,box-shadow .2s}
+.dark-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.form-label{display:block;margin-bottom:.4rem;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b}
+.btn-submit{width:100%;padding:.875rem;background:#3b82f6;color:white;border:none;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;outline:none;margin-top:1.5rem}
+.btn-submit:hover{background:#2563eb;transform:translateY(-1px);box-shadow:0 6px 20px rgba(59,130,246,.4)}
+.btn-submit:active{transform:scale(.98)}
+</style>
+<div class="dark-card">
+    <h2 style="color:#f1f5f9;font-size:1.5rem;font-weight:800;margin:0 0 .5rem;">Submit Expense Claim</h2>
+    <p style="color:#64748b;font-size:.875rem;margin:0 0 1.75rem;">Request will be routed to CFO for approval.</p>
+    @if (TempData["Success"] != null) {
+        <div style="padding:.875rem 1rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;color:#34d399;margin-bottom:1.25rem;font-weight:600;">✓ @TempData["Success"]</div>
+    }
+    <form method="post" action="/PettyCash/Submit">
+        @Html.AntiForgeryToken()
+        <div style="display:flex;flex-direction:column;gap:1.25rem;">
+            <div><label class="form-label">Description</label><input name="description" class="dark-input" placeholder="What is this expense for?" required/></div>
+            <div><label class="form-label">Category</label>
+                <select name="category" class="dark-input">
+                    <option>Supplies</option><option>Transport</option><option>Meals</option><option>Utilities</option><option>Other</option>
+                </select>
+            </div>
+            <div><label class="form-label">Amount (₱)</label><input type="number" name="amount" class="dark-input" step="0.01" min="1" placeholder="0.00" required/></div>
+            <div><label class="form-label">Notes (optional)</label><textarea name="notes" class="dark-input" rows="3" placeholder="Additional details..."></textarea></div>
+        </div>
+        <button type="submit" class="btn-submit"><i class="bi bi-send-fill"></i> Submit Claim</button>
+    </form>
+</div>

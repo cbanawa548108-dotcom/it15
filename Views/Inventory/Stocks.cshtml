@@ -1,0 +1,513 @@
+@model IEnumerable<CRLFruitstandESS.Models.SupplierDelivery>
+@{
+    ViewData["Title"] = "Stocks - Supplier Deliveries";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="stocks-container">
+    <!-- Header -->
+    <div class="stocks-header">
+        <div class="header-content">
+            <div class="header-icon">
+                <i class="bi bi-truck"></i>
+            </div>
+            <div>
+                <h1 class="header-title">Stocks Management</h1>
+                <p class="header-subtitle">Receive deliveries from suppliers and stock them into inventory</p>
+            </div>
+        </div>
+        <a href="/Inventory/CreateDelivery" class="btn-record-delivery">
+            <i class="bi bi-plus-lg"></i>
+            <span>Record New Delivery</span>
+        </a>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stocks-stats">
+        <div class="stat-box">
+            <div class="stat-icon blue"><i class="bi bi-box-seam"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@Model.Count()</span>
+                <span class="stat-label">Recent Deliveries</span>
+            </div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@Model.Sum(d => d.Quantity)</span>
+                <span class="stat-label">Total Units Received</span>
+            </div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-icon purple"><i class="bi bi-cash-stack"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">₱@Model.Sum(d => d.TotalCost).ToString("N0")</span>
+                <span class="stat-label">Total Value</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deliveries Table -->
+    <div class="deliveries-card">
+        <div class="card-header-custom">
+            <h3><i class="bi bi-clock-history"></i> Recent Supplier Deliveries</h3>
+            <div class="header-actions">
+                <a href="/Inventory/Suppliers" class="btn-manage">
+                    <i class="bi bi-people"></i> Manage Suppliers
+                </a>
+            </div>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <h4>No deliveries recorded yet</h4>
+                <p>Start by recording a new delivery from your suppliers</p>
+                <a href="/Inventory/CreateDelivery" class="btn-primary-action">
+                    <i class="bi bi-plus-lg"></i> Record First Delivery
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="deliveries-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Supplier</th>
+                            <th>Product</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-right">Unit Cost</th>
+                            <th class="text-right">Total</th>
+                            <th>Ref #</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var delivery in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="date-cell">
+                                        <span class="date-main">@delivery.DeliveryDate.ToString("MMM dd")</span>
+                                        <span class="date-sub">@delivery.DeliveryDate.ToString("yyyy")</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="supplier-cell">
+                                        <i class="bi bi-building"></i>
+                                        <span>@delivery.Supplier?.Name</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="product-cell">
+                                        <span class="product-emoji">@(delivery.Product?.Emoji ?? "📦")</span>
+                                        <span>@delivery.Product?.Name</span>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="quantity-badge">@delivery.Quantity</span>
+                                </td>
+                                <td class="text-right">₱@delivery.UnitCost.ToString("N2")</td>
+                                <td class="text-right font-weight-bold">₱@delivery.TotalCost.ToString("N2")</td>
+                                <td>
+                                    <span class="ref-number">@delivery.ReferenceNumber</span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="/Inventory/StockFromDelivery/@delivery.Id" class="btn-stock-in">
+                                        <i class="bi bi-box-arrow-in-down"></i>
+                                        <span>Stock In</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Quick Links -->
+    <div class="quick-links">
+        <a href="/Inventory/StockIn" class="quick-link">
+            <i class="bi bi-box-arrow-in-down"></i>
+            <span>Manual Stock In</span>
+        </a>
+        <a href="/Inventory/StockOut" class="quick-link">
+            <i class="bi bi-box-arrow-up"></i>
+            <span>Stock Out</span>
+        </a>
+        <a href="/Inventory/Index" class="quick-link">
+            <i class="bi bi-list-check"></i>
+            <span>View Inventory</span>
+        </a>
+        <a href="/Inventory/Movements" class="quick-link">
+            <i class="bi bi-arrow-left-right"></i>
+            <span>Stock Movements</span>
+        </a>
+    </div>
+</div>
+
+@section Styles {
+<style>
+    .stocks-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* Header */
+    .stocks-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .header-icon {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        color: white;
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+    }
+
+    .header-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #f8fafc;
+        margin: 0;
+    }
+
+    .header-subtitle {
+        color: #94a3b8;
+        margin: 0.25rem 0 0;
+    }
+
+    .btn-record-delivery {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.5rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        box-shadow: 0 4px 15px -3px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-record-delivery:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px -5px rgba(16, 185, 129, 0.5);
+        color: white;
+    }
+
+    /* Stats */
+    .stocks-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-box {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        transition: all 0.2s;
+    }
+
+    .stat-box:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-icon.blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .stat-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .stat-icon.purple { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #f8fafc;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-top: 0.25rem;
+    }
+
+    /* Card */
+    .deliveries-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .card-header-custom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .card-header-custom h3 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #f8fafc;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-manage {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn-manage:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #e2e8f0;
+    }
+
+    /* Table */
+    .deliveries-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .deliveries-table thead {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .deliveries-table th {
+        padding: 1rem 1.25rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .deliveries-table td {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: #e2e8f0;
+    }
+
+    .deliveries-table tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .date-cell {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .date-main {
+        font-weight: 600;
+        color: #f8fafc;
+    }
+
+    .date-sub {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    .supplier-cell, .product-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .supplier-cell i {
+        color: #3b82f6;
+    }
+
+    .product-emoji {
+        font-size: 1.25rem;
+    }
+
+    .quantity-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        background: rgba(59, 130, 246, 0.15);
+        color: #60a5fa;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+
+    .ref-number {
+        font-family: monospace;
+        font-size: 0.875rem;
+        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    .btn-stock-in {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-stock-in:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        color: white;
+    }
+
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .font-weight-bold { font-weight: 700; }
+
+    /* Empty State */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-state h4 {
+        color: #e2e8f0;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-primary-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.5rem;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        text-decoration: none;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    /* Quick Links */
+    .quick-links {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+
+    .quick-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: #94a3b8;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .quick-link:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(59, 130, 246, 0.3);
+        color: #60a5fa;
+        transform: translateY(-2px);
+    }
+
+    .quick-link i {
+        font-size: 1.25rem;
+    }
+
+    @@media (max-width: 992px) {
+        .stocks-stats { grid-template-columns: repeat(2, 1fr); }
+        .quick-links { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @@media (max-width: 576px) {
+        .stocks-stats { grid-template-columns: 1fr; }
+        .quick-links { grid-template-columns: 1fr; }
+        .stocks-header { flex-direction: column; align-items: flex-start; }
+    }
+</style>
+}

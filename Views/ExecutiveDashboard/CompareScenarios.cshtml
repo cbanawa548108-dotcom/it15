@@ -1,0 +1,155 @@
+@using CRLFruitstandESS.Models.Executive
+@using CRLFruitstandESS.Services
+@{ ViewData["Title"] = "Compare Scenarios"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+@section Styles {
+<style>
+.page-content{background:#0f172a!important;min-height:100vh}
+.cs-header{background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #334155;padding:2.5rem 2rem;border-radius:14px;margin-bottom:2rem;position:relative;overflow:hidden}
+.cs-header::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(99,102,241,.1) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.cs-header>div{position:relative;z-index:1}
+.dark-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:1.75rem;margin-bottom:1.5rem}
+.dark-input{width:100%;padding:.75rem 1rem;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;outline:none;transition:border-color .2s,box-shadow .2s}
+.dark-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.btn-compare{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.75rem;background:#6366f1;color:white;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;outline:none}
+.btn-compare:hover{background:#4f46e5;transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,.4)}
+.btn-compare:active{transform:scale(.97)}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+.scenario-col{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:1.5rem}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-bottom:1px solid #1e293b}
+.metric-row:last-child{border-bottom:none}
+.metric-label{color:#64748b;font-size:.85rem}
+.metric-val{font-weight:700;font-size:.95rem}
+.winner{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3)!important}
+@@media(max-width:640px){.compare-grid{grid-template-columns:1fr}}
+</style>
+}
+<div class="cs-header">
+    <div>
+        <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#6366f1;display:block;margin-bottom:.5rem;">Decision Support</span>
+        <h1 style="font-size:2.25rem;font-weight:800;margin:0 0 .5rem;color:#f1f5f9;">Strategy Comparison Tool</h1>
+        <p style="margin:0;font-size:.95rem;color:#94a3b8;">Side-by-side analysis of saved scenarios to support executive decision-making</p>
+    </div>
+</div>
+
+<!-- Selector -->
+<div class="dark-card">
+    <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;">Select Two Scenarios to Compare</p>
+    <form method="get" action="/ExecutiveDashboard/CompareScenarios" style="display:flex;gap:1.25rem;flex-wrap:wrap;align-items:flex-end;">
+        <div style="flex:1;min-width:200px;">
+            <label style="display:block;margin-bottom:.4rem;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;">Scenario A</label>
+            <select name="id1" class="dark-input">
+                <option value="">Select…</option>
+                @foreach (var s in (List<SavedScenario>)ViewBag.AllScenarios) {
+                    if (ViewBag.Id1 != null && (int)ViewBag.Id1 == s.Id) { <option value="@s.Id" selected>@s.ScenarioName</option> }
+                    else { <option value="@s.Id">@s.ScenarioName</option> }
+                }
+            </select>
+        </div>
+        <div style="flex:1;min-width:200px;">
+            <label style="display:block;margin-bottom:.4rem;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;">Scenario B</label>
+            <select name="id2" class="dark-input">
+                <option value="">Select…</option>
+                @foreach (var s in (List<SavedScenario>)ViewBag.AllScenarios) {
+                    if (ViewBag.Id2 != null && (int)ViewBag.Id2 == s.Id) { <option value="@s.Id" selected>@s.ScenarioName</option> }
+                    else { <option value="@s.Id">@s.ScenarioName</option> }
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn-compare"><i class="bi bi-arrow-left-right"></i> Compare</button>
+    </form>
+</div>
+
+@if (ViewBag.Scenario1 != null && ViewBag.Scenario2 != null)
+{
+    var s1 = (SavedScenario)ViewBag.Scenario1;
+    var s2 = (SavedScenario)ViewBag.Scenario2;
+    var r1 = (ScenarioResult?)ViewBag.Result1;
+    var r2 = (ScenarioResult?)ViewBag.Result2;
+
+    var r1Rev  = r1?.TotalProjectedRevenue ?? 0;
+    var r2Rev  = r2?.TotalProjectedRevenue ?? 0;
+    var r1Prof = r1?.TotalProjectedProfit  ?? 0;
+    var r2Prof = r2?.TotalProjectedProfit  ?? 0;
+    var r1Margin = r1?.AverageMargin ?? 0;
+    var r2Margin = r2?.AverageMargin ?? 0;
+    var r1ROI  = r1?.ROI ?? 0;
+    var r2ROI  = r2?.ROI ?? 0;
+
+    <div class="compare-grid">
+        <div class="scenario-col @(r1Prof > r2Prof ? "winner" : "")">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+                <h3 style="margin:0;color:#f1f5f9;font-size:1.1rem;font-weight:700;">@s1.ScenarioName</h3>
+                @if (r1Prof > r2Prof) { <span style="padding:.25rem .75rem;border-radius:999px;background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3);font-size:.72rem;font-weight:700;">BETTER</span> }
+            </div>
+            <div class="metric-row"><span class="metric-label">Revenue Growth</span><span class="metric-val" style="color:#60a5fa;">@s1.RevenueGrowthPercent%</span></div>
+            <div class="metric-row"><span class="metric-label">Expense Growth</span><span class="metric-val" style="color:#fca5a5;">@s1.ExpenseIncreasePercent%</span></div>
+            <div class="metric-row"><span class="metric-label">COGS %</span><span class="metric-val" style="color:#94a3b8;">@s1.CostOfGoodsSoldPercent%</span></div>
+            <div class="metric-row"><span class="metric-label">Period</span><span class="metric-val" style="color:#94a3b8;">@s1.SimulationMonths months</span></div>
+            <div class="metric-row"><span class="metric-label">Total Revenue</span><span class="metric-val" style="color:#60a5fa;">₱@r1Rev.ToString("N0")</span></div>
+            <div class="metric-row"><span class="metric-label">Total Profit</span><span class="metric-val" style="color:@(r1Prof>=0?"#34d399":"#fca5a5");">₱@r1Prof.ToString("N0")</span></div>
+            <div class="metric-row"><span class="metric-label">Avg Margin</span><span class="metric-val" style="color:#fbbf24;">@r1Margin.ToString("F1")%</span></div>
+            <div class="metric-row"><span class="metric-label">ROI</span><span class="metric-val" style="color:#c4b5fd;">@r1ROI.ToString("F1")%</span></div>
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #334155;">
+                <a href="/ExecutiveDashboard/ExportScenario/@s1.Id" style="display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:6px;font-size:.8rem;font-weight:700;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(239,68,68,.25)'" onmouseout="this.style.background='rgba(239,68,68,.15)'">
+                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                </a>
+            </div>
+        </div>
+
+        <div class="scenario-col @(r2Prof > r1Prof ? "winner" : "")">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+                <h3 style="margin:0;color:#f1f5f9;font-size:1.1rem;font-weight:700;">@s2.ScenarioName</h3>
+                @if (r2Prof > r1Prof) { <span style="padding:.25rem .75rem;border-radius:999px;background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3);font-size:.72rem;font-weight:700;">BETTER</span> }
+            </div>
+            <div class="metric-row"><span class="metric-label">Revenue Growth</span><span class="metric-val" style="color:#60a5fa;">@s2.RevenueGrowthPercent%</span></div>
+            <div class="metric-row"><span class="metric-label">Expense Growth</span><span class="metric-val" style="color:#fca5a5;">@s2.ExpenseIncreasePercent%</span></div>
+            <div class="metric-row"><span class="metric-label">COGS %</span><span class="metric-val" style="color:#94a3b8;">@s2.CostOfGoodsSoldPercent%</span></div>
+            <div class="metric-row"><span class="metric-label">Period</span><span class="metric-val" style="color:#94a3b8;">@s2.SimulationMonths months</span></div>
+            <div class="metric-row"><span class="metric-label">Total Revenue</span><span class="metric-val" style="color:#60a5fa;">₱@r2Rev.ToString("N0")</span></div>
+            <div class="metric-row"><span class="metric-label">Total Profit</span><span class="metric-val" style="color:@(r2Prof>=0?"#34d399":"#fca5a5");">₱@r2Prof.ToString("N0")</span></div>
+            <div class="metric-row"><span class="metric-label">Avg Margin</span><span class="metric-val" style="color:#fbbf24;">@r2Margin.ToString("F1")%</span></div>
+            <div class="metric-row"><span class="metric-label">ROI</span><span class="metric-val" style="color:#c4b5fd;">@r2ROI.ToString("F1")%</span></div>
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #334155;">
+                <a href="/ExecutiveDashboard/ExportScenario/@s2.Id" style="display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:6px;font-size:.8rem;font-weight:700;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(239,68,68,.25)'" onmouseout="this.style.background='rgba(239,68,68,.15)'">
+                    <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison chart -->
+    <div class="dark-card">
+        <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;display:flex;align-items:center;gap:.6rem;">
+            <i class="bi bi-bar-chart-line" style="color:#6366f1;font-size:1.2rem;"></i> Side-by-Side Metrics
+        </p>
+        <canvas id="compareChart" height="80"></canvas>
+    </div>
+
+    @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+    Chart.defaults.color='#475569'; Chart.defaults.borderColor='rgba(255,255,255,.04)';
+    new Chart(document.getElementById('compareChart'),{
+        type:'bar',
+        data:{
+            labels:['Total Revenue','Total Profit','Avg Margin %','ROI %'],
+            datasets:[
+                {label:'@s1.ScenarioName',data:[@r1Rev,@r1Prof,@r1Margin,@r1ROI],backgroundColor:'rgba(99,102,241,.6)',borderColor:'#6366f1',borderWidth:1,borderRadius:4},
+                {label:'@s2.ScenarioName',data:[@r2Rev,@r2Prof,@r2Margin,@r2ROI],backgroundColor:'rgba(16,185,129,.6)',borderColor:'#10b981',borderWidth:1,borderRadius:4}
+            ]
+        },
+        options:{responsive:true,interaction:{mode:'index',intersect:false},
+            plugins:{legend:{labels:{color:'#64748b',usePointStyle:true}},
+                tooltip:{backgroundColor:'#0d1526',borderColor:'rgba(99,102,241,.3)',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b'}},
+            scales:{x:{ticks:{color:'#475569'},grid:{display:false}},y:{ticks:{color:'#334155'},grid:{color:'rgba(255,255,255,.03)'}}}}
+    });
+    </script>
+    }
+}
+else
+{
+    <div style="text-align:center;padding:3rem;color:#475569;">
+        <i class="bi bi-arrow-left-right" style="font-size:2.5rem;display:block;margin-bottom:1rem;color:#334155;"></i>
+        Select two scenarios above to compare them side-by-side.
+    </div>
+}

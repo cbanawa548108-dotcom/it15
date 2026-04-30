@@ -1,0 +1,86 @@
+@model CRLFruitstandESS.Models.ViewModels.ExpenseViewModel
+@{ ViewData["Title"] = "Expenses"; Layout = "~/Views/Shared/_DashboardLayout.cshtml"; }
+
+<div class="dash-header">
+    <div>
+        <span class="dash-label">Finance</span>
+        <h1 class="dash-title">Expense Records</h1>
+    </div>
+    <a href="/CfoDashboard/AddExpense" class="btn-primary">+ Add Expense</a>
+</div>
+
+@if (TempData["Success"] != null) { <div class="alert-success">✅ @TempData["Success"]</div> }
+
+<div class="cfo-card" style="margin-bottom:1.5rem;">
+    <div class="cfo-card-body">
+        <form method="get" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+
+            @{
+                // FIX RZ1031: Pre-compute selected values — never use ternary inside <option> attributes
+                var pToday  = Model.FilterPeriod == "today"  ? "selected" : null;
+                var pWeek   = Model.FilterPeriod == "week"   ? "selected" : null;
+                var pMonth  = Model.FilterPeriod == "month"  ? "selected" : null;
+                var pYear   = Model.FilterPeriod == "year"   ? "selected" : null;
+                var pCustom = Model.FilterPeriod == "custom" ? "selected" : null;
+            }
+
+            <select name="period" class="form-input" style="width:auto;" onchange="this.form.submit()">
+                <option value="today"  selected="@pToday">Today</option>
+                <option value="week"   selected="@pWeek">Last 7 Days</option>
+                <option value="month"  selected="@pMonth">This Month</option>
+                <option value="year"   selected="@pYear">This Year</option>
+                <option value="custom" selected="@pCustom">Custom Range</option>
+            </select>
+
+            @if (Model.FilterPeriod == "custom")
+            {
+                <input type="date" name="from" class="form-input" style="width:auto;"
+                       value="@Model.DateFrom?.ToString("yyyy-MM-dd")" />
+                <input type="date" name="to" class="form-input" style="width:auto;"
+                       value="@Model.DateTo?.ToString("yyyy-MM-dd")" />
+                <button type="submit" class="btn-primary" style="padding:.5rem 1rem;">Apply</button>
+            }
+
+            <div style="margin-left:auto;font-size:.9rem;color:var(--text-muted);">
+                Total: <strong class="text-loss">₱@Model.TotalExpenses.ToString("N2")</strong>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="cfo-card">
+    <div class="cfo-card-body">
+        <table class="cfo-table">
+            <thead>
+                <tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Supplier</th><th>Recorded By</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                @if (!Model.Expenses.Any())
+                {
+                    <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">No expense records found.</td></tr>
+                }
+                @foreach (var e in Model.Expenses)
+                {
+                    <tr>
+                        <td>@e.ExpenseDate.ToString("MMM dd, yyyy")</td>
+                        <td><strong>@e.Description</strong></td>
+                        <td><span class="badge badge-red">@e.Category</span></td>
+                        <td class="text-loss"><strong>₱@e.Amount.ToString("N2")</strong></td>
+                        <td style="font-size:.85rem;color:var(--text-muted);">@(e.Supplier ?? "—")</td>
+                        <td style="font-size:.82rem;color:var(--text-muted);">@e.RecordedBy</td>
+                        <td>
+                            <div style="display:flex;gap:6px;">
+                                <a href="/CfoDashboard/EditExpense/@e.Id" class="tbl-btn tbl-edit">Edit</a>
+                                <form method="post" action="/CfoDashboard/DeleteExpense/@e.Id"
+                                      onsubmit="return confirm('Delete this expense?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="tbl-btn tbl-delete">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

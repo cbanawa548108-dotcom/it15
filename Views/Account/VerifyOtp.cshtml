@@ -1,0 +1,85 @@
+@{
+    ViewData["Title"] = "Enter Reset Code";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var email = ViewBag.Email as string ?? "";
+    var error = ViewBag.Error as string ?? "";
+}
+
+<div class="login-page">
+    <div class="login-card" style="max-width:440px;">
+        <div style="text-align:center;margin-bottom:1.75rem;">
+            <img src="/images/logo_cropped.png" style="width:140px;height:140px;object-fit:contain;border-radius:50%;mix-blend-mode:screen;filter:brightness(1.1) drop-shadow(0 0 20px rgba(59,130,246,0.6));margin:0 auto 0.75rem;display:block;" />
+            <h1 style="font-size:1.5rem;">Check Your Email</h1>
+            <p class="sub" style="font-size:0.85rem;">
+                We sent a 6-digit code to<br/>
+                <strong style="color:#60a5fa;">@email</strong>
+            </p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);
+                        border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem;
+                        color:#f87171;font-size:0.875rem;display:flex;align-items:center;gap:0.5rem;">
+                <span>⚠️</span> @error
+            </div>
+        }
+
+        <form method="post" asp-action="VerifyOtp" asp-controller="Account">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="email" value="@email" />
+
+            <div class="form-group" style="margin-bottom:1.5rem;">
+                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                               letter-spacing:0.1em;color:#64748b;margin-bottom:0.75rem;text-align:center;">
+                    Enter 6-Digit Code
+                </label>
+
+                
+                <input type="text" name="code" id="otpInput"
+                       maxlength="6" autocomplete="one-time-code" inputmode="numeric"
+                       placeholder="_ _ _ _ _ _"
+                       style="width:100%;padding:1rem;background:#0d1526;border:2px solid #334155;
+                              border-radius:10px;color:#f1f5f9;font-size:2rem;font-weight:800;
+                              text-align:center;letter-spacing:0.5rem;box-sizing:border-box;
+                              outline:none;font-family:monospace;transition:border-color 0.2s;"
+                       onfocus="this.style.borderColor='#3b82f6'"
+                       onblur="this.style.borderColor='#334155'"
+                       autofocus />
+                <p style="text-align:center;color:#475569;font-size:0.75rem;margin:0.5rem 0 0;">
+                    Code expires in 10 minutes
+                </p>
+            </div>
+
+            <button type="submit" class="login-btn" style="margin-bottom:1rem;">
+                Verify Code →
+            </button>
+        </form>
+
+        <div style="text-align:center;margin-top:0.5rem;">
+            <a href="/Account/ForgotPassword"
+               style="color:#64748b;font-size:0.8rem;text-decoration:none;">
+                ← Didn't get the code? Try again
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+// Auto-submit when 6 digits are entered
+document.getElementById('otpInput').addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, ''); // digits only
+    if (this.value.length === 6) {
+        this.closest('form').submit();
+    }
+});
+</script>
+}
+
+
+
+
+
+
+

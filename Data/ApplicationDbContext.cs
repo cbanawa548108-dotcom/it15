@@ -43,6 +43,12 @@ namespace CRLFruitstandESS.Data
         // NEW: PayMongo payment transactions
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
 
+        // Security: login attempt audit trail
+        public DbSet<LoginAttempt> LoginAttempts { get; set; }
+
+        // Spoilage tracking
+        public DbSet<SpoilageRecord> SpoilageRecords { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

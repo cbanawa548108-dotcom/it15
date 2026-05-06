@@ -119,10 +119,18 @@
                         <p class="card-date">@Model.Date.ToString("MMMM dd, yyyy")</p>
                     </div>
                 </div>
-                <a href="/Cashier/POS" class="btn-new-sale">
-                    <i class="bi bi-plus-lg"></i>
-                    New Sale
-                </a>
+                <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+                    <div style="position:relative;">
+                        <i class="bi bi-search" style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:#64748b;font-size:.9rem;"></i>
+                        <input type="text" id="txnSearch" placeholder="Search receipt, cashier..." 
+                               style="padding:.625rem .75rem .625rem 2.25rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f1f5f9;font-size:.875rem;width:240px;outline:none;"
+                               oninput="filterTransactions(this.value)" />
+                    </div>
+                    <a href="/Cashier/POS" class="btn-new-sale">
+                        <i class="bi bi-plus-lg"></i>
+                        New Sale
+                    </a>
+                </div>
             </div>
 
             <div class="table-container">
@@ -237,7 +245,24 @@
     </div>
 </div>
 
-@section Styles {
+@section Scripts {
+<script>
+function filterTransactions(query) {
+    var q = query.toLowerCase().trim();
+    var rows = document.querySelectorAll('.custom-table tbody tr.table-row');
+    var visible = 0;
+    rows.forEach(function(row) {
+        var text = row.textContent.toLowerCase();
+        var show = !q || text.includes(q);
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    // Update count in footer
+    var countEl = document.getElementById('visibleCount');
+    if (countEl) countEl.textContent = visible;
+}
+</script>
+}
 <style>
     /* Page Layout */
     .summary-page {

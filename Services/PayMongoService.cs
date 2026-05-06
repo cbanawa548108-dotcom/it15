@@ -23,10 +23,18 @@ namespace CRLFruitstandESS.Services
         public string CheckoutUrl { get; set; } = string.Empty;
     }
 
+    public class PayMongoCheckoutSession
+    {
+        public string Id          { get; set; } = string.Empty;
+        public string CheckoutUrl { get; set; } = string.Empty;
+        public string Status      { get; set; } = string.Empty;
+    }
+
     public interface IPayMongoService
     {
         Task<PayMongoPaymentIntent> CreatePaymentIntentAsync(decimal amount, string description, string paymentMethod = "card");
         Task<PayMongoSource> CreateSourceAsync(decimal amount, string type, string successUrl, string failedUrl, string description);
+        Task<PayMongoCheckoutSession> CreateCheckoutSessionAsync(decimal amount, string[] paymentMethods, string successUrl, string cancelUrl, string description, List<(string name, int qty, decimal unitAmount)> lineItems);
         Task<PayMongoPaymentIntent?> GetPaymentIntentAsync(string intentId);
         Task<bool> AttachPaymentMethodAsync(string intentId, string paymentMethodId, string clientKey);
         bool VerifyWebhookSignature(string payload, string signature);
@@ -43,28 +51,27 @@ namespace CRLFruitstandESS.Services
             _http   = factory.CreateClient("PayMongo");
             _config = config;
             _logger = logger;
-
-            var secretKey = _config["PayMongo:SecretKey"] ?? "";
-            var encoded   = Convert.ToBase64String(Encoding.UTF8.GetBytes(secretKey + ":"));
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encoded);
-            _http.BaseAddress = new Uri(_config["PayMongo:BaseUrl"] ?? "https://api.paymongo.com/v1/");
+            // Auth header and BaseAddress are configured at registration in Program.cs
         }
 
-        // ── Create a Payment Intent (for card payments)
+        // ── Create a Payment Intent (for card and Maya payments)
         public async Task<PayMongoPaymentIntent> CreatePaymentIntentAsync(decimal amount, string description, string paymentMethod = "card")
         {
+            // PayMongo payment_method_allowed values: "card", "paymaya", "dob", "dob_ubp", "brankas_bdo", etc.
             var body = new
             {
                 data = new
                 {
                     attributes = new
                     {
-                        amount          = (int)(amount * 100), // PayMongo uses centavos
+                        amount                 = (int)(amount * 100),
                         payment_method_allowed = new[] { paymentMethod },
-                        payment_method_options = new { card = new { request_three_d_secure = "any" } },
-                        currency        = "PHP",
-                        capture_type    = "automatic",
-                        description     = description
+                        payment_method_options = paymentMethod == "card"
+                            ? (object)new { card = new { request_three_d_secure = "any" } }
+                            : new { },
+                        currency     = "PHP",
+                        capture_type = "automatic",
+                        description  = description
                     }
                 }
             };
@@ -86,7 +93,7 @@ namespace CRLFruitstandESS.Services
             return new PayMongoPaymentIntent
             {
                 Id        = doc.RootElement.GetProperty("data").GetProperty("id").GetString() ?? "",
-                ClientKey = attr.GetProperty("client_key").GetString() ?? "",
+                ClientKey = attr.TryGetProperty("client_key", out var ck) ? ck.GetString() ?? "" : "",
                 Status    = attr.GetProperty("status").GetString() ?? "",
                 Amount    = attr.GetProperty("amount").GetDecimal() / 100,
                 Currency  = "PHP"
@@ -175,6 +182,69 @@ namespace CRLFruitstandESS.Services
             var content  = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await _http.PostAsync($"payment_intents/{intentId}/attach", content);
             return response.IsSuccessStatusCode;
+        }
+
+        // ── Create a Checkout Session (supports GCash, Maya, card, GrabPay, etc.)
+        // This is the recommended approach — returns a real checkout.paymongo.com URL.
+        public async Task<PayMongoCheckoutSession> CreateCheckoutSessionAsync(
+            decimal amount,
+            string[] paymentMethods,
+            string successUrl,
+            string cancelUrl,
+            string description,
+            List<(string name, int qty, decimal unitAmount)> lineItems)
+        {
+            // Build line_items array — PayMongo requires at least one
+            var items = lineItems.Select(li => new
+            {
+                currency    = "PHP",
+                amount      = (int)(li.unitAmount * 100),
+                name        = li.name,
+                quantity    = li.qty,
+                description = li.name
+            }).ToArray();
+
+            var body = new
+            {
+                data = new
+                {
+                    attributes = new
+                    {
+                        billing                = new { },
+                        send_email_receipt     = false,
+                        show_description       = true,
+                        show_line_items        = true,
+                        line_items             = items,
+                        payment_method_types   = paymentMethods,
+                        description            = description,
+                        success_url            = successUrl,
+                        cancel_url             = cancelUrl,
+                        statement_descriptor   = "CRL Fruitstand"
+                    }
+                }
+            };
+
+            var json     = JsonSerializer.Serialize(body);
+            var content  = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _http.PostAsync("checkout_sessions", content);
+            var raw      = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("PayMongo CreateCheckoutSession failed: {Raw}", raw);
+                throw new Exception($"PayMongo error: {raw}");
+            }
+
+            using var doc = JsonDocument.Parse(raw);
+            var data = doc.RootElement.GetProperty("data");
+            var attr = data.GetProperty("attributes");
+
+            return new PayMongoCheckoutSession
+            {
+                Id          = data.GetProperty("id").GetString() ?? "",
+                CheckoutUrl = attr.GetProperty("checkout_url").GetString() ?? "",
+                Status      = attr.GetProperty("status").GetString() ?? ""
+            };
         }
 
         // ── Verify webhook signature (HMAC-SHA256)

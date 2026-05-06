@@ -27,7 +27,12 @@
     <div class="pos-right">
         <div class="cart-header">
             <h5 class="mb-0"><i class="bi bi-cart3"></i> Current Order</h5>
-            <button class="btn btn-sm btn-outline-danger" onclick="clearCart()">Clear</button>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-warning" onclick="new bootstrap.Modal(document.getElementById('voidModal')).show()" title="Void a previous sale">
+                    <i class="bi bi-x-circle"></i> Void
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearCart()">Clear</button>
+            </div>
         </div>
 
         <div id="cartItems" class="cart-items">
@@ -82,6 +87,26 @@
                         <p class="mb-1 mt-2 fw-bold" id="digitalMethodLabel">Pay via GCash</p>
                         <small class="text-muted">Customer will be redirected to complete payment</small>
                     </div>
+
+                    <!-- TEST MODE CREDENTIALS PANEL -->
+                    <div class="test-creds-panel mt-2 p-2 rounded border border-warning bg-warning bg-opacity-10">
+                        <div class="d-flex align-items-center gap-1 mb-1">
+                            <span class="badge bg-warning text-dark" style="font-size:.65rem;">TEST MODE</span>
+                            <small class="fw-bold text-warning-emphasis">Use these test credentials</small>
+                        </div>
+                        <div id="gcashTestCreds">
+                            <small class="d-block text-muted"><b>GCash test number:</b> 09123456789</small>
+                            <small class="d-block text-muted"><b>OTP:</b> 123456</small>
+                        </div>
+                        <div id="mayaTestCreds" style="display:none;">
+                            <small class="d-block text-muted"><b>Maya test number:</b> 09123456789</small>
+                            <small class="d-block text-muted"><b>OTP:</b> 123456</small>
+                        </div>
+                        <small class="d-block text-muted mt-1">
+                            <b>Test card:</b> 4343 4343 4343 4345<br>
+                            <b>Exp:</b> 12/25 &nbsp; <b>CVV:</b> 123 &nbsp; <b>OTP:</b> 123456
+                        </small>
+                    </div>
                 </div>
             </div>
 
@@ -123,6 +148,44 @@
     </div>
 </div>
 
+<!-- Void Sale Modal -->
+<div class="modal fade" id="voidModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-x-circle"></i> Void / Refund Sale</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Sale ID / Receipt #</label>
+                    <input type="number" id="voidSaleId" class="form-control" placeholder="Enter receipt number..." min="1" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Reason for Void</label>
+                    <select id="voidReason" class="form-select">
+                        <option value="Customer Request">Customer Request</option>
+                        <option value="Wrong Item">Wrong Item Scanned</option>
+                        <option value="Overcharge">Overcharge</option>
+                        <option value="Damaged Product">Damaged Product</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="alert alert-warning py-2">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Voiding a sale will restore inventory stock and mark the transaction as voided.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger" onclick="processVoid()">
+                    <i class="bi bi-x-circle"></i> Void Sale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Styles {
 <style>
 .payment-methods { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem; }
@@ -153,6 +216,11 @@ function selectMethod(method, btn) {
         method === 'gcash' ? 'Pay via GCash' : 'Pay via Maya';
     document.getElementById('checkoutLabel').textContent =
         isCash ? 'Process Payment' : ('Pay with ' + (method === 'gcash' ? 'GCash' : 'Maya'));
+    // Toggle test credential hints
+    if (!isCash) {
+        document.getElementById('gcashTestCreds').style.display = method === 'gcash' ? '' : 'none';
+        document.getElementById('mayaTestCreds').style.display  = method === 'paymaya' ? '' : 'none';
+    }
 }
 
 async function loadProducts(search, categoryId) {
@@ -171,14 +239,29 @@ function renderProducts(products) {
     if (!products || !products.length) { grid.innerHTML = '<div class="text-center text-muted py-4">No products found</div>'; return; }
     grid.innerHTML = products.map(function(p) {
         var oos = p.stockQuantity === 0;
+        var isLow = !oos && p.stockQuantity <= 20;
+        var isCritical = !oos && p.stockQuantity <= 5;
         var click = oos ? '' : 'onclick="addToCart(' + p.id + ',\'' + escapeHtml(p.name) + '\',' + p.price + ',' + p.stockQuantity + ')"';
-        return '<div class="product-card ' + (oos ? 'out-of-stock' : '') + '" ' + click + '>' +
+
+        var stockBadge = '';
+        if (oos) {
+            stockBadge = '<div class="product-stock" style="color:#ef4444;font-weight:700;">OUT OF STOCK</div>';
+        } else if (isCritical) {
+            stockBadge = '<div class="product-stock low-stock" style="color:#ef4444;">⚠️ Only ' + p.stockQuantity + ' left!</div>';
+        } else if (isLow) {
+            stockBadge = '<div class="product-stock low-stock">⚠️ Low: ' + p.stockQuantity + '</div>';
+        } else {
+            stockBadge = '<div class="product-stock">Stock: ' + p.stockQuantity + '</div>';
+        }
+
+        var lowBorder = isCritical ? 'border:2px solid rgba(239,68,68,.5);' : isLow ? 'border:2px solid rgba(251,191,36,.4);' : '';
+
+        return '<div class="product-card ' + (oos ? 'out-of-stock' : '') + '" style="' + lowBorder + '" ' + click + '>' +
             '<div style="font-size:2rem">' + (p.emoji || '📦') + '</div>' +
             '<div class="product-name">' + p.name + '</div>' +
             '<div class="product-cat">' + (p.categoryName || '') + '</div>' +
             '<div class="product-price">₱' + p.price.toFixed(2) + '</div>' +
-            '<div class="product-stock ' + (p.stockQuantity <= 5 ? 'low-stock' : '') + '">' +
-            (p.stockQuantity > 0 ? 'Stock: ' + p.stockQuantity : 'OUT OF STOCK') + '</div></div>';
+            stockBadge + '</div>';
     }).join('');
 }
 
@@ -366,7 +449,95 @@ document.addEventListener('DOMContentLoaded', function() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(function() { loadProducts(e.target.value, currentCategory); }, 300);
     });
+
+    // ── Barcode scanner support
+    // Barcode scanners send characters very fast (< 50ms between keystrokes)
+    // followed by Enter. We detect this pattern and auto-add the product.
+    var barcodeBuffer = '';
+    var barcodeTimer  = null;
+    var lastKeyTime   = 0;
+
+    document.addEventListener('keydown', function(e) {
+        // Only intercept when search input is NOT focused (scanner fires globally)
+        var searchEl = document.getElementById('searchInput');
+        if (document.activeElement === searchEl) return;
+
+        var now = Date.now();
+        var gap = now - lastKeyTime;
+        lastKeyTime = now;
+
+        if (e.key === 'Enter') {
+            if (barcodeBuffer.length >= 3) {
+                handleBarcodeScan(barcodeBuffer);
+            }
+            barcodeBuffer = '';
+            clearTimeout(barcodeTimer);
+            return;
+        }
+
+        // If gap > 100ms, this is likely manual typing — reset buffer
+        if (gap > 100 && barcodeBuffer.length > 0) {
+            barcodeBuffer = '';
+        }
+
+        if (e.key.length === 1) {
+            barcodeBuffer += e.key;
+        }
+
+        // Auto-clear buffer after 500ms of inactivity
+        clearTimeout(barcodeTimer);
+        barcodeTimer = setTimeout(function() { barcodeBuffer = ''; }, 500);
+    });
 });
+
+async function processVoid() {
+    var saleId = parseInt(document.getElementById('voidSaleId').value);
+    var reason = document.getElementById('voidReason').value;
+    if (!saleId || saleId < 1) { showToast('Please enter a valid receipt number', 'warning'); return; }
+    try {
+        var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        var res = await fetch('/Cashier/VoidSale', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+            body: JSON.stringify({ saleId: saleId, reason: reason })
+        });
+        var data = await res.json();
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('voidModal')).hide();
+            showToast('Sale #' + saleId + ' voided. Stock restored.', 'success');
+        } else {
+            showToast(data.message || 'Void failed', 'danger');
+        }
+    } catch(e) {
+        showToast('Network error during void', 'danger');
+    }
+}
+
+async function handleBarcodeScan(barcode) {
+    // Search products by barcode (name match for now — extend with barcode field later)
+    try {
+        var res = await fetch('/Cashier/GetProducts?search=' + encodeURIComponent(barcode) + '&categoryId=0');
+        var products = await res.json();
+        if (products && products.length === 1) {
+            var p = products[0];
+            if (p.stockQuantity > 0) {
+                addToCart(p.id, p.name, p.price, p.stockQuantity);
+                showToast('🔍 Scanned: ' + p.name, 'success');
+            } else {
+                showToast(p.name + ' is out of stock', 'warning');
+            }
+        } else if (products && products.length > 1) {
+            // Multiple matches — populate search and let cashier pick
+            document.getElementById('searchInput').value = barcode;
+            loadProducts(barcode, 0);
+            showToast('Multiple matches for "' + barcode + '" — select one', 'info');
+        } else {
+            showToast('No product found for barcode: ' + barcode, 'warning');
+        }
+    } catch(e) {
+        showToast('Barcode lookup failed', 'danger');
+    }
+}
 </script>
 @Html.AntiForgeryToken()
 }

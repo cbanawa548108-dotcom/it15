@@ -13,8 +13,9 @@ namespace CRLFruitstandESS.Controllers
         private readonly ApplicationDbContext _db;
         public AuditLogController(ApplicationDbContext db) => _db = db;
 
-        public async Task<IActionResult> Index(string module = "all", DateTime? from = null, DateTime? to = null)
+        public async Task<IActionResult> Index(string module = "all", DateTime? from = null, DateTime? to = null, int page = 1)
         {
+            const int pageSize = 20;
             var dateFrom = from ?? DateTime.Today.AddDays(-30);
             var dateTo   = to   ?? DateTime.Today;
 
@@ -117,15 +118,24 @@ namespace CRLFruitstandESS.Controllers
                 ? logs
                 : logs.Where(l => l.Module == module).ToList();
 
-            var result = filtered.OrderByDescending(l => l.Timestamp).ToList();
+            var sorted = filtered.OrderByDescending(l => l.Timestamp).ToList();
 
-            ViewBag.Module   = module;
-            ViewBag.DateFrom = dateFrom;
-            ViewBag.DateTo   = dateTo;
-            ViewBag.Total    = result.Count;
-            ViewBag.Modules  = new[] { "all", "POS", "Finance", "Inventory" };
+            // Pagination
+            int totalItems  = sorted.Count;
+            int totalPages  = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+            var paged = sorted.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
-            return View(result);
+            ViewBag.Module      = module;
+            ViewBag.DateFrom    = dateFrom;
+            ViewBag.DateTo      = dateTo;
+            ViewBag.Total       = totalItems;
+            ViewBag.Modules     = new[] { "all", "POS", "Finance", "Inventory" };
+            ViewBag.Page        = page;
+            ViewBag.TotalPages  = totalPages;
+            ViewBag.PageSize    = pageSize;
+
+            return View(paged);
         }
     }
 }

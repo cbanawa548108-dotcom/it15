@@ -199,12 +199,12 @@ namespace CRLFruitstandESS.Controllers
 
             var vm = new ForecastingViewModel
             {
-                ForecastDays    = forecastDays,
-                HistoricalDays  = historicalDays,
-                GeneratedAt     = DateTime.Now
+                ForecastDays   = forecastDays,
+                HistoricalDays = historicalDays,
+                GeneratedAt    = DateTime.Now
             };
 
-            // Get historical revenue data
+            // ── Historical revenue grouped by day
             var revenueHistory = await _context.Revenues
                 .Where(r => !r.IsDeleted && r.TransactionDate >= startDate)
                 .OrderBy(r => r.TransactionDate)
@@ -216,19 +216,14 @@ namespace CRLFruitstandESS.Controllers
                 .Select(r => (r.Date, r.Amount))
                 .ToList();
 
-            if (historicalData.Count >= 7)
-            {
-                // Moving Average Forecast
-                vm.MovingAverageForecast = await _forecastingService
-                    .MovingAverageForecastAsync(historicalData, 7, forecastDays);
+            // ── Run forecasting algorithms (fall back to dataset baseline if sparse)
+            vm.MovingAverageForecast = await _forecastingService
+                .MovingAverageForecastAsync(historicalData, 7, forecastDays);
 
-                // Exponential Smoothing Forecast
-                vm.ExponentialSmoothingForecast = await _forecastingService
-                    .ExponentialSmoothingForecastAsync(historicalData, 0.3, forecastDays);
+            vm.ExponentialSmoothingForecast = await _forecastingService
+                .ExponentialSmoothingForecastAsync(historicalData, 0.3, forecastDays);
 
-                // Use exponential smoothing as primary forecast
-                vm.PrimaryForecast = vm.ExponentialSmoothingForecast;
-            }
+            vm.PrimaryForecast = vm.ExponentialSmoothingForecast;
 
             vm.HistoricalData = historicalData
                 .Select(h => new ChartDataPoint
@@ -238,9 +233,8 @@ namespace CRLFruitstandESS.Controllers
                 })
                 .ToList();
 
-            // ── Product demand forecast (last 15 days → project next 7)
+            // ── Collect actual sales data from last 15 days for product blending
             var fifteenDaysAgo = today.AddDays(-15);
-            var eightDaysAgo   = today.AddDays(-8);
 
             var recentItems = await _context.SaleItems
                 .Include(si => si.Product)
@@ -257,22 +251,37 @@ namespace CRLFruitstandESS.Controllers
                 })
                 .ToListAsync();
 
+            // Build actual sales lookup for blending into dataset forecast
+            var actualSalesData = recentItems
+                .GroupBy(x => x.ProductName)
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var total15  = g.Sum(x => x.Quantity);
+                        var dailyAvg = total15 / 15.0;
+                        var first8   = g.Where(x => x.SaleDate < today.AddDays(-7)).Sum(x => x.Quantity);
+                        var last7    = g.Where(x => x.SaleDate >= today.AddDays(-7)).Sum(x => x.Quantity);
+                        var growth   = first8 > 0 ? ((double)(last7 - first8) / first8) * 100.0 : 0.0;
+                        return (qty15d: total15, dailyAvgQty: dailyAvg, growthRate: growth);
+                    });
+
+            // ── Dataset-anchored 30-day product revenue forecast (always populated)
+            vm.ProductRevenueForecasts = await _forecastingService
+                .ForecastProductRevenueAsync(today.AddDays(1), forecastDays, actualSalesData);
+
+            // ── Legacy 7-day product demand forecast (from actual DB sales only)
             var productGroups = recentItems
                 .GroupBy(x => new { x.ProductId, x.ProductName, x.Emoji, x.Category, x.UnitPrice })
                 .Select(g =>
                 {
-                    // Split into first 8 days and last 7 days to detect trend
-                    var first8  = g.Where(x => x.SaleDate < today.AddDays(-7)).Sum(x => x.Quantity);
-                    var last7   = g.Where(x => x.SaleDate >= today.AddDays(-7)).Sum(x => x.Quantity);
-                    var total15 = g.Sum(x => x.Quantity);
+                    var first8   = g.Where(x => x.SaleDate < today.AddDays(-7)).Sum(x => x.Quantity);
+                    var last7    = g.Where(x => x.SaleDate >= today.AddDays(-7)).Sum(x => x.Quantity);
+                    var total15  = g.Sum(x => x.Quantity);
                     var dailyAvg = total15 / 15.0;
-                    var projected7 = (int)Math.Round(dailyAvg * 7);
-
-                    double growthRate = first8 > 0
-                        ? ((double)(last7 - first8) / first8) * 100.0
-                        : 0;
-
-                    string trend = growthRate > 10 ? "up" : growthRate < -10 ? "down" : "stable";
+                    var proj7    = (int)Math.Round(dailyAvg * 7);
+                    double growth = first8 > 0 ? ((double)(last7 - first8) / first8) * 100.0 : 0;
+                    string trend  = growth > 10 ? "up" : growth < -10 ? "down" : "stable";
 
                     return new ProductDemandForecast
                     {
@@ -282,9 +291,9 @@ namespace CRLFruitstandESS.Controllers
                         UnitPrice             = g.Key.UnitPrice,
                         TotalQty15Days        = total15,
                         DailyAvgQty           = Math.Round(dailyAvg, 1),
-                        ProjectedQty7Days     = projected7,
-                        ProjectedRevenue7Days = projected7 * g.Key.UnitPrice,
-                        GrowthRate            = Math.Round(growthRate, 1),
+                        ProjectedQty7Days     = proj7,
+                        ProjectedRevenue7Days = proj7 * g.Key.UnitPrice,
+                        GrowthRate            = Math.Round(growth, 1),
                         Trend                 = trend
                     };
                 })

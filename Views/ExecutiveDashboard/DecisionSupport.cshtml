@@ -1,0 +1,542 @@
+@using CRLFruitstandESS.Services
+@model Dictionary<string, object>
+@{
+    ViewData["Title"] = "Decision Support";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+
+    var kpis            = Model.ContainsKey("CurrentKPIs")     ? Model["CurrentKPIs"]     as Dictionary<string, decimal> : null;
+    var healthScore     = Model.ContainsKey("HealthScore")      ? (double)Model["HealthScore"]    : 0.0;
+    var healthStatus    = Model.ContainsKey("HealthStatus")     ? Model["HealthStatus"]    as string ?? "unknown" : "unknown";
+    var healthInsights  = Model.ContainsKey("HealthInsights")   ? Model["HealthInsights"]  as List<string> ?? new() : new();
+    var risks           = Model.ContainsKey("Risks")            ? Model["Risks"]           as List<RiskAssessmentResult> : null;
+    var overallRisk     = Model.ContainsKey("OverallRiskScore") ? (double)Model["OverallRiskScore"] : 0.0;
+    var forecast        = Model.ContainsKey("Forecast")         ? Model["Forecast"]        as ForecastResult : null;
+    var recommendations = Model.ContainsKey("Recommendations")  ? Model["Recommendations"] as List<string> ?? new() : new();
+
+    // Helpers
+    string HealthColor(double s)  => s >= 70 ? "#22c55e" : s >= 50 ? "#f59e0b" : "#ef4444";
+    string HealthBg(double s)     => s >= 70 ? "rgba(34,197,94,0.12)" : s >= 50 ? "rgba(245,158,11,0.12)" : "rgba(239,68,68,0.12)";
+    string HealthLabel(double s)  => s >= 80 ? "Excellent" : s >= 70 ? "Good" : s >= 50 ? "Fair" : "Needs Attention";
+    string RiskColor(string? st)  => st == "red" ? "#ef4444" : st == "yellow" ? "#f59e0b" : "#22c55e";
+    string RiskBg(string? st)     => st == "red" ? "rgba(239,68,68,0.08)" : st == "yellow" ? "rgba(245,158,11,0.08)" : "rgba(34,197,94,0.08)";
+    string RiskBorder(string? st) => st == "red" ? "rgba(239,68,68,0.3)" : st == "yellow" ? "rgba(245,158,11,0.3)" : "rgba(34,197,94,0.3)";
+    string RiskLabel(string? st)  => st == "red" ? "High Risk" : st == "yellow" ? "Moderate" : "Low Risk";
+
+    string RiskIcon(string? cat) => cat switch {
+        "Revenue"       => "💰",
+        "Operational"   => "⚙️",
+        "Profitability" => "📉",
+        "Liquidity"     => "💧",
+        "External"      => "🌐",
+        _               => "⚠️"
+    };
+
+    string RiskDesc(string? cat) => cat switch {
+        "Revenue"       => "How stable and predictable your income is",
+        "Operational"   => "How well day-to-day costs are controlled",
+        "Profitability" => "How often the business runs at a loss",
+        "Liquidity"     => "Whether there's enough cash flow to cover expenses",
+        "External"      => "Exposure to seasonal or market fluctuations",
+        _               => "General business risk factor"
+    };
+
+    string KpiIcon(string key) => key switch {
+        "TotalRevenue"          => "💵",
+        "TotalExpenses"         => "🧾",
+        "NetProfit"             => "📈",
+        "GrossProfit"           => "💹",
+        "GrossMarginPercent"    => "📊",
+        "OperationalEfficiency" => "⚙️",
+        "ROI"                   => "🎯",
+        "CashFlowRatio"         => "💧",
+        _                       => "📌"
+    };
+
+    string KpiDesc(string key) => key switch {
+        "TotalRevenue"          => "Total income this month",
+        "TotalExpenses"         => "Total costs this month",
+        "NetProfit"             => "Revenue minus all expenses",
+        "GrossProfit"           => "Revenue minus cost of goods",
+        "GrossMarginPercent"    => "Gross profit as % of revenue",
+        "OperationalEfficiency" => "How much revenue is kept after expenses",
+        "ROI"                   => "Return on every peso invested",
+        "CashFlowRatio"         => "Ability to cover expenses with revenue",
+        _                       => ""
+    };
+
+    bool IsPercent(string key) => key.Contains("Percent") || key.Contains("Margin") || key.Contains("ROI") || key.Contains("Efficiency") || key.Contains("Ratio");
+
+    string FormatKpiName(string key) => key switch {
+        "TotalRevenue"          => "Total Revenue",
+        "TotalExpenses"         => "Total Expenses",
+        "NetProfit"             => "Net Profit",
+        "GrossProfit"           => "Gross Profit",
+        "GrossMarginPercent"    => "Gross Margin",
+        "OperationalEfficiency" => "Op. Efficiency",
+        "ROI"                   => "ROI",
+        "CashFlowRatio"         => "Cash Flow Ratio",
+        _                       => System.Text.RegularExpressions.Regex.Replace(key, "([A-Z])", " $1").Trim()
+    };
+
+    // Forecast summary numbers
+    decimal forecastTotal   = forecast?.Forecast.Sum(f => f.ForecastedValue) ?? 0m;
+    decimal forecastAvgDay  = forecast?.Forecast.Count > 0 ? forecastTotal / forecast.Forecast.Count : 0m;
+    decimal forecastPeak    = forecast?.Forecast.Max(f => f.ForecastedValue) ?? 0m;
+}
+
+@section Styles {
+<style>
+    .page-content { background: #080f1e !important; min-height: 100vh; }
+
+    /* ── Layout ── */
+    .ds-wrap { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* ── Page header ── */
+    .ds-page-header {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;
+    }
+    .ds-page-title { font-size: 1.6rem; font-weight: 800; color: #f1f5f9; margin: 0; }
+    .ds-page-sub   { font-size: 0.85rem; color: #64748b; margin: 0.25rem 0 0; }
+    .ds-badge {
+        background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);
+        padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.7rem;
+        font-weight: 800; letter-spacing: 0.12em; color: #c4b5fd;
+    }
+
+    /* ── Cards ── */
+    .ds-card {
+        background: #111827; border: 1px solid #1e293b;
+        border-radius: 16px; padding: 1.75rem; margin-bottom: 1.5rem;
+    }
+    .ds-card-title {
+        font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.12em; color: #475569; margin: 0 0 1.25rem;
+        display: flex; align-items: center; gap: 0.5rem;
+    }
+    .ds-card-title-icon {
+        width: 28px; height: 28px; border-radius: 7px;
+        display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+    }
+
+    /* ── Health Score ── */
+    .health-wrap { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
+    .health-ring-box { position: relative; width: 130px; height: 130px; flex-shrink: 0; }
+    .health-ring-box svg { transform: rotate(-90deg); }
+    .health-ring-center {
+        position: absolute; inset: 0; display: flex;
+        flex-direction: column; align-items: center; justify-content: center;
+    }
+    .health-num  { font-size: 2.2rem; font-weight: 900; line-height: 1; }
+    .health-denom { font-size: 0.65rem; color: #475569; margin-top: 1px; }
+    .health-right { flex: 1; min-width: 200px; }
+    .health-status-pill {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.35rem 0.9rem; border-radius: 20px;
+        font-size: 0.8rem; font-weight: 700; margin-bottom: 1rem;
+    }
+    .health-insight {
+        display: flex; align-items: flex-start; gap: 0.6rem;
+        padding: 0.55rem 0; border-bottom: 1px solid #1e293b;
+        font-size: 0.85rem; color: #94a3b8;
+    }
+    .health-insight:last-child { border-bottom: none; }
+    .health-insight-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+
+    /* ── KPI Grid ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 1rem; }
+    .kpi-card {
+        background: #0d1526; border: 1px solid #1e293b; border-radius: 12px;
+        padding: 1.1rem 1.2rem; transition: border-color 0.2s;
+    }
+    .kpi-card:hover { border-color: #334155; }
+    .kpi-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
+    .kpi-card-icon { font-size: 1.1rem; }
+    .kpi-card-name { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; }
+    .kpi-card-value { font-size: 1.5rem; font-weight: 800; color: #f1f5f9; line-height: 1; margin-bottom: 0.3rem; }
+    .kpi-card-desc { font-size: 0.72rem; color: #475569; }
+
+    /* ── Risk Section ── */
+    .risk-overview {
+        display: flex; align-items: center; gap: 1.5rem;
+        background: #0d1526; border: 1px solid #1e293b; border-radius: 12px;
+        padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .risk-score-big { font-size: 3rem; font-weight: 900; line-height: 1; }
+    .risk-overview-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; margin-bottom: 0.25rem; }
+    .risk-overview-bar-track { flex: 1; min-width: 140px; background: #1e293b; border-radius: 6px; height: 8px; overflow: hidden; }
+    .risk-overview-bar-fill  { height: 100%; border-radius: 6px; transition: width 0.8s ease; }
+    .risk-overview-meaning { font-size: 0.8rem; color: #94a3b8; }
+
+    .risk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .risk-card {
+        border-radius: 12px; padding: 1.25rem;
+        border: 1px solid transparent; transition: transform 0.2s;
+    }
+    .risk-card:hover { transform: translateY(-2px); }
+    .risk-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.75rem; }
+    .risk-card-icon { font-size: 1.5rem; }
+    .risk-level-pill {
+        font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.1em; padding: 0.2rem 0.6rem; border-radius: 20px;
+    }
+    .risk-card-name { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.2rem; }
+    .risk-card-desc { font-size: 0.75rem; color: #64748b; margin-bottom: 0.9rem; }
+    .risk-bar-track { background: rgba(0,0,0,0.3); border-radius: 4px; height: 5px; overflow: hidden; margin-bottom: 0.75rem; }
+    .risk-bar-fill  { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+    .risk-card-score { font-size: 1.6rem; font-weight: 800; line-height: 1; margin-bottom: 0.5rem; }
+    .risk-insight-text { font-size: 0.75rem; color: #64748b; margin-top: 0.3rem; }
+
+    /* ── Recommendations ── */
+    .rec-item {
+        display: flex; align-items: flex-start; gap: 0.75rem;
+        background: #0d1526; border: 1px solid #1e293b; border-radius: 10px;
+        padding: 0.9rem 1rem; margin-bottom: 0.75rem; font-size: 0.875rem; color: #cbd5e1;
+    }
+    .rec-item:last-child { margin-bottom: 0; }
+    .rec-num {
+        width: 22px; height: 22px; border-radius: 50%; background: rgba(139,92,246,0.2);
+        color: #c4b5fd; font-size: 0.65rem; font-weight: 800;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+    }
+
+    /* ── Forecast ── */
+    .forecast-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem; }
+    .forecast-stat {
+        background: #0d1526; border: 1px solid #1e293b; border-radius: 10px; padding: 0.9rem;
+    }
+    .forecast-stat-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; margin-bottom: 0.3rem; }
+    .forecast-stat-value { font-size: 1.1rem; font-weight: 800; color: #f1f5f9; }
+    .forecast-chart-wrap { position: relative; height: 200px; }
+    .forecast-note { margin-top: 1rem; padding: 0.75rem; background: #0d1526; border: 1px solid #1e293b; border-radius: 8px; font-size: 0.78rem; color: #64748b; }
+
+    /* ── No data ── */
+    .no-data { text-align: center; padding: 2.5rem 1rem; color: #334155; }
+    .no-data-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .no-data-text { font-size: 0.875rem; }
+
+    /* ── Divider ── */
+    .ds-divider { border: none; border-top: 1px solid #1e293b; margin: 0 0 1.5rem; }
+</style>
+}
+
+<div class="ds-wrap">
+
+    
+    <div class="ds-page-header">
+        <div>
+            <h1 class="ds-page-title">🧠 Decision Support</h1>
+            <p class="ds-page-sub">Business health · risk assessment · KPIs · 30-day revenue forecast</p>
+        </div>
+        <span class="ds-badge">EXECUTIVE · DECISION SUPPORT</span>
+    </div>
+
+    <div class="row g-4">
+
+        
+        <div class="col-xl-8">
+
+            
+            <div class="ds-card">
+                <div class="ds-card-title">
+                    <span class="ds-card-title-icon" style="background:rgba(34,197,94,0.15);">💚</span>
+                    Business Health Score
+                </div>
+                <div class="health-wrap">
+                    <div class="health-ring-box">
+                        @{
+                            double circ   = 2 * Math.PI * 50;
+                            double offset = circ * (1 - Math.Min(healthScore, 100.0) / 100.0);
+                        }
+                        <svg width="130" height="130" viewBox="0 0 130 130">
+                            <circle cx="65" cy="65" r="50" fill="none" stroke="#1e293b" stroke-width="11"/>
+                            <circle cx="65" cy="65" r="50" fill="none"
+                                    stroke="@HealthColor(healthScore)" stroke-width="11"
+                                    stroke-linecap="round"
+                                    stroke-dasharray="@circ.ToString("F1")"
+                                    stroke-dashoffset="@offset.ToString("F1")"/>
+                        </svg>
+                        <div class="health-ring-center">
+                            <span class="health-num" style="color:@HealthColor(healthScore)">@healthScore.ToString("F0")</span>
+                            <span class="health-denom">out of 100</span>
+                        </div>
+                    </div>
+                    <div class="health-right">
+                        <div class="health-status-pill" style="background:@HealthBg(healthScore);color:@HealthColor(healthScore);">
+                            <span>●</span> @HealthLabel(healthScore)
+                        </div>
+                        <div style="font-size:0.8rem;color:#475569;margin-bottom:0.75rem;">
+                            @if (healthScore >= 70)      { <text>Your business is performing well. Keep monitoring key metrics.</text> }
+                            else if (healthScore >= 50)  { <text>Performance is acceptable but there's room for improvement.</text> }
+                            else                         { <text>Immediate attention needed — review expenses and revenue sources.</text> }
+                        </div>
+                        @if (healthInsights.Any())
+                        {
+                            @foreach (var insight in healthInsights)
+                            {
+                                <div class="health-insight">
+                                    <span class="health-insight-dot" style="background:@HealthColor(healthScore);"></span>
+                                    <span>@insight</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="health-insight">No insights available for the current period.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            
+            @if (kpis != null && kpis.Any())
+            {
+                <div class="ds-card">
+                    <div class="ds-card-title">
+                        <span class="ds-card-title-icon" style="background:rgba(59,130,246,0.15);">📊</span>
+                        Key Performance Indicators — This Month
+                    </div>
+                    <div class="kpi-grid">
+                        @foreach (var kpi in kpis)
+                        {
+                            bool pct = IsPercent(kpi.Key);
+                            bool neg = kpi.Value < 0;
+                            <div class="kpi-card">
+                                <div class="kpi-card-top">
+                                    <span class="kpi-card-icon">@KpiIcon(kpi.Key)</span>
+                                    <span class="kpi-card-name">@FormatKpiName(kpi.Key)</span>
+                                </div>
+                                <div class="kpi-card-value" style="color:@(neg ? "#ef4444" : "#f1f5f9")">
+                                    @if (pct) { <text>@kpi.Value.ToString("F1")%</text> }
+                                    else      { <text>₱@kpi.Value.ToString("N0")</text> }
+                                </div>
+                                <div class="kpi-card-desc">@KpiDesc(kpi.Key)</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            
+            <div class="ds-card">
+                <div class="ds-card-title">
+                    <span class="ds-card-title-icon" style="background:rgba(239,68,68,0.15);">🛡️</span>
+                    Risk Assessment
+                </div>
+
+                @if (risks != null && risks.Any())
+                {
+                    double clampedRisk  = Math.Min(overallRisk, 1.0);
+                    string overallColor = overallRisk > 0.5 ? "#ef4444" : overallRisk > 0.3 ? "#f59e0b" : "#22c55e";
+                    string overallLabel = overallRisk > 0.5 ? "High — take action now" : overallRisk > 0.3 ? "Moderate — monitor closely" : "Low — business is stable";
+                    <div class="risk-overview">
+                        <div>
+                            <div class="risk-overview-label">Overall Risk Level</div>
+                            <div class="risk-score-big" style="color:@overallColor">
+                                @((clampedRisk * 100).ToString("F0"))%
+                            </div>
+                        </div>
+                        <div style="flex:1;min-width:160px;">
+                            <div class="risk-overview-bar-track">
+                                <div class="risk-overview-bar-fill"
+                                     style="width:@((clampedRisk * 100).ToString("F0"))%;background:@overallColor;"></div>
+                            </div>
+                            <div class="risk-overview-meaning" style="margin-top:0.5rem;color:@overallColor;">
+                                @overallLabel
+                            </div>
+                        </div>
+                        <div style="font-size:0.75rem;color:#475569;max-width:200px;">
+                            Based on revenue stability, expense control, profitability, cash flow, and market exposure over the last 30 days.
+                        </div>
+                    </div>
+
+                    <div class="risk-grid">
+                        @foreach (var risk in risks)
+                        {
+                            var rc     = RiskColor(risk.Status);
+                            var rbg    = RiskBg(risk.Status);
+                            var rbord  = RiskBorder(risk.Status);
+                            var rlabel = RiskLabel(risk.Status);
+                            var score  = Math.Min(risk.RiskScore * 100, 100.0);
+                            <div class="risk-card" style="background:@rbg;border-color:@rbord;">
+                                <div class="risk-card-top">
+                                    <span class="risk-card-icon">@RiskIcon(risk.RiskCategory)</span>
+                                    <span class="risk-level-pill" style="background:@rbg;color:@rc;border:1px solid @rbord;">
+                                        @rlabel
+                                    </span>
+                                </div>
+                                <div class="risk-card-name">@risk.RiskCategory Risk</div>
+                                <div class="risk-card-desc">@RiskDesc(risk.RiskCategory)</div>
+                                <div class="risk-bar-track">
+                                    <div class="risk-bar-fill" style="width:@score.ToString("F0")%;background:@rc;"></div>
+                                </div>
+                                <div class="risk-card-score" style="color:@rc">@score.ToString("F0")%</div>
+                                @foreach (var ins in risk.Insights)
+                                {
+                                    <div class="risk-insight-text">@ins</div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="no-data">
+                        <div class="no-data-icon">📭</div>
+                        <div class="no-data-text">Not enough revenue and expense data to assess risk yet.<br/>Add at least a few days of transactions to see this analysis.</div>
+                    </div>
+                }
+            </div>
+
+        </div>
+
+        
+        <div class="col-xl-4">
+
+            
+            <div class="ds-card">
+                <div class="ds-card-title">
+                    <span class="ds-card-title-icon" style="background:rgba(245,158,11,0.15);">💡</span>
+                    What Should You Do?
+                </div>
+                @if (recommendations.Any())
+                {
+                    @for (int i = 0; i < recommendations.Count; i++)
+                    {
+                        <div class="rec-item">
+                            <span class="rec-num">@(i + 1)</span>
+                            <span>@recommendations[i]</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="no-data">
+                        <div class="no-data-icon">✅</div>
+                        <div class="no-data-text">No action items at this time.</div>
+                    </div>
+                }
+            </div>
+
+            
+            <div class="ds-card">
+                <div class="ds-card-title">
+                    <span class="ds-card-title-icon" style="background:rgba(59,130,246,0.15);">📈</span>
+                    30-Day Revenue Forecast
+                </div>
+
+                @if (forecast != null && forecast.Forecast.Any())
+                {
+                    <div class="forecast-stats">
+                        <div class="forecast-stat">
+                            <div class="forecast-stat-label">Projected Total</div>
+                            <div class="forecast-stat-value" style="color:#22c55e;">₱@forecastTotal.ToString("N0")</div>
+                        </div>
+                        <div class="forecast-stat">
+                            <div class="forecast-stat-label">Daily Average</div>
+                            <div class="forecast-stat-value">₱@forecastAvgDay.ToString("N0")</div>
+                        </div>
+                        <div class="forecast-stat">
+                            <div class="forecast-stat-label">Peak Day</div>
+                            <div class="forecast-stat-value">₱@forecastPeak.ToString("N0")</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                        <span style="font-size:0.72rem;color:#475569;">Confidence</span>
+                        <span style="font-size:0.8rem;font-weight:700;color:#22c55e;">@((forecast.Accuracy * 100).ToString("F0"))%</span>
+                    </div>
+                    <div style="background:#1e293b;border-radius:4px;height:4px;overflow:hidden;margin-bottom:1.25rem;">
+                        <div style="height:100%;border-radius:4px;width:@((forecast.Accuracy * 100).ToString("F0"))%;background:#22c55e;"></div>
+                    </div>
+
+                    <div class="forecast-chart-wrap">
+                        <canvas id="forecastChart"></canvas>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(forecast.Insights))
+                    {
+                        <div class="forecast-note">📌 @forecast.Insights</div>
+                    }
+                }
+                else
+                {
+                    <div class="no-data">
+                        <div class="no-data-icon">📉</div>
+                        <div class="no-data-text">Need at least 7 days of revenue data to generate a forecast.</div>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+@if (forecast != null && forecast.Forecast.Any())
+{
+    var labels = string.Join(",", forecast.Forecast.Select(f => $"\"{f.Date:MMM d}\""));
+    var values = string.Join(",", forecast.Forecast.Select(f => f.ForecastedValue.ToString("F0")));
+    var lowers = string.Join(",", forecast.Forecast.Select(f => f.LowerBound.ToString("F0")));
+    var uppers = string.Join(",", forecast.Forecast.Select(f => f.UpperBound.ToString("F0")));
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+    (function () {
+        const ctx = document.getElementById('forecastChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [@Html.Raw(labels)],
+                datasets: [
+                    {
+                        label: 'Upper Bound',
+                        data: [@Html.Raw(uppers)],
+                        borderColor: 'transparent',
+                        backgroundColor: 'rgba(59,130,246,0.07)',
+                        fill: '+1', pointRadius: 0, tension: 0.4
+                    },
+                    {
+                        label: 'Forecast',
+                        data: [@Html.Raw(values)],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'transparent',
+                        fill: false, pointRadius: 0, borderWidth: 2, tension: 0.4
+                    },
+                    {
+                        label: 'Lower Bound',
+                        data: [@Html.Raw(lowers)],
+                        borderColor: 'transparent',
+                        backgroundColor: 'rgba(59,130,246,0.07)',
+                        fill: '-1', pointRadius: 0, tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#111827', borderColor: '#1e293b', borderWidth: 1,
+                        titleColor: '#f1f5f9', bodyColor: '#64748b',
+                        callbacks: {
+                            label: c => c.dataset.label === 'Forecast'
+                                ? `  Forecast: ₱${Number(c.raw).toLocaleString()}`
+                                : `  ${c.dataset.label}: ₱${Number(c.raw).toLocaleString()}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#334155', maxTicksLimit: 5, font: { size: 10 } }, grid: { color: '#111827' } },
+                    y: {
+                        ticks: { color: '#334155', font: { size: 10 }, callback: v => '₱' + Number(v).toLocaleString() },
+                        grid: { color: '#1e293b' }
+                    }
+                }
+            }
+        });
+    })();
+    </script>
+}
+}
+

@@ -185,6 +185,35 @@ namespace CRLFruitstandESS.Controllers
             return RedirectToAction(nameof(Users));
         }
 
+        // ── Admin direct password reset (no email required)
+        [HttpPost][ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdminResetPassword(string id, string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+            {
+                TempData["Error"] = "Password must be at least 8 characters.";
+                return RedirectToAction(nameof(Users));
+            }
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            var token  = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+
+            if (result.Succeeded)
+            {
+                _logger.LogInformation("Admin reset password for user {UserName}", user.UserName);
+                TempData["Success"] = $"Password for '{user.FullName}' has been reset.";
+            }
+            else
+            {
+                TempData["Error"] = string.Join(" ", result.Errors.Select(e => e.Description));
+            }
+
+            return RedirectToAction(nameof(Users));
+        }
+
         // ════════════════════════════════════════════
         // ROLES MANAGEMENT
         // ════════════════════════════════════════════
@@ -203,9 +232,32 @@ namespace CRLFruitstandESS.Controllers
         [HttpPost][ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateRole(string roleName, string description)
         {
-            if (string.IsNullOrWhiteSpace(roleName)) { TempData["Error"] = "Role name is required."; return RedirectToAction(nameof(Roles)); }
-            if (await _roleManager.RoleExistsAsync(roleName)) { TempData["Error"] = "Role already exists."; return RedirectToAction(nameof(Roles)); }
-            await _roleManager.CreateAsync(new ApplicationRole { Name = roleName, Description = description });
+            if (string.IsNullOrWhiteSpace(roleName))
+            {
+                TempData["Error"] = "Role name is required.";
+                return RedirectToAction(nameof(Roles));
+            }
+            if (roleName.Length > 50)
+            {
+                TempData["Error"] = "Role name cannot exceed 50 characters.";
+                return RedirectToAction(nameof(Roles));
+            }
+            if (!System.Text.RegularExpressions.Regex.IsMatch(roleName, @"^[a-zA-Z0-9 _-]+$"))
+            {
+                TempData["Error"] = "Role name can only contain letters, numbers, spaces, hyphens, and underscores.";
+                return RedirectToAction(nameof(Roles));
+            }
+            if (!string.IsNullOrEmpty(description) && description.Length > 200)
+            {
+                TempData["Error"] = "Description cannot exceed 200 characters.";
+                return RedirectToAction(nameof(Roles));
+            }
+            if (await _roleManager.RoleExistsAsync(roleName))
+            {
+                TempData["Error"] = "Role already exists.";
+                return RedirectToAction(nameof(Roles));
+            }
+            await _roleManager.CreateAsync(new ApplicationRole { Name = roleName.Trim(), Description = description?.Trim() ?? "" });
             TempData["Success"] = $"Role '{roleName}' created.";
             return RedirectToAction(nameof(Roles));
         }

@@ -74,14 +74,28 @@
                 <span class="label">TOTAL:</span>
                 <span class="value">@Model.TotalAmount.ToString("N2")</span>
             </div>
-            <div class="payment-row">
-                <span class="label">Cash:</span>
-                <span class="value">@Model.AmountPaid.ToString("N2")</span>
-            </div>
-            <div class="payment-row change">
-                <span class="label">Change:</span>
-                <span class="value">@Model.Change.ToString("N2")</span>
-            </div>
+            @if (Model.PaymentMethod == "cash" || Model.PaymentMethod == null || Model.PaymentMethod == "")
+            {
+                <div class="payment-row">
+                    <span class="label">Cash:</span>
+                    <span class="value">@Model.AmountPaid.ToString("N2")</span>
+                </div>
+                <div class="payment-row change">
+                    <span class="label">Change:</span>
+                    <span class="value">@Model.Change.ToString("N2")</span>
+                </div>
+            }
+            else
+            {
+                <div class="payment-row" style="font-weight:bold;">
+                    <span class="label">Payment:</span>
+                    <span class="value">@Model.PaymentMethod.ToUpper() ✓</span>
+                </div>
+                <div class="payment-row">
+                    <span class="label">Status:</span>
+                    <span class="value">PAID</span>
+                </div>
+            }
         </div>
 
         <div class="receipt-divider">--------------------------------</div>
@@ -108,6 +122,18 @@
         </a>
     </div>
 </div>
+
+@section Scripts {
+<script>
+    // Auto-print on page load (can be disabled by adding ?noprint=1 to URL)
+    window.addEventListener('load', function() {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('noprint') !== '1') {
+            setTimeout(function() { window.print(); }, 600);
+        }
+    });
+</script>
+}
 
 @section Styles {
 <style>

@@ -142,7 +142,7 @@
                 <div class="inventory-grid">
                     @foreach (var item in Model)
                     {
-                        <div class="inventory-card @item.StockStatus.ToLower().Replace(" ", "-")">
+                        <div class="inventory-card @((item.StockStatus ?? "").ToLower().Replace(" ", "-"))">
                             @if (item.StockStatus == "Critical Stock")
                             {
                                 <div class="critical-warning-badge">
@@ -153,7 +153,7 @@
                             <div class="card-header">
                                 <div class="product-icon">@item.Emoji</div>
                                 <div class="stock-indicator" title="@item.StockStatus">
-                                    <div class="indicator-dot @item.StockStatus.ToLower().Replace(" ", "-")"></div>
+                                    <div class="indicator-dot @((item.StockStatus ?? "").ToLower().Replace(" ", "-"))"></div>
                                     <span class="stock-number">@item.CurrentStock</span>
                                 </div>
                             </div>

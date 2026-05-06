@@ -11,12 +11,12 @@ namespace CRLFruitstandESS.Models
         public int SaleId { get; set; }
 
         [ForeignKey("SaleId")]
-        public Sale Sale { get; set; }
+        public Sale Sale { get; set; } = null!;
 
         public int ProductId { get; set; }
 
         [ForeignKey("ProductId")]
-        public Product Product { get; set; }
+        public Product Product { get; set; } = null!;
 
         [Required]
         public int Quantity { get; set; }

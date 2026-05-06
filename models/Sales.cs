@@ -11,10 +11,10 @@ namespace CRLFruitstandESS.Models
         public int Id { get; set; }
 
         [Required]
-        public string CashierId { get; set; }
+        public string CashierId { get; set; } = string.Empty;
 
         [ForeignKey("CashierId")]
-        public ApplicationUser Cashier { get; set; }
+        public ApplicationUser Cashier { get; set; } = null!;
 
         public DateTime SaleDate { get; set; } = DateTime.Now;
 
@@ -29,6 +29,6 @@ namespace CRLFruitstandESS.Models
 
         public string Status { get; set; } = "Completed"; // Completed, Voided
 
-        public ICollection<SaleItem> SaleItems { get; set; }
+        public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
     }
 }

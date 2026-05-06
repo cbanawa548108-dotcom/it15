@@ -91,8 +91,17 @@ namespace CRLFruitstandESS.Models.ViewModels
 
         public List<ChartDataPoint> HistoricalData { get; set; } = new();
 
-        // Product demand forecasts
+        // Product demand forecasts — from actual DB sales (last 15 days)
         public List<ProductDemandForecast> ProductDemandForecasts { get; set; } = new();
+
+        // Dataset-anchored 30-day product revenue forecasts (always populated)
+        public List<ProductRevenueForecast> ProductRevenueForecasts { get; set; } = new();
+
+        // Dataset summary stats shown in the header
+        public decimal DatasetDailyBaseline  { get; set; } = FruitstandDataset.DailyRevenue;
+        public decimal DatasetAnnualRevenue  { get; set; } = FruitstandDataset.AnnualRevenue;
+        public double  DatasetNetMarginPct   { get; set; } = FruitstandDataset.NetMarginPct * 100;
+        public double  DatasetSpoilagePct    { get; set; } = FruitstandDataset.SpoilagePct * 100;
     }
 
     public class ProductDemandForecast

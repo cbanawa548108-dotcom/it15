@@ -1,0 +1,119 @@
+@* Reusable pagination component
+   Usage: @await Html.PartialAsync("_Pagination", new ViewDataDictionary(ViewData))
+   Requires ViewBag: Page, TotalPages, TotalItems, PageSize
+   Optional ViewBag: RouteValues (Dictionary<string,object> for extra query params)
+*@
+@{
+    int page       = ViewBag.Page       ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int totalItems = ViewBag.TotalItems ?? 0;
+    int pageSize   = ViewBag.PageSize   ?? 20;
+
+    if (totalPages <= 1) { return; }
+
+    int from = (page - 1) * pageSize + 1;
+    int to   = Math.Min(page * pageSize, totalItems);
+
+    // Build base query string preserving existing params except 'page'
+    var qs = Context.Request.Query
+        .Where(kv => kv.Key != "page")
+        .Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value.ToString())}")
+        .ToList();
+    string baseQs = qs.Any() ? string.Join("&", qs) + "&" : "";
+
+    string PageUrl(int p) => $"?{baseQs}page={p}";
+
+    // Show at most 5 page buttons centered around current page
+    int startPage = Math.Max(1, page - 2);
+    int endPage   = Math.Min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) startPage = Math.Max(1, endPage - 4);
+}
+
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+            gap:0.75rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid #1e293b;">
+
+    <span style="font-size:0.78rem;color:#475569;">
+        Showing <strong style="color:#94a3b8;">@from–@to</strong> of
+        <strong style="color:#94a3b8;">@totalItems</strong> records
+    </span>
+
+    <div style="display:flex;align-items:center;gap:0.35rem;">
+
+        @* Previous *@
+        @if (page > 1)
+        {
+            <a href="@PageUrl(page - 1)"
+               style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+                      border-radius:8px;background:#1e293b;border:1px solid #334155;color:#94a3b8;
+                      text-decoration:none;font-size:0.85rem;transition:all 0.15s;"
+               title="Previous page">‹</a>
+        }
+        else
+        {
+            <span style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+                         border-radius:8px;background:#0d1526;border:1px solid #1e293b;color:#334155;
+                         font-size:0.85rem;cursor:not-allowed;">‹</span>
+        }
+
+        @* First page if not in range *@
+        @if (startPage > 1)
+        {
+            <a href="@PageUrl(1)"
+               style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+                      border-radius:8px;background:#1e293b;border:1px solid #334155;color:#94a3b8;
+                      text-decoration:none;font-size:0.8rem;">1</a>
+            @if (startPage > 2)
+            {
+                <span style="color:#334155;padding:0 4px;font-size:0.8rem;">…</span>
+            }
+        }
+
+        @* Page buttons *@
+        @for (int p = startPage; p <= endPage; p++)
+        {
+            if (p == page)
+            {
+                <span style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+                             border-radius:8px;background:#3b82f6;border:1px solid #3b82f6;color:white;
+                             font-size:0.8rem;font-weight:700;">@p</span>
+            }
+            else
+            {
+                <a href="@PageUrl(p)"
+                   style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+                          border-radius:8px;background:#1e293b;border:1px solid #334155;color:#94a3b8;
+                          text-decoration:none;font-size:0.8rem;transition:all 0.15s;">@p</a>
+            }
+        }
+
+        @* Last page if not in range *@
+        @if (endPage < totalPages)
+        {
+            @if (endPage < totalPages - 1)
+            {
+                <span style="color:#334155;padding:0 4px;font-size:0.8rem;">…</span>
+            }
+            <a href="@PageUrl(totalPages)"
+               style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+                      border-radius:8px;background:#1e293b;border:1px solid #334155;color:#94a3b8;
+                      text-decoration:none;font-size:0.8rem;">@totalPages</a>
+        }
+
+        @* Next *@
+        @if (page < totalPages)
+        {
+            <a href="@PageUrl(page + 1)"
+               style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+                      border-radius:8px;background:#1e293b;border:1px solid #334155;color:#94a3b8;
+                      text-decoration:none;font-size:0.85rem;transition:all 0.15s;"
+               title="Next page">›</a>
+        }
+        else
+        {
+            <span style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+                         border-radius:8px;background:#0d1526;border:1px solid #1e293b;color:#334155;
+                         font-size:0.85rem;cursor:not-allowed;">›</span>
+        }
+
+    </div>
+</div>

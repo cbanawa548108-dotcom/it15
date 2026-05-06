@@ -39,7 +39,7 @@ namespace CRLFruitstandESS.Controllers
                 .Include(i => i.Product)
                 .ToListAsync();
 
-            var totalValue = inventoryQuery.Sum(i => i.Quantity * i.Product.CostPrice);
+            var totalValue = inventoryQuery.Sum(i => i.Quantity * (i.Product?.CostPrice ?? 0m));
             var lowStock = inventoryQuery.Where(i => i.Quantity > 20 && i.Quantity <= 50).ToList();
             var criticalStock = inventoryQuery.Where(i => i.Quantity <= 20 && i.Quantity > 0).ToList();
             var outOfStock = inventoryQuery.Where(i => i.Quantity == 0).ToList();
@@ -269,7 +269,7 @@ namespace CRLFruitstandESS.Controllers
         {
             var delivery = await _context.SupplierDeliveries
                 .Include(d => d.Supplier)
-                .Include(d => d.Product)
+                .Include(d => d.Product!)
                 .ThenInclude(p => p.Inventory)
                 .FirstOrDefaultAsync(d => d.Id == id);
 
@@ -613,8 +613,10 @@ namespace CRLFruitstandESS.Controllers
         }
 
         // GET: /Inventory/Movements
-        public async Task<IActionResult> Movements(int? productId = null, DateTime? from = null, DateTime? to = null)
+        public async Task<IActionResult> Movements(int? productId = null, DateTime? from = null, DateTime? to = null, int page = 1)
         {
+            const int pageSize = 20;
+
             var query = _context.StockMovements
                 .Include(sm => sm.Product)
                 .OrderByDescending(sm => sm.MovementDate)
@@ -629,17 +631,29 @@ namespace CRLFruitstandESS.Controllers
             if (to.HasValue)
                 query = query.Where(sm => sm.MovementDate <= to.Value.AddDays(1));
 
-            var movements = await query.Take(100).ToListAsync();
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var movements = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             var products = await _context.Products
                 .Where(p => p.IsActive)
                 .OrderBy(p => p.Name)
                 .ToListAsync();
 
-            ViewBag.Products = products;
+            ViewBag.Products       = products;
             ViewBag.SelectedProduct = productId;
-            ViewBag.From = from?.ToString("yyyy-MM-dd");
-            ViewBag.To = to?.ToString("yyyy-MM-dd");
-            ViewBag.IsAdmin = await IsAdmin();
+            ViewBag.From           = from?.ToString("yyyy-MM-dd");
+            ViewBag.To             = to?.ToString("yyyy-MM-dd");
+            ViewBag.IsAdmin        = await IsAdmin();
+            ViewBag.Page           = page;
+            ViewBag.TotalPages     = totalPages;
+            ViewBag.TotalItems     = totalItems;
+            ViewBag.PageSize       = pageSize;
 
             return View(movements.Select(MapToMovementViewModel));
         }
@@ -699,6 +713,136 @@ namespace CRLFruitstandESS.Controllers
             ViewBag.IsAdmin = await IsAdmin();
 
             return View();
+        }
+
+        // ==================== SPOILAGE TRACKING ====================
+
+        // GET: /Inventory/RecordSpoilage
+        public async Task<IActionResult> RecordSpoilage()
+        {
+            var products = await _context.Products
+                .Where(p => p.IsActive)
+                .Include(p => p.Inventory)
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+
+            // Last 30 days spoilage summary
+            var thirtyDaysAgo = DateTime.Today.AddDays(-30);
+            var recentSpoilage = await _context.SpoilageRecords
+                .Include(s => s.Product)
+                .Where(s => s.RecordedAt >= thirtyDaysAgo)
+                .OrderByDescending(s => s.RecordedAt)
+                .Take(50)
+                .ToListAsync();
+
+            var totalLoss30d = recentSpoilage.Sum(s => s.EstimatedLoss);
+            var spoilageRate = 0.0;
+            var totalStockIn = await _context.StockMovements
+                .Where(m => m.Type == MovementType.StockIn && m.MovementDate >= thirtyDaysAgo)
+                .SumAsync(m => (int?)m.Quantity) ?? 0;
+            if (totalStockIn > 0)
+                spoilageRate = recentSpoilage.Sum(s => s.Quantity) / (double)totalStockIn * 100;
+
+            ViewBag.Products       = products;
+            ViewBag.RecentSpoilage = recentSpoilage;
+            ViewBag.TotalLoss30d   = totalLoss30d;
+            ViewBag.SpoilageRate   = Math.Round(spoilageRate, 1);
+            ViewBag.BenchmarkRate  = 30.5; // from 5-year dataset
+            ViewBag.IsAdmin        = await IsAdmin();
+
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecordSpoilage(int productId, int quantity, string reason, string? notes)
+        {
+            if (productId <= 0)
+            {
+                TempData["Error"] = "Please select a valid product.";
+                return RedirectToAction(nameof(RecordSpoilage));
+            }
+            if (quantity <= 0 || quantity > 100000)
+            {
+                TempData["Error"] = "Quantity must be between 1 and 100,000.";
+                return RedirectToAction(nameof(RecordSpoilage));
+            }
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["Error"] = "Reason is required.";
+                return RedirectToAction(nameof(RecordSpoilage));
+            }
+            if (reason.Length > 100)
+            {
+                TempData["Error"] = "Reason cannot exceed 100 characters.";
+                return RedirectToAction(nameof(RecordSpoilage));
+            }
+            if (notes?.Length > 500)
+            {
+                TempData["Error"] = "Notes cannot exceed 500 characters.";
+                return RedirectToAction(nameof(RecordSpoilage));
+            }
+
+            var product = await _context.Products
+                .Include(p => p.Inventory)
+                .FirstOrDefaultAsync(p => p.Id == productId);
+
+            if (product == null)
+            {
+                TempData["Error"] = "Product not found.";
+                return RedirectToAction(nameof(RecordSpoilage));
+            }
+
+            var estimatedLoss = quantity * product.CostPrice;
+
+            // Deduct from inventory
+            if (product.Inventory != null)
+            {
+                var prev = product.Inventory.Quantity;
+                product.Inventory.Quantity = Math.Max(0, product.Inventory.Quantity - quantity);
+                product.Inventory.LastUpdated = DateTime.Now;
+
+                _context.StockMovements.Add(new StockMovement
+                {
+                    ProductId     = productId,
+                    Type          = MovementType.Adjustment,
+                    Quantity      = quantity,
+                    PreviousStock = prev,
+                    NewStock      = product.Inventory.Quantity,
+                    Notes         = $"Spoilage write-off — {reason}",
+                    PerformedBy   = User.Identity?.Name,
+                    MovementDate  = DateTime.Now
+                });
+            }
+
+            // Record the spoilage event
+            _context.SpoilageRecords.Add(new SpoilageRecord
+            {
+                ProductId     = productId,
+                Quantity      = quantity,
+                EstimatedLoss = estimatedLoss,
+                Reason        = reason,
+                RecordedBy    = User.Identity?.Name ?? "Manager",
+                RecordedAt    = DateTime.Now,
+                Notes         = notes
+            });
+
+            // Record as expense
+            _context.Expenses.Add(new Expense
+            {
+                Description     = $"Spoilage: {product.Name} ({quantity} units)",
+                Category        = "Spoilage",
+                Amount          = estimatedLoss,
+                ExpenseDate     = DateTime.Now,
+                RecordedBy      = User.Identity?.Name ?? "Manager",
+                CreatedAt       = DateTime.Now,
+                IsDeleted       = false
+            });
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"Spoilage recorded: {quantity} units of {product.Name} (₱{estimatedLoss:N2} loss).";
+            return RedirectToAction(nameof(RecordSpoilage));
         }
 
         // ==================== SUPPLIER PAYMENT FEATURES ====================
@@ -1068,17 +1212,17 @@ namespace CRLFruitstandESS.Controllers
             return new InventoryViewModel
             {
                 ProductId = i.ProductId,
-                ProductName = i.Product.Name,
-                Category = i.Product.Category,
-                Emoji = i.Product.Emoji ?? string.Empty,
+                ProductName = i.Product?.Name ?? string.Empty,
+                Category = i.Product?.Category ?? string.Empty,
+                Emoji = i.Product?.Emoji ?? string.Empty,
                 CurrentStock = i.Quantity,
                 MinStockLevel = i.MinStockLevel,
                 MaxStockLevel = i.MaxStockLevel,
                 ReorderPoint = i.ReorderPoint,
                 Location = i.Location,
-                UnitPrice = i.Product.Price,
-                CostPrice = i.Product.CostPrice,
-                InventoryValue = i.Quantity * i.Product.CostPrice,
+                UnitPrice = i.Product?.Price ?? 0m,
+                CostPrice = i.Product?.CostPrice ?? 0m,
+                InventoryValue = i.Quantity * (i.Product?.CostPrice ?? 0m),
                 StockStatus = status,
                 DaysUntilStockout = daysUntilStockout,
                 LastUpdated = i.LastUpdated

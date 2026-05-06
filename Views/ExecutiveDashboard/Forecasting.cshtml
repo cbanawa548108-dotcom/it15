@@ -247,7 +247,7 @@
         <p class="section-title">
             <i class="bi bi-box-seam-fill" style="color:#f59e0b;font-size:1.2rem;"></i>
             Product Demand Forecast — Next 7 Days
-            <span style="margin-left:auto;font-size:.75rem;font-weight:600;color:#475569;">Based on last 15 days of sales</span>
+            <span style="margin-left:auto;font-size:.75rem;font-weight:600;color:#475569;">Based on last 15 days of actual sales</span>
         </p>
         <div style="overflow-x:auto;border-radius:10px;border:1px solid #334155;">
             <table class="fc-table">
@@ -298,6 +298,121 @@
         <p style="margin:1rem 0 0;font-size:.78rem;color:#334155;"><i class="bi bi-info-circle" style="margin-right:.4rem;"></i>Projections based on daily average from the last 15 days. Trend shows week-over-week change.</p>
     </div>
     }
+
+    <!-- DATASET-ANCHORED 30-DAY PRODUCT REVENUE FORECAST -->
+    <div class="dark-card">
+        <p class="section-title">
+            <i class="bi bi-database-fill-check" style="color:#10b981;font-size:1.2rem;"></i>
+            30-Day Product Revenue Forecast
+            <span style="margin-left:auto;font-size:.75rem;font-weight:600;color:#475569;">Anchored to 5-year CRL Fruitstand dataset</span>
+        </p>
+
+        <!-- Dataset stats bar -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;">
+            <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:.875rem 1rem;">
+                <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#475569;margin-bottom:.3rem;">Daily Baseline</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#f1f5f9;">₱@Model.DatasetDailyBaseline.ToString("N0")</div>
+                <div style="font-size:.72rem;color:#64748b;">₱@Model.DatasetAnnualRevenue.ToString("N0") / yr</div>
+            </div>
+            <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:.875rem 1rem;">
+                <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#475569;margin-bottom:.3rem;">Net Margin</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#34d399;">@Model.DatasetNetMarginPct.ToString("F1")%</div>
+                <div style="font-size:.72rem;color:#64748b;">5-year average</div>
+            </div>
+            <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:.875rem 1rem;">
+                <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#475569;margin-bottom:.3rem;">Spoilage Rate</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#fbbf24;">@Model.DatasetSpoilagePct.ToString("F1")%</div>
+                <div style="font-size:.72rem;color:#64748b;">of stock-in</div>
+            </div>
+            <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:.875rem 1rem;">
+                <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#475569;margin-bottom:.3rem;">Forecast Period</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#a5b4fc;">@Model.ForecastDays days</div>
+                <div style="font-size:.72rem;color:#64748b;">with seasonal adj.</div>
+            </div>
+        </div>
+
+        <div style="overflow-x:auto;border-radius:10px;border:1px solid #334155;">
+            <table class="fc-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Revenue Share</th>
+                        <th>Avg Daily Rev</th>
+                        <th>Proj. Revenue (@Model.ForecastDays d)</th>
+                        <th>Proj. Units (@Model.ForecastDays d)</th>
+                        <th>Spoilage Buffer</th>
+                        <th>Data Source</th>
+                        <th>Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        decimal totalProjRevenue = Model.ProductRevenueForecasts.Sum(r => r.ProjectedRevenue30Days);
+                    }
+                    @foreach (var p in Model.ProductRevenueForecasts)
+                    {
+                        var trendColor  = p.Trend == "up" ? "#34d399" : p.Trend == "down" ? "#fca5a5" : "#94a3b8";
+                        var trendIcon   = p.Trend == "up" ? "bi-arrow-up-short" : p.Trend == "down" ? "bi-arrow-down-short" : "bi-dash";
+                        var trendBg     = p.Trend == "up" ? "rgba(16,185,129,.12)" : p.Trend == "down" ? "rgba(239,68,68,.12)" : "rgba(100,116,139,.12)";
+                        var trendBorder = p.Trend == "up" ? "rgba(16,185,129,.3)" : p.Trend == "down" ? "rgba(239,68,68,.3)" : "rgba(100,116,139,.3)";
+                        var srcColor    = p.DataSource == "Actual + Dataset" ? "#34d399" : "#6366f1";
+                        var srcBg       = p.DataSource == "Actual + Dataset" ? "rgba(16,185,129,.12)" : "rgba(99,102,241,.12)";
+                        var srcBorder   = p.DataSource == "Actual + Dataset" ? "rgba(16,185,129,.3)" : "rgba(99,102,241,.3)";
+                        int spoilageUnits = (int)Math.Round(p.ProjectedQty30Days * p.SpoilageAllowancePct);
+                        <tr>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:.75rem;">
+                                    <span style="font-size:1.4rem;">@p.Emoji</span>
+                                    <div>
+                                        <div style="font-weight:700;color:#f1f5f9;">@p.ProductName</div>
+                                        <div style="font-size:.72rem;color:#475569;">₱@p.UnitPrice.ToString("N0")/unit</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:.5rem;">
+                                    <div style="width:50px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">
+                                        <div style="width:@((p.RevenueWeight * 100 / 0.209 * 100).ToString("F0"))%;height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:3px;"></div>
+                                    </div>
+                                    <span style="color:#a5b4fc;font-weight:700;font-size:.85rem;">@((p.RevenueWeight * 100).ToString("F1"))%</span>
+                                </div>
+                            </td>
+                            <td style="color:#94a3b8;font-weight:600;">₱@p.AvgDailyRevenue.ToString("N0")</td>
+                            <td style="color:#34d399;font-weight:800;font-size:1.05rem;">₱@p.ProjectedRevenue30Days.ToString("N0")</td>
+                            <td style="color:#f1f5f9;font-weight:700;">@p.ProjectedQty30Days.ToString("N0") units</td>
+                            <td>
+                                <div style="color:#fbbf24;font-weight:600;">+@spoilageUnits units</div>
+                                <div style="font-size:.7rem;color:#475569;">@((p.SpoilageAllowancePct * 100).ToString("F1"))% buffer</div>
+                            </td>
+                            <td>
+                                <span style="display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .6rem;border-radius:999px;background:@srcBg;color:@srcColor;border:1px solid @srcBorder;font-size:.68rem;font-weight:700;">
+                                    <i class="bi @(p.DataSource == "Actual + Dataset" ? "bi-database-fill-check" : "bi-database")"></i>
+                                    @p.DataSource
+                                </span>
+                            </td>
+                            <td>
+                                <span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .65rem;border-radius:999px;background:@trendBg;color:@trendColor;border:1px solid @trendBorder;font-size:.75rem;font-weight:700;">
+                                    <i class="bi @trendIcon"></i>
+                                    @if (p.Trend == "stable") { <text>Stable</text> }
+                                    else { <text>@(p.GrowthRate > 0 ? "+" : "")@p.GrowthRate.ToString("F0")%</text> }
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr style="background:#0f172a;border-top:2px solid #334155;">
+                        <td colspan="3" style="padding:.875rem 1rem;color:#64748b;font-size:.8rem;font-weight:700;">TOTAL PROJECTED</td>
+                        <td style="padding:.875rem 1rem;color:#34d399;font-weight:800;font-size:1.1rem;">₱@totalProjRevenue.ToString("N0")</td>
+                        <td colspan="4" style="padding:.875rem 1rem;color:#475569;font-size:.78rem;">
+                            <i class="bi bi-info-circle" style="margin-right:.3rem;"></i>
+                            Seasonal adjustments: Jun–Sep +5% (rainy season), Sat–Sun +7% (market days)
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
 
     <!-- RECOMMENDATIONS -->
     <div class="dark-card">

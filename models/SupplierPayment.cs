@@ -36,6 +36,6 @@ namespace CRLFruitstandESS.Models
         public int? SourceDeliveryId { get; set; }
 
         [ForeignKey("SupplierId")]
-        public virtual Supplier Supplier { get; set; }
+        public virtual Supplier Supplier { get; set; } = null!;
     }
 }

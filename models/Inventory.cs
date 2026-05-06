@@ -27,6 +27,6 @@ namespace CRLFruitstandESS.Models
         public DateTime LastUpdated { get; set; } = DateTime.Now;
 
         [ForeignKey("ProductId")]
-        public virtual Product Product { get; set; }
+        public virtual Product Product { get; set; } = null!;
     }
 }

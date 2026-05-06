@@ -603,6 +603,39 @@ namespace CRLFruitstandESS.Migrations
                     b.ToTable("Inventory");
                 });
 
+            modelBuilder.Entity("CRLFruitstandESS.Models.LoginAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("AttemptedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("FailReason")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("Succeeded")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LoginAttempts");
+                });
+
             modelBuilder.Entity("CRLFruitstandESS.Models.PaymentTransaction", b =>
                 {
                     b.Property<int>("Id")
@@ -612,12 +645,31 @@ namespace CRLFruitstandESS.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("CardBrand")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("CardLast4")
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)");
+
                     b.Property<string>("CheckoutUrl")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("FailureMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<bool>("IsTestMode")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Method")
                         .IsRequired()
@@ -631,12 +683,26 @@ namespace CRLFruitstandESS.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
+                    b.Property<string>("PayMongoPaymentId")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
                     b.Property<string>("PayMongoSourceId")
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
+                    b.Property<string>("PaymentMethodType")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("PendingSaleDataJson")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("ProcessedBy")
                         .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RawPayMongoResponse")
                         .HasColumnType("longtext");
 
                     b.Property<string>("ReferenceNumber")
@@ -650,6 +716,9 @@ namespace CRLFruitstandESS.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
@@ -812,12 +881,16 @@ namespace CRLFruitstandESS.Migrations
                     b.Property<decimal>("Change")
                         .HasColumnType("decimal(10,2)");
 
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<DateTime>("SaleDate")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(10,2)");
@@ -825,6 +898,10 @@ namespace CRLFruitstandESS.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CashierId");
+
+                    b.HasIndex("SaleDate");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("Sales");
                 });
@@ -857,6 +934,42 @@ namespace CRLFruitstandESS.Migrations
                     b.HasIndex("SaleId");
 
                     b.ToTable("SaleItems");
+                });
+
+            modelBuilder.Entity("CRLFruitstandESS.Models.SpoilageRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("EstimatedLoss")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("RecordedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("SpoilageRecords");
                 });
 
             modelBuilder.Entity("CRLFruitstandESS.Models.StockMovement", b =>
@@ -1282,6 +1395,17 @@ namespace CRLFruitstandESS.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("CRLFruitstandESS.Models.SpoilageRecord", b =>
+                {
+                    b.HasOne("CRLFruitstandESS.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("CRLFruitstandESS.Models.StockMovement", b =>

@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using CRLFruitstandESS.Data;
 using CRLFruitstandESS.Models;
 using CRLFruitstandESS.Models.ViewModels;
+using CRLFruitstandESS.Services;
 using ClosedXML.Excel;
 using iText.Kernel.Pdf;
 using iText.Layout;
@@ -20,11 +22,16 @@ namespace CRLFruitstandESS.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IMemoryCache _cache;
+        private readonly IEmailNotificationService _email;
 
-        public CfoDashboardController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        public CfoDashboardController(ApplicationDbContext db, UserManager<ApplicationUser> userManager,
+            IMemoryCache cache, IEmailNotificationService email)
         {
-            _db = db;
+            _db          = db;
             _userManager = userManager;
+            _cache       = cache;
+            _email       = email;
         }
 
         // ── DASHBOARD ────────────────────────────────
@@ -33,112 +40,152 @@ namespace CRLFruitstandESS.Controllers
             var user = await _userManager.GetUserAsync(User);
             var today = DateTime.Today;
             var monthStart = new DateTime(today.Year, today.Month, 1);
-            var weekStart = today.AddDays(-(int)today.DayOfWeek);
 
-            var vm = new CfoDashboardViewModel
+            // Cache key includes the date so it auto-invalidates at midnight
+            var cacheKey = $"cfo_dashboard_{today:yyyyMMdd}";
+
+            var vm = await _cache.GetOrCreateAsync(cacheKey, async entry =>
             {
-                FullName = user?.FullName ?? "CFO",
-                LastLoginAt = user?.LastLoginAt ?? DateTime.UtcNow,
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
 
-                // Today
-                TodayRevenue = await _db.Revenues
-                    .Where(r => !r.IsDeleted && r.TransactionDate.Date == today)
-                    .SumAsync(r => r.Amount),
-                TodayExpenses = await _db.Expenses
-                    .Where(e => !e.IsDeleted && e.ExpenseDate.Date == today)
-                    .SumAsync(e => e.Amount),
+                var dashVm = new CfoDashboardViewModel
+                {
+                    FullName    = user?.FullName ?? "CFO",
+                    LastLoginAt = user?.LastLoginAt ?? DateTime.UtcNow,
 
-                // This month
-                MonthRevenue = await _db.Revenues
-                    .Where(r => !r.IsDeleted && r.TransactionDate >= monthStart)
-                    .SumAsync(r => r.Amount),
-                MonthExpenses = await _db.Expenses
+                    // Today
+                    TodayRevenue = await _db.Revenues
+                        .Where(r => !r.IsDeleted && r.TransactionDate.Date == today)
+                        .SumAsync(r => r.Amount),
+                    TodayExpenses = await _db.Expenses
+                        .Where(e => !e.IsDeleted && e.ExpenseDate.Date == today)
+                        .SumAsync(e => e.Amount),
+
+                    // This month
+                    MonthRevenue = await _db.Revenues
+                        .Where(r => !r.IsDeleted && r.TransactionDate >= monthStart)
+                        .SumAsync(r => r.Amount),
+                    MonthExpenses = await _db.Expenses
+                        .Where(e => !e.IsDeleted && e.ExpenseDate >= monthStart)
+                        .SumAsync(e => e.Amount),
+
+                    // Budget
+                    TotalBudgetAllocated = await _db.Budgets
+                        .Where(b => b.Month == today.Month && b.Year == today.Year)
+                        .SumAsync(b => b.AllocatedAmount),
+                    TotalBudgetSpent = await _db.Budgets
+                        .Where(b => b.Month == today.Month && b.Year == today.Year)
+                        .SumAsync(b => b.SpentAmount),
+
+                    // Recent records
+                    RecentRevenues = await _db.Revenues
+                        .Where(r => !r.IsDeleted)
+                        .OrderByDescending(r => r.TransactionDate)
+                        .Take(5).ToListAsync(),
+                    RecentExpenses = await _db.Expenses
+                        .Where(e => !e.IsDeleted)
+                        .OrderByDescending(e => e.ExpenseDate)
+                        .Take(5).ToListAsync(),
+                    ActiveBudgets = await _db.Budgets
+                        .Where(b => b.Month == today.Month && b.Year == today.Year)
+                        .ToListAsync(),
+                };
+
+                dashVm.TodayNetProfit  = dashVm.TodayRevenue  - dashVm.TodayExpenses;
+                dashVm.MonthNetProfit  = dashVm.MonthRevenue   - dashVm.MonthExpenses;
+                dashVm.MonthGrossMargin = dashVm.MonthRevenue > 0
+                    ? (dashVm.MonthNetProfit / dashVm.MonthRevenue) * 100 : 0;
+                dashVm.BudgetUtilizationPercent = dashVm.TotalBudgetAllocated > 0
+                    ? (dashVm.TotalBudgetSpent / dashVm.TotalBudgetAllocated) * 100 : 0;
+
+                // Weekly chart data (last 7 days)
+                for (int i = 6; i >= 0; i--)
+                {
+                    var day = today.AddDays(-i);
+                    dashVm.WeeklyRevenue.Add(new ChartDataPoint
+                    {
+                        Label = day.ToString("ddd"),
+                        Value = await _db.Revenues
+                            .Where(r => !r.IsDeleted && r.TransactionDate.Date == day)
+                            .SumAsync(r => r.Amount)
+                    });
+                    dashVm.WeeklyExpenses.Add(new ChartDataPoint
+                    {
+                        Label = day.ToString("ddd"),
+                        Value = await _db.Expenses
+                            .Where(e => !e.IsDeleted && e.ExpenseDate.Date == day)
+                            .SumAsync(e => e.Amount)
+                    });
+                }
+
+                // Monthly trend (last 6 months)
+                for (int i = 5; i >= 0; i--)
+                {
+                    var month = today.AddMonths(-i);
+                    var mStart = new DateTime(month.Year, month.Month, 1);
+                    var mEnd   = mStart.AddMonths(1);
+                    var rev = await _db.Revenues
+                        .Where(r => !r.IsDeleted && r.TransactionDate >= mStart && r.TransactionDate < mEnd)
+                        .SumAsync(r => r.Amount);
+                    var exp = await _db.Expenses
+                        .Where(e => !e.IsDeleted && e.ExpenseDate >= mStart && e.ExpenseDate < mEnd)
+                        .SumAsync(e => e.Amount);
+                    dashVm.MonthlyTrend.Add(new ChartDataPoint
+                    {
+                        Label = month.ToString("MMM"),
+                        Value = rev - exp
+                    });
+                }
+
+                // Expense breakdown by category
+                var colors = new[] { "#2d7ef7","#f0b429","#45c896","#f87171","#c084fc","#fb923c" };
+                var expGroups = await _db.Expenses
                     .Where(e => !e.IsDeleted && e.ExpenseDate >= monthStart)
-                    .SumAsync(e => e.Amount),
+                    .GroupBy(e => e.Category)
+                    .Select(g => new { Category = g.Key, Total = g.Sum(e => e.Amount) })
+                    .ToListAsync();
+                int ci = 0;
+                foreach (var g in expGroups)
+                {
+                    dashVm.ExpenseBreakdown.Add(new PieDataPoint
+                    {
+                        Label = g.Category,
+                        Value = g.Total,
+                        Color = colors[ci++ % colors.Length]
+                    });
+                }
 
-                // Budget
-                TotalBudgetAllocated = await _db.Budgets
-                    .Where(b => b.Month == today.Month && b.Year == today.Year)
-                    .SumAsync(b => b.AllocatedAmount),
-                TotalBudgetSpent = await _db.Budgets
-                    .Where(b => b.Month == today.Month && b.Year == today.Year)
-                    .SumAsync(b => b.SpentAmount),
+                return dashVm;
+            });
 
-                // Recent records
-                RecentRevenues = await _db.Revenues
-                    .Where(r => !r.IsDeleted)
-                    .OrderByDescending(r => r.TransactionDate)
-                    .Take(5).ToListAsync(),
-                RecentExpenses = await _db.Expenses
-                    .Where(e => !e.IsDeleted)
-                    .OrderByDescending(e => e.ExpenseDate)
-                    .Take(5).ToListAsync(),
-                ActiveBudgets = await _db.Budgets
-                    .Where(b => b.Month == today.Month && b.Year == today.Year)
-                    .ToListAsync(),
-            };
-
-            vm.TodayNetProfit = vm.TodayRevenue - vm.TodayExpenses;
-            vm.MonthNetProfit = vm.MonthRevenue - vm.MonthExpenses;
-            vm.MonthGrossMargin = vm.MonthRevenue > 0
-                ? (vm.MonthNetProfit / vm.MonthRevenue) * 100 : 0;
-            vm.BudgetUtilizationPercent = vm.TotalBudgetAllocated > 0
-                ? (vm.TotalBudgetSpent / vm.TotalBudgetAllocated) * 100 : 0;
-
-            // Weekly chart data (last 7 days)
-            for (int i = 6; i >= 0; i--)
+            // Always refresh user-specific fields (not cached)
+            if (vm != null)
             {
-                var day = today.AddDays(-i);
-                vm.WeeklyRevenue.Add(new ChartDataPoint
-                {
-                    Label = day.ToString("ddd"),
-                    Value = await _db.Revenues
-                        .Where(r => !r.IsDeleted && r.TransactionDate.Date == day)
-                        .SumAsync(r => r.Amount)
-                });
-                vm.WeeklyExpenses.Add(new ChartDataPoint
-                {
-                    Label = day.ToString("ddd"),
-                    Value = await _db.Expenses
-                        .Where(e => !e.IsDeleted && e.ExpenseDate.Date == day)
-                        .SumAsync(e => e.Amount)
-                });
+                vm.FullName    = user?.FullName    ?? "CFO";
+                vm.LastLoginAt = user?.LastLoginAt ?? DateTime.UtcNow;
             }
 
-            // Monthly trend (last 6 months)
-            for (int i = 5; i >= 0; i--)
+            // ── Send daily P&L summary email to CFO once per day (fire-and-forget)
+            var emailCacheKey = $"cfo_daily_email_sent_{DateTime.Today:yyyyMMdd}";
+            if (!_cache.TryGetValue(emailCacheKey, out _) && user?.Email != null && vm != null)
             {
-                var month = today.AddMonths(-i);
-                var mStart = new DateTime(month.Year, month.Month, 1);
-                var mEnd = mStart.AddMonths(1);
-                var rev = await _db.Revenues
-                    .Where(r => !r.IsDeleted && r.TransactionDate >= mStart && r.TransactionDate < mEnd)
-                    .SumAsync(r => r.Amount);
-                var exp = await _db.Expenses
-                    .Where(e => !e.IsDeleted && e.ExpenseDate >= mStart && e.ExpenseDate < mEnd)
-                    .SumAsync(e => e.Amount);
-                vm.MonthlyTrend.Add(new ChartDataPoint
+                _cache.Set(emailCacheKey, true, TimeSpan.FromHours(24));
+                var yesterday = DateTime.Today.AddDays(-1);
+                _ = Task.Run(async () =>
                 {
-                    Label = month.ToString("MMM"),
-                    Value = rev - exp
-                });
-            }
-
-            // Expense breakdown by category
-            var colors = new[] { "#2d7ef7","#f0b429","#45c896","#f87171","#c084fc","#fb923c" };
-            var expGroups = await _db.Expenses
-                .Where(e => !e.IsDeleted && e.ExpenseDate >= monthStart)
-                .GroupBy(e => e.Category)
-                .Select(g => new { Category = g.Key, Total = g.Sum(e => e.Amount) })
-                .ToListAsync();
-            int ci = 0;
-            foreach (var g in expGroups)
-            {
-                vm.ExpenseBreakdown.Add(new PieDataPoint
-                {
-                    Label = g.Category,
-                    Value = g.Total,
-                    Color = colors[ci++ % colors.Length]
+                    try
+                    {
+                        var rev = await _db.Revenues
+                            .Where(r => !r.IsDeleted && r.TransactionDate.Date == yesterday)
+                            .SumAsync(r => r.Amount);
+                        var exp = await _db.Expenses
+                            .Where(e => !e.IsDeleted && e.ExpenseDate.Date == yesterday)
+                            .SumAsync(e => e.Amount);
+                        var txns = await _db.Sales
+                            .CountAsync(s => s.SaleDate.Date == yesterday && s.Status == "Completed");
+                        await _email.SendDailySummaryAsync(user.Email, rev, exp, rev - exp, txns, yesterday);
+                    }
+                    catch { /* never crash the dashboard over an email */ }
                 });
             }
 

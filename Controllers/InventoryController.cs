@@ -6,9 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using CRLFruitstandESS.Data;
 using CRLFruitstandESS.Models;
 using CRLFruitstandESS.Models.ViewModels;
+using CRLFruitstandESS.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace CRLFruitstandESS.Controllers
@@ -18,11 +20,19 @@ namespace CRLFruitstandESS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IPayMongoService _payMongo;
+        private readonly IConfiguration _config;
 
-        public InventoryController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public InventoryController(
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            IPayMongoService payMongo,
+            IConfiguration config)
         {
-            _context = context;
+            _context     = context;
             _userManager = userManager;
+            _payMongo    = payMongo;
+            _config      = config;
         }
 
         private async Task<bool> IsAdmin()
@@ -71,9 +81,10 @@ namespace CRLFruitstandESS.Controllers
             return View(vm);
         }
 
-        // GET: /Inventory/Index
-        public async Task<IActionResult> Index(string search = "", string category = "", string status = "")
+        public async Task<IActionResult> Index(string search = "", string category = "", string status = "", int page = 1)
         {
+            const int pageSize = 12; // 12 cards per page (fits 3 or 4 columns nicely)
+
             var query = _context.Inventory
                 .Include(i => i.Product)
                 .AsQueryable();
@@ -96,14 +107,19 @@ namespace CRLFruitstandESS.Controllers
                 };
             }
 
-            var inventory = await query.OrderBy(i => i.Product.Name).ToListAsync();
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var inventory = await query.OrderBy(i => i.Product.Name)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
             var categories = await _context.Products
                 .Select(p => p.Category)
                 .Distinct()
                 .Where(c => !string.IsNullOrEmpty(c))
                 .ToListAsync();
 
-            // Get products with pending deliveries
             var productsWithPendingDeliveries = await _context.SupplierDeliveries
                 .Select(d => d.ProductId)
                 .Distinct()
@@ -115,6 +131,10 @@ namespace CRLFruitstandESS.Controllers
             ViewBag.SelectedStatus = status;
             ViewBag.IsAdmin = await IsAdmin();
             ViewBag.ProductsWithPendingDeliveries = productsWithPendingDeliveries;
+            ViewBag.Page       = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize   = pageSize;
 
             return View(inventory.Select(MapToInventoryViewModel));
         }
@@ -755,48 +775,21 @@ namespace CRLFruitstandESS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RecordSpoilage(int productId, int quantity, string reason, string? notes)
+        public async Task<IActionResult> RecordSpoilage(int productId, int quantity, string reason, string? notes,
+            string spoilageType = "Manual", bool isSellable = false, decimal discountedPrice = 0m)
         {
-            if (productId <= 0)
-            {
-                TempData["Error"] = "Please select a valid product.";
-                return RedirectToAction(nameof(RecordSpoilage));
-            }
-            if (quantity <= 0 || quantity > 100000)
-            {
-                TempData["Error"] = "Quantity must be between 1 and 100,000.";
-                return RedirectToAction(nameof(RecordSpoilage));
-            }
-            if (string.IsNullOrWhiteSpace(reason))
-            {
-                TempData["Error"] = "Reason is required.";
-                return RedirectToAction(nameof(RecordSpoilage));
-            }
-            if (reason.Length > 100)
-            {
-                TempData["Error"] = "Reason cannot exceed 100 characters.";
-                return RedirectToAction(nameof(RecordSpoilage));
-            }
-            if (notes?.Length > 500)
-            {
-                TempData["Error"] = "Notes cannot exceed 500 characters.";
-                return RedirectToAction(nameof(RecordSpoilage));
-            }
+            if (productId <= 0) { TempData["Error"] = "Please select a valid product."; return RedirectToAction(nameof(RecordSpoilage)); }
+            if (quantity <= 0 || quantity > 100000) { TempData["Error"] = "Quantity must be between 1 and 100,000."; return RedirectToAction(nameof(RecordSpoilage)); }
+            if (string.IsNullOrWhiteSpace(reason)) { TempData["Error"] = "Reason is required."; return RedirectToAction(nameof(RecordSpoilage)); }
+            if (isSellable && discountedPrice <= 0) { TempData["Error"] = "Discounted price must be greater than 0 for sellable spoilage."; return RedirectToAction(nameof(RecordSpoilage)); }
 
-            var product = await _context.Products
-                .Include(p => p.Inventory)
-                .FirstOrDefaultAsync(p => p.Id == productId);
-
-            if (product == null)
-            {
-                TempData["Error"] = "Product not found.";
-                return RedirectToAction(nameof(RecordSpoilage));
-            }
+            var product = await _context.Products.Include(p => p.Inventory).FirstOrDefaultAsync(p => p.Id == productId);
+            if (product == null) { TempData["Error"] = "Product not found."; return RedirectToAction(nameof(RecordSpoilage)); }
 
             var estimatedLoss = quantity * product.CostPrice;
 
-            // Deduct from inventory
-            if (product.Inventory != null)
+            // Only deduct from inventory if NOT sellable (sellable items stay in stock until sold)
+            if (!isSellable && product.Inventory != null)
             {
                 var prev = product.Inventory.Quantity;
                 product.Inventory.Quantity = Math.Max(0, product.Inventory.Quantity - quantity);
@@ -804,45 +797,459 @@ namespace CRLFruitstandESS.Controllers
 
                 _context.StockMovements.Add(new StockMovement
                 {
-                    ProductId     = productId,
-                    Type          = MovementType.Adjustment,
-                    Quantity      = quantity,
-                    PreviousStock = prev,
-                    NewStock      = product.Inventory.Quantity,
-                    Notes         = $"Spoilage write-off — {reason}",
-                    PerformedBy   = User.Identity?.Name,
-                    MovementDate  = DateTime.Now
+                    ProductId = productId, Type = MovementType.Damaged,
+                    Quantity = quantity, PreviousStock = prev, NewStock = product.Inventory.Quantity,
+                    Notes = $"Spoilage write-off ({spoilageType}) — {reason}",
+                    PerformedBy = User.Identity?.Name, MovementDate = DateTime.Now
+                });
+
+                _context.Expenses.Add(new Expense
+                {
+                    Description = $"Spoilage: {product.Name} ({quantity} units) — {reason}",
+                    Category = "Spoilage", Amount = estimatedLoss,
+                    ExpenseDate = DateTime.Now, RecordedBy = User.Identity?.Name ?? "Manager",
+                    CreatedAt = DateTime.Now, IsDeleted = false
                 });
             }
 
-            // Record the spoilage event
             _context.SpoilageRecords.Add(new SpoilageRecord
             {
-                ProductId     = productId,
-                Quantity      = quantity,
-                EstimatedLoss = estimatedLoss,
-                Reason        = reason,
-                RecordedBy    = User.Identity?.Name ?? "Manager",
-                RecordedAt    = DateTime.Now,
-                Notes         = notes
-            });
-
-            // Record as expense
-            _context.Expenses.Add(new Expense
-            {
-                Description     = $"Spoilage: {product.Name} ({quantity} units)",
-                Category        = "Spoilage",
-                Amount          = estimatedLoss,
-                ExpenseDate     = DateTime.Now,
+                ProductId       = productId,
+                Quantity        = quantity,
+                EstimatedLoss   = estimatedLoss,
+                Reason          = reason,
                 RecordedBy      = User.Identity?.Name ?? "Manager",
-                CreatedAt       = DateTime.Now,
-                IsDeleted       = false
+                RecordedAt      = DateTime.Now,
+                Notes           = notes,
+                SpoilageType    = spoilageType,
+                IsSellable      = isSellable,
+                DiscountedPrice = isSellable ? discountedPrice : 0m
             });
 
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"Spoilage recorded: {quantity} units of {product.Name} (₱{estimatedLoss:N2} loss).";
+            TempData["Success"] = isSellable
+                ? $"Sellable spoilage recorded: {quantity} units of {product.Name} at ₱{discountedPrice:N2}/unit. Listed in Sellable Spoilage."
+                : $"Spoilage recorded: {quantity} units of {product.Name} (₱{estimatedLoss:N2} loss).";
             return RedirectToAction(nameof(RecordSpoilage));
+        }
+
+        // GET: /Inventory/SellableSpoilage
+        public async Task<IActionResult> SellableSpoilage()
+        {
+            var sellable = await _context.SpoilageRecords
+                .Include(s => s.Product)
+                .Where(s => s.IsSellable && !s.IsSold)
+                .OrderByDescending(s => s.RecordedAt)
+                .ToListAsync();
+
+            var sold = await _context.SpoilageRecords
+                .Include(s => s.Product)
+                .Where(s => s.IsSellable && s.IsSold)
+                .OrderByDescending(s => s.SoldAt)
+                .Take(20).ToListAsync();
+
+            ViewBag.SellableItems    = sellable;
+            ViewBag.SoldItems        = sold;
+            ViewBag.TotalAvailable   = sellable.Sum(s => s.Quantity);
+            ViewBag.PotentialRevenue = sellable.Sum(s => s.Quantity * s.DiscountedPrice);
+            ViewBag.TotalSoldRevenue = sold.Sum(s => s.SoldRevenue);
+            ViewBag.IsAdmin          = await IsAdmin();
+            return View();
+        }
+
+        // POST: /Inventory/SellSpoilage
+        [HttpPost][ValidateAntiForgeryToken]
+        public async Task<IActionResult> SellSpoilage(int spoilageId, int quantityToSell, decimal salePrice, string paymentMethod = "cash")
+        {
+            if (spoilageId <= 0 || quantityToSell <= 0 || salePrice <= 0)
+            { TempData["Error"] = "Invalid sale parameters."; return RedirectToAction(nameof(SellableSpoilage)); }
+
+            var record = await _context.SpoilageRecords.Include(s => s.Product)
+                .FirstOrDefaultAsync(s => s.Id == spoilageId && s.IsSellable && !s.IsSold);
+            if (record == null) { TempData["Error"] = "Record not found or already sold."; return RedirectToAction(nameof(SellableSpoilage)); }
+            if (quantityToSell > record.Quantity) { TempData["Error"] = $"Cannot sell more than {record.Quantity} units."; return RedirectToAction(nameof(SellableSpoilage)); }
+
+            var revenue = quantityToSell * salePrice;
+            var user    = await _userManager.GetUserAsync(User);
+
+            // Normalise payment method
+            paymentMethod = paymentMethod.ToLower() switch
+            {
+                "gcash"   => "gcash",
+                "paymaya" => "paymaya",
+                "maya"    => "paymaya",
+                _         => "cash"
+            };
+
+            // ── Digital payment: create PayMongo checkout session and redirect ──
+            if (paymentMethod is "gcash" or "paymaya")
+            {
+                try
+                {
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
+                    // Store pending data in DB so it survives the redirect
+                    var pendingData = JsonSerializer.Serialize(new
+                    {
+                        SpoilageId      = spoilageId,
+                        QuantityToSell  = quantityToSell,
+                        SalePrice       = salePrice,
+                        Revenue         = revenue,
+                        UserId          = user?.Id ?? string.Empty
+                    });
+
+                    var txn = new PaymentTransaction
+                    {
+                        SpoilageRecordId    = spoilageId,
+                        Method              = paymentMethod,
+                        Status              = "pending",
+                        Amount              = revenue,
+                        PaymentMethodType   = paymentMethod,
+                        IsTestMode          = (_config["PayMongo:SecretKey"] ?? "").StartsWith("sk_test_"),
+                        ProcessedBy         = user?.Id ?? string.Empty,
+                        RawPayMongoResponse = pendingData,   // reuse this column to store pending data
+                        CreatedAt           = DateTime.UtcNow,
+                        UpdatedAt           = DateTime.UtcNow
+                    };
+                    _context.PaymentTransactions.Add(txn);
+                    await _context.SaveChangesAsync();
+
+                    var successUrl = $"{baseUrl}/Inventory/SpoilagePaymentSuccess?txnId={txn.Id}";
+                    var cancelUrl  = $"{baseUrl}/Inventory/SpoilagePaymentFailed?txnId={txn.Id}";
+
+                    var session = await _payMongo.CreateCheckoutSessionAsync(
+                        revenue,
+                        new[] { paymentMethod },
+                        successUrl,
+                        cancelUrl,
+                        $"CRL Fruitstand — Spoilage Sale ({record.Product?.Name})",
+                        new List<(string name, int qty, decimal unitAmount)>
+                        {
+                            (name: $"{record.Product?.Name} (Discounted)", qty: quantityToSell, unitAmount: salePrice)
+                        });
+
+                    txn.CheckoutUrl = session.CheckoutUrl;
+                    await _context.SaveChangesAsync();
+
+                    return Redirect(session.CheckoutUrl);
+                }
+                catch (Exception ex)
+                {
+                    TempData["Error"] = $"Payment gateway error: {ex.Message[..Math.Min(200, ex.Message.Length)]}";
+                    return RedirectToAction(nameof(SellableSpoilage));
+                }
+            }
+
+            // ── Cash payment: process immediately ──
+            await ApplySpoilageSaleToContext(record, quantityToSell, salePrice, revenue, user, "cash");
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $"✅ Sold {quantityToSell} units of {record.Product?.Name} for ₱{revenue:N2}. Revenue recorded.";
+            return RedirectToAction(nameof(SellableSpoilage));
+        }
+
+        // GET: /Inventory/SpoilagePaymentSuccess
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> SpoilagePaymentSuccess(int? txnId)
+        {
+            if (!txnId.HasValue)
+            {
+                TempData["Error"] = "Invalid payment return.";
+                return RedirectToAction(nameof(SellableSpoilage));
+            }
+
+            // Use a DB transaction so we can lock the row and prevent double-processing
+            using var dbTxn = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Re-fetch inside the transaction so the status check is atomic
+                var pendingTxn = await _context.PaymentTransactions
+                    .FirstOrDefaultAsync(t => t.Id == txnId.Value);
+
+                if (pendingTxn == null)
+                {
+                    await dbTxn.RollbackAsync();
+                    TempData["Error"] = "Transaction not found.";
+                    return RedirectToAction(nameof(SellableSpoilage));
+                }
+
+                // Prevent double-processing
+                if (pendingTxn.Status == "paid")
+                {
+                    await dbTxn.RollbackAsync();
+                    TempData["Success"] = $"✅ Payment of ₱{pendingTxn.Amount:N2} via {pendingTxn.Method.ToUpper()} already recorded.";
+                    return RedirectToAction(nameof(SellableSpoilage));
+                }
+
+                var pendingJson = pendingTxn.RawPayMongoResponse;
+                if (string.IsNullOrEmpty(pendingJson))
+                {
+                    await dbTxn.RollbackAsync();
+                    TempData["Error"] = "Order data was lost. Please contact support.";
+                    return RedirectToAction(nameof(SellableSpoilage));
+                }
+
+                // Mark as paid immediately to block any concurrent duplicate callbacks
+                pendingTxn.Status              = "paid";
+                pendingTxn.PaidAt              = DateTime.UtcNow;
+                pendingTxn.UpdatedAt           = DateTime.UtcNow;
+                pendingTxn.RawPayMongoResponse = null;
+                await _context.SaveChangesAsync();
+
+                using var doc = JsonDocument.Parse(pendingJson);
+                var root           = doc.RootElement;
+                var spoilageId     = root.GetProperty("SpoilageId").GetInt32();
+                var quantityToSell = root.GetProperty("QuantityToSell").GetInt32();
+                var salePrice      = root.GetProperty("SalePrice").GetDecimal();
+                var revenue        = root.GetProperty("Revenue").GetDecimal();
+                var userId         = root.GetProperty("UserId").GetString() ?? string.Empty;
+
+                var record = await _context.SpoilageRecords.Include(s => s.Product)
+                    .FirstOrDefaultAsync(s => s.Id == spoilageId && s.IsSellable && !s.IsSold);
+
+                if (record == null)
+                {
+                    // Already processed — just commit the txn status update and show success
+                    await dbTxn.CommitAsync();
+                    TempData["Success"] = $"✅ Payment of ₱{revenue:N2} via {pendingTxn.Method.ToUpper()} received. Spoilage sale already recorded.";
+                    return RedirectToAction(nameof(SellableSpoilage));
+                }
+
+                var user = await _userManager.FindByIdAsync(userId);
+
+                // Process the sale (no SaveChangesAsync inside — we commit once at the end)
+                await ApplySpoilageSaleToContext(record, quantityToSell, salePrice, revenue, user, pendingTxn.Method, pendingTxn.Id);
+
+                await _context.SaveChangesAsync();
+                await dbTxn.CommitAsync();
+
+                TempData["Success"] = $"✅ Payment of ₱{revenue:N2} via {pendingTxn.Method.ToUpper()} received. Spoilage sale recorded.";
+            }
+            catch (Exception ex)
+            {
+                await dbTxn.RollbackAsync();
+                TempData["Error"] = $"Payment received but processing failed: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(SellableSpoilage));
+        }
+
+        // GET: /Inventory/SpoilagePaymentFailed
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> SpoilagePaymentFailed(int? txnId)
+        {
+            if (txnId.HasValue)
+            {
+                var txn = await _context.PaymentTransactions.FindAsync(txnId.Value);
+                if (txn != null && txn.Status == "pending")
+                {
+                    txn.Status    = "failed";
+                    txn.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+            }
+            TempData["Error"] = "Payment was cancelled or failed. Please try again.";
+            return RedirectToAction(nameof(SellableSpoilage));
+        }
+
+        /// <summary>
+        /// Stages all spoilage-sale changes on the EF context WITHOUT calling SaveChangesAsync.
+        /// The caller is responsible for SaveChangesAsync (and optionally a DB transaction).
+        /// Pass existingTxnId for digital payments (txn already exists); null for cash.
+        /// </summary>
+        private async Task ApplySpoilageSaleToContext(
+            SpoilageRecord record,
+            int quantityToSell,
+            decimal salePrice,
+            decimal revenue,
+            ApplicationUser? user,
+            string paymentMethod,
+            int? existingTxnId = null)
+        {
+            record.IsSold        = true;   // always mark original as done; remaining units get a new record
+            record.SoldAt        = DateTime.Now;
+            record.SoldQuantity  = quantityToSell;
+            record.SoldRevenue   = revenue;
+            record.PaymentMethod = paymentMethod;
+
+            if (quantityToSell < record.Quantity)
+            {
+                _context.SpoilageRecords.Add(new SpoilageRecord
+                {
+                    ProductId       = record.ProductId,
+                    Quantity        = record.Quantity - quantityToSell,
+                    EstimatedLoss   = (record.Quantity - quantityToSell) * (record.Product?.CostPrice ?? 0m),
+                    Reason          = record.Reason,
+                    RecordedBy      = record.RecordedBy,
+                    RecordedAt      = record.RecordedAt,
+                    Notes           = $"Remaining from partial sale on {DateTime.Now:MMM dd}",
+                    SpoilageType    = record.SpoilageType,
+                    IsSellable      = true,
+                    DiscountedPrice = record.DiscountedPrice,
+                    IsSold          = false
+                });
+            }
+
+            var inventory = await _context.Inventory.FirstOrDefaultAsync(i => i.ProductId == record.ProductId);
+            if (inventory != null)
+            {
+                var prev = inventory.Quantity;
+                inventory.Quantity    = Math.Max(0, inventory.Quantity - quantityToSell);
+                inventory.LastUpdated = DateTime.Now;
+                _context.StockMovements.Add(new StockMovement
+                {
+                    ProductId     = record.ProductId,
+                    Type          = MovementType.Sale,
+                    Quantity      = quantityToSell,
+                    PreviousStock = prev,
+                    NewStock      = inventory.Quantity,
+                    Notes         = $"Sell Spoilage — {record.Product?.Name} at ₱{salePrice:N2}/unit (discounted) via {paymentMethod.ToUpper()}",
+                    PerformedBy   = user?.UserName ?? "Manager",
+                    MovementDate  = DateTime.Now
+                });
+            }
+
+            _context.Revenues.Add(new Revenue
+            {
+                Source          = $"Sell Spoilage ({paymentMethod.ToUpper()})",
+                Category        = "Discounted Sales",
+                Amount          = revenue,
+                TransactionDate = DateTime.Now,
+                Notes           = $"Sold {quantityToSell} units of {record.Product?.Name} (spoilage) at ₱{salePrice:N2}/unit via {paymentMethod.ToUpper()}",
+                RecordedBy      = user?.Id ?? "Manager",
+                CreatedAt       = DateTime.Now,
+                IsDeleted       = false
+            });
+
+            // For cash: create a new PaymentTransaction. For digital: the txn already exists.
+            if (existingTxnId == null)
+            {
+                _context.PaymentTransactions.Add(new PaymentTransaction
+                {
+                    SpoilageRecordId  = record.Id,
+                    Method            = "cash",
+                    Status            = "paid",
+                    Amount            = revenue,
+                    PaymentMethodType = "cash",
+                    IsTestMode        = false,
+                    ProcessedBy       = user?.Id ?? string.Empty,
+                    PaidAt            = DateTime.UtcNow,
+                    CreatedAt         = DateTime.UtcNow,
+                    UpdatedAt         = DateTime.UtcNow
+                });
+            }
+            // For digital payments, link the existing txn to this spoilage record
+            else
+            {
+                var txn = await _context.PaymentTransactions.FindAsync(existingTxnId.Value);
+                if (txn != null)
+                    txn.SpoilageRecordId = record.Id;
+            }
+        }
+
+        // GET: /Inventory/PredictSpoilage
+        public async Task<IActionResult> PredictSpoilage()
+        {
+            const double spoilageRateBenchmark = 0.305;
+
+            var inventory = await _context.Inventory
+                .Include(i => i.Product)
+                .Where(i => i.Quantity > 0 && i.Product.IsActive)
+                .ToListAsync();
+
+            var predictions = new List<object>();
+
+            foreach (var inv in inventory)
+            {
+                var lastStockIn = await _context.StockMovements
+                    .Where(m => m.ProductId == inv.ProductId && m.Type == MovementType.StockIn)
+                    .OrderByDescending(m => m.MovementDate)
+                    .FirstOrDefaultAsync();
+
+                var daysSinceStockIn = lastStockIn != null
+                    ? (DateTime.Now - lastStockIn.MovementDate).TotalDays : 7.0;
+
+                var spoilageRisk = Math.Min(1.0, daysSinceStockIn / 7.0);
+                var predictedSpoilage = (int)Math.Round(inv.Quantity * spoilageRateBenchmark * spoilageRisk);
+                var riskLevel = spoilageRisk > 0.7 ? "High" : spoilageRisk > 0.4 ? "Medium" : "Low";
+                var riskColor = riskLevel == "High" ? "#ef4444" : riskLevel == "Medium" ? "#f59e0b" : "#22c55e";
+
+                if (predictedSpoilage > 0)
+                {
+                    predictions.Add(new
+                    {
+                        ProductId         = inv.ProductId,
+                        ProductName       = inv.Product?.Name ?? "",
+                        Emoji             = inv.Product?.Emoji ?? "📦",
+                        CurrentStock      = inv.Quantity,
+                        DaysSinceStockIn  = (int)daysSinceStockIn,
+                        PredictedSpoilage = predictedSpoilage,
+                        EstimatedLoss     = predictedSpoilage * (inv.Product?.CostPrice ?? 0m),
+                        RiskLevel         = riskLevel,
+                        RiskColor         = riskColor,
+                        SpoilageRisk      = Math.Round(spoilageRisk * 100, 1)
+                    });
+                }
+            }
+
+            var sorted = predictions
+                .OrderByDescending(p => ((dynamic)p).SpoilageRisk)
+                .ToList();
+
+            ViewBag.Predictions   = sorted;
+            ViewBag.TotalAtRisk   = sorted.Sum(p => (int)((dynamic)p).PredictedSpoilage);
+            ViewBag.TotalLossRisk = sorted.Sum(p => (decimal)((dynamic)p).EstimatedLoss);
+            ViewBag.HighRiskCount = sorted.Count(p => (string)((dynamic)p).RiskLevel == "High");
+            ViewBag.IsAdmin       = await IsAdmin();
+            return View();
+        }
+
+        // POST: /Inventory/ConfirmPredictedSpoilage
+        [HttpPost][ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmPredictedSpoilage(int productId, int quantity, bool isSellable, decimal discountedPrice)
+        {
+            var product = await _context.Products.Include(p => p.Inventory).FirstOrDefaultAsync(p => p.Id == productId);
+            if (product == null) { TempData["Error"] = "Product not found."; return RedirectToAction(nameof(PredictSpoilage)); }
+
+            var estimatedLoss = quantity * product.CostPrice;
+
+            if (!isSellable && product.Inventory != null)
+            {
+                var prev = product.Inventory.Quantity;
+                product.Inventory.Quantity = Math.Max(0, product.Inventory.Quantity - quantity);
+                product.Inventory.LastUpdated = DateTime.Now;
+                _context.StockMovements.Add(new StockMovement
+                {
+                    ProductId = productId, Type = MovementType.Damaged,
+                    Quantity = quantity, PreviousStock = prev, NewStock = product.Inventory.Quantity,
+                    Notes = "Predicted spoilage confirmed — written off",
+                    PerformedBy = User.Identity?.Name, MovementDate = DateTime.Now
+                });
+                _context.Expenses.Add(new Expense
+                {
+                    Description = $"Predicted Spoilage: {product.Name} ({quantity} units)",
+                    Category = "Spoilage", Amount = estimatedLoss,
+                    ExpenseDate = DateTime.Now, RecordedBy = User.Identity?.Name ?? "Manager",
+                    CreatedAt = DateTime.Now, IsDeleted = false
+                });
+            }
+
+            _context.SpoilageRecords.Add(new SpoilageRecord
+            {
+                ProductId = productId, Quantity = quantity, EstimatedLoss = estimatedLoss,
+                Reason = "Overripe", RecordedBy = User.Identity?.Name ?? "Manager",
+                RecordedAt = DateTime.Now, Notes = "Confirmed from AI prediction",
+                SpoilageType = "Predicted", IsSellable = isSellable,
+                DiscountedPrice = isSellable ? discountedPrice : 0m
+            });
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = isSellable
+                ? $"Confirmed: {quantity} units of {product.Name} listed as sellable at ₱{discountedPrice:N2}/unit."
+                : $"Confirmed: {quantity} units of {product.Name} written off (₱{estimatedLoss:N2} loss).";
+            return RedirectToAction(nameof(PredictSpoilage));
         }
 
         // ==================== SUPPLIER PAYMENT FEATURES ====================

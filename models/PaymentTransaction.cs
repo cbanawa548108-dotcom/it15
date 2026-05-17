@@ -9,6 +9,9 @@ namespace CRLFruitstandESS.Models
 
         public int? SaleId { get; set; }
 
+        /// <summary>Linked spoilage record ID (for spoilage sales, null for POS sales)</summary>
+        public int? SpoilageRecordId { get; set; }
+
         // ── Payment method & status ──────────────────────────────
         [Required][StringLength(50)]
         public string Method { get; set; } = string.Empty; // cash | gcash | paymaya | card
@@ -84,5 +87,8 @@ namespace CRLFruitstandESS.Models
 
         [ForeignKey("SaleId")]
         public virtual Sale? Sale { get; set; }
+
+        [ForeignKey("SpoilageRecordId")]
+        public virtual SpoilageRecord? SpoilageRecord { get; set; }
     }
 }

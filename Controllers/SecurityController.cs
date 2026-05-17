@@ -12,7 +12,7 @@ namespace CRLFruitstandESS.Controllers
     /// Security Dashboard — Admin-only view of login activity, locked accounts,
     /// and the security headers currently applied to the application.
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class SecurityController : Controller
     {
         private readonly ApplicationDbContext        _db;

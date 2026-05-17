@@ -1,0 +1,914 @@
+﻿@{
+    ViewData["Title"] = "Company Statistics";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+
+    decimal revThisMonth    = (decimal)(ViewBag.RevThisMonth    ?? 0m);
+    decimal revLastMonth    = (decimal)(ViewBag.RevLastMonth    ?? 0m);
+    decimal revYTD          = (decimal)(ViewBag.RevYTD          ?? 0m);
+    decimal revAllTime      = (decimal)(ViewBag.RevAllTime      ?? 0m);
+    decimal expThisMonth    = (decimal)(ViewBag.ExpThisMonth    ?? 0m);
+    decimal expYTD          = (decimal)(ViewBag.ExpYTD          ?? 0m);
+    decimal profitThisMonth = (decimal)(ViewBag.ProfitThisMonth ?? 0m);
+    decimal profitYTD       = (decimal)(ViewBag.ProfitYTD       ?? 0m);
+    decimal profitAllTime   = (decimal)(ViewBag.ProfitAllTime   ?? 0m);
+    decimal grossMarginPct  = (decimal)(ViewBag.GrossMarginPct  ?? 0m);
+    decimal revMoM          = (decimal)(ViewBag.RevMoMChange    ?? 0m);
+    decimal profitMoM       = (decimal)(ViewBag.ProfitMoMChange ?? 0m);
+
+    int    txnToday         = (int)(ViewBag.TxnCountToday     ?? 0);
+    int    txnThisMonth     = (int)(ViewBag.TxnCountThisMonth ?? 0);
+    decimal avgOrder        = (decimal)(ViewBag.AvgOrderValue  ?? 0m);
+    decimal salesYTD        = (decimal)(ViewBag.TotalSalesYTD  ?? 0m);
+
+    decimal invValue        = (decimal)(ViewBag.TotalInventoryValue ?? 0m);
+    decimal retailValue     = (decimal)(ViewBag.TotalRetailValue    ?? 0m);
+    int    outOfStock       = (int)(ViewBag.OutOfStock    ?? 0);
+    int    criticalStock    = (int)(ViewBag.CriticalStock ?? 0);
+    int    lowStock         = (int)(ViewBag.LowStock      ?? 0);
+    int    healthyStock     = (int)(ViewBag.HealthyStock  ?? 0);
+    int    totalProducts    = (int)(ViewBag.TotalProducts    ?? 0);
+    int    totalCategories  = (int)(ViewBag.TotalCategories  ?? 0);
+
+    decimal spoilageLoss    = (decimal)(ViewBag.TotalSpoilageLoss ?? 0m);
+    decimal spoilageRecov   = (decimal)(ViewBag.SpoilageRecovery  ?? 0m);
+    decimal spoilageRate    = (decimal)(ViewBag.SpoilageRate      ?? 0m);
+    decimal recoveryRate    = (decimal)(ViewBag.RecoveryRate      ?? 0m);
+
+    decimal totalPayables   = (decimal)(ViewBag.TotalPayables     ?? 0m);
+    int    suppliersDebt    = (int)(ViewBag.SuppliersWithDebt ?? 0);
+    int    totalSuppliers   = (int)(ViewBag.TotalSuppliers    ?? 0);
+
+    decimal opEfficiency    = (decimal)(ViewBag.OpEfficiency  ?? 0m);
+    decimal roi             = (decimal)(ViewBag.ROI           ?? 0m);
+    decimal cashFlowRatio   = (decimal)(ViewBag.CashFlowRatio ?? 0m);
+
+    string monthlyStats    = ViewBag.MonthlyStats    ?? "[]";
+    string topProducts     = ViewBag.TopProducts     ?? "[]";
+    string categoryRevenue = ViewBag.CategoryRevenue ?? "[]";
+    string revBySource     = ViewBag.RevBySource     ?? "[]";
+    string expByCategory   = ViewBag.ExpByCategory   ?? "[]";
+    string dailyRevenue    = ViewBag.DailyRevenue    ?? "[]";
+    string invByCategory   = ViewBag.InvByCategory   ?? "[]";
+    string payByMethod     = ViewBag.PayByMethod     ?? "[]";
+    string spoilageReasons = ViewBag.SpoilageReasons ?? "[]";
+
+    string period          = ViewBag.Period ?? "";
+    DateTime generatedAt   = ViewBag.GeneratedAt ?? DateTime.Now;
+
+    // ── Health score ──────────────────────────────────────────────────────
+    int    healthScore   = (int)(ViewBag.HealthScore   ?? 0);
+    string healthVerdict = ViewBag.HealthVerdict ?? "Unknown";
+    string healthEmoji   = ViewBag.HealthEmoji   ?? "❓";
+    string healthColor   = ViewBag.HealthColor   ?? "#64748b";
+    string healthBg      = ViewBag.HealthBg      ?? "rgba(100,116,139,.08)";
+    string healthBorder  = ViewBag.HealthBorder  ?? "rgba(100,116,139,.3)";
+    var    healthInsights = ViewBag.HealthInsights as string[] ?? Array.Empty<string>();
+    var    actionItems    = ViewBag.ActionItems   as List<string> ?? new();
+    var    healthSignals  = ViewBag.HealthSignals as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+
+    string MoMBadge(decimal pct) => pct >= 0
+        ? $"<span style='color:#34d399;font-size:.72rem;font-weight:700'>▲ {pct:N1}%</span>"
+        : $"<span style='color:#f87171;font-size:.72rem;font-weight:700'>▼ {Math.Abs(pct):N1}%</span>";
+
+    string SignalColor(string status) => status switch {
+        "Excellent" => "#34d399",
+        "Good"      => "#86efac",
+        "Marginal"  => "#fbbf24",
+        "Warning"   => "#f97316",
+        "Critical"  => "#f87171",
+        _           => "#64748b"
+    };
+    string SignalBg(string status) => status switch {
+        "Excellent" => "rgba(16,185,129,.12)",
+        "Good"      => "rgba(134,239,172,.1)",
+        "Marginal"  => "rgba(251,191,36,.1)",
+        "Warning"   => "rgba(249,115,22,.12)",
+        "Critical"  => "rgba(239,68,68,.12)",
+        _           => "rgba(100,116,139,.1)"
+    };
+}
+
+@section Styles {
+<style>
+/* ── Page base ── */
+.cs-page { background:#0f172a; min-height:100vh; padding:1.5rem; }
+.cs-header { background:linear-gradient(135deg,#1e293b,#0f172a); border:1px solid #334155; border-radius:14px; padding:1.75rem 2rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+.cs-title { font-size:1.75rem; font-weight:800; color:#f1f5f9; margin:0; }
+.cs-subtitle { color:#64748b; font-size:.82rem; margin:.25rem 0 0; }
+.cs-badge { background:rgba(16,185,129,.15); border:1px solid rgba(16,185,129,.3); color:#34d399; border-radius:8px; padding:.35rem .85rem; font-size:.75rem; font-weight:700; }
+
+/* ── Section headers ── */
+.cs-section { margin-bottom:1.75rem; }
+.cs-section-title { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#475569; margin:0 0 .9rem; display:flex; align-items:center; gap:.5rem; }
+.cs-section-title::after { content:''; flex:1; height:1px; background:#1e293b; }
+
+/* ── Health banner ── */
+.health-banner { border-radius:16px; padding:1.75rem 2rem; margin-bottom:1.75rem; border:1px solid; }
+.health-score-ring { width:100px; height:100px; flex-shrink:0; }
+.health-signal-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.75rem; margin-top:1.25rem; }
+.health-signal { border-radius:10px; padding:.85rem 1rem; border:1px solid rgba(255,255,255,.06); }
+.health-signal-name { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:.3rem; }
+.health-signal-bar { height:5px; border-radius:999px; background:rgba(255,255,255,.08); margin:.4rem 0; overflow:hidden; }
+.health-signal-fill { height:100%; border-radius:999px; transition:width .6s ease; }
+.health-signal-desc { font-size:.72rem; color:#64748b; }
+.action-list { display:flex; flex-direction:column; gap:.5rem; margin-top:1rem; }
+.action-item { background:rgba(0,0,0,.2); border-radius:8px; padding:.65rem 1rem; font-size:.82rem; color:#cbd5e1; border-left:3px solid; }
+/* ── Score arc animation ── */
+@@keyframes scoreArc { from { stroke-dashoffset: 283; } }
+.score-arc { animation: scoreArc .9s ease-out forwards; }
+
+/* ── KPI grid ── */
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; }
+.kpi-card { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:1.25rem 1.4rem; position:relative; overflow:hidden; transition:border-color .2s; }
+.kpi-card:hover { border-color:#475569; }
+.kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:12px 12px 0 0; }
+.kpi-card.green::before  { background:#10b981; }
+.kpi-card.blue::before   { background:#3b82f6; }
+.kpi-card.purple::before { background:#8b5cf6; }
+.kpi-card.amber::before  { background:#f59e0b; }
+.kpi-card.red::before    { background:#ef4444; }
+.kpi-card.cyan::before   { background:#06b6d4; }
+.kpi-label { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:#475569; margin-bottom:.35rem; }
+.kpi-value { font-size:1.55rem; font-weight:800; color:#f1f5f9; line-height:1.1; }
+.kpi-sub   { font-size:.72rem; color:#64748b; margin-top:.3rem; }
+
+/* ── Chart cards ── */
+.chart-grid-2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(380px,1fr)); gap:1rem; }
+.chart-grid-3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; }
+.chart-card { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:1.4rem; }
+.chart-card-title { font-size:.8rem; font-weight:700; color:#94a3b8; margin:0 0 1rem; display:flex; align-items:center; gap:.5rem; }
+.chart-wrap { position:relative; }
+
+/* ── Ops metrics ── */
+.ops-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; }
+.ops-card { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:1.25rem 1.4rem; text-align:center; }
+.ops-icon { font-size:1.75rem; margin-bottom:.5rem; }
+.ops-label { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:#475569; }
+.ops-value { font-size:1.6rem; font-weight:800; color:#f1f5f9; margin:.2rem 0; }
+.ops-desc  { font-size:.72rem; color:#64748b; }
+
+/* ── Gauge ── */
+.gauge-wrap { display:flex; flex-direction:column; align-items:center; gap:.5rem; }
+.gauge-ring { width:110px; height:110px; }
+
+/* ── Inventory health bar ── */
+.inv-bar-wrap { display:flex; gap:2px; height:10px; border-radius:999px; overflow:hidden; margin:.5rem 0; }
+.inv-bar-seg { height:100%; transition:width .4s; }
+
+/* ── Table ── */
+.cs-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.cs-table thead th { padding:.6rem .9rem; text-align:left; font-size:.68rem; font-weight:700; text-transform:uppercase; color:#475569; border-bottom:1px solid #334155; }
+.cs-table tbody tr { border-bottom:1px solid #1e293b; }
+.cs-table tbody tr:hover { background:#0f172a; }
+.cs-table tbody td { padding:.6rem .9rem; color:#cbd5e1; }
+
+/* ── Spoilage reason pills ── */
+.reason-pill { display:inline-flex; align-items:center; gap:.4rem; padding:.3rem .75rem; border-radius:999px; font-size:.72rem; font-weight:700; }
+</style>
+}
+
+<div class="cs-page">
+
+<!-- ── Header ── -->
+<div class="cs-header">
+    <div>
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#10b981;margin-bottom:.3rem">Company Overview</div>
+        <h1 class="cs-title">📊 Company Statistics</h1>
+        <p class="cs-subtitle">Live data from all modules · @period</p>
+    </div>
+    <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+        <span class="cs-badge">🕐 Updated @generatedAt.ToString("MMM d, yyyy h:mm tt")</span>
+        <a href="/Analytics/Index" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#60a5fa;border-radius:8px;padding:.35rem .85rem;font-size:.75rem;font-weight:700;text-decoration:none;">
+            📈 Deep Analytics →
+        </a>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     COMPANY HEALTH ASSESSMENT BANNER
+     ══════════════════════════════════════════════════════════ -->
+@{
+    double arcOffset = 283.0 * (1.0 - healthScore / 100.0);
+}
+<div class="health-banner" style="background:@healthBg;border-color:@healthBorder;">
+
+    <!-- Top row: score ring + verdict + insights + actions -->
+    <div style="display:flex;gap:1.75rem;align-items:flex-start;flex-wrap:wrap;">
+
+        <!-- Score ring -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.4rem;flex-shrink:0;">
+            <svg class="health-score-ring" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="45" fill="none"
+                        stroke="@healthColor" stroke-width="8"
+                        stroke-linecap="round"
+                        stroke-dasharray="283"
+                        stroke-dashoffset="@arcOffset.ToString("N1")"
+                        transform="rotate(-90 50 50)"
+                        class="score-arc"/>
+                <text x="50" y="46" text-anchor="middle" font-size="22" font-weight="800"
+                      fill="@healthColor" font-family="system-ui,sans-serif">@healthScore</text>
+                <text x="50" y="60" text-anchor="middle" font-size="9" fill="#64748b"
+                      font-family="system-ui,sans-serif">/ 100</text>
+            </svg>
+            <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#475569">Health Score</span>
+        </div>
+
+        <!-- Verdict + insights -->
+        <div style="flex:1;min-width:220px;">
+            <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem;flex-wrap:wrap;">
+                <span style="font-size:1.75rem">@healthEmoji</span>
+                <div>
+                    <div style="font-size:1.35rem;font-weight:800;color:@healthColor;line-height:1.1">@healthVerdict</div>
+                    <div style="font-size:.75rem;color:#64748b;margin-top:.15rem">Based on 6 financial signals · @period</div>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:.35rem;">
+                @foreach (var insight in healthInsights)
+                {
+                    <div style="display:flex;align-items:flex-start;gap:.5rem;font-size:.82rem;color:#94a3b8;">
+                        <span style="color:@healthColor;flex-shrink:0;margin-top:.05rem">•</span>
+                        <span>@insight</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Action items -->
+        @if (actionItems.Any())
+        {
+            <div style="flex:1;min-width:240px;max-width:380px;">
+                <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#475569;margin-bottom:.6rem;">
+                    ⚡ Recommended Actions
+                </div>
+                <div class="action-list">
+                    @foreach (var action in actionItems)
+                    {
+                        var isUrgent = action.StartsWith("🚨");
+                        <div class="action-item" style="border-left-color:@(isUrgent ? "#f87171" : "#f97316")">
+                            @action
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Signal breakdown grid -->
+    <div style="margin-top:1.25rem;">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#475569;margin-bottom:.75rem;">Signal Breakdown</div>
+        <div class="health-signal-grid">
+            @foreach (dynamic sig in healthSignals)
+            {
+                string sColor  = SignalColor((string)sig.Status);
+                string sBg     = SignalBg((string)sig.Status);
+                int    sScore  = (int)sig.Score;
+                int    sWeight = (int)sig.Weight;
+                <div class="health-signal" style="background:@sBg;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div class="health-signal-name" style="color:@sColor">@sig.Name</div>
+                        <div style="display:flex;align-items:center;gap:.4rem;">
+                            <span style="font-size:.75rem;font-weight:800;color:@sColor">@sScore<span style="font-size:.6rem;color:#475569">/100</span></span>
+                            <span style="font-size:.6rem;background:rgba(255,255,255,.06);border-radius:4px;padding:.1rem .35rem;color:#475569">×@sWeight%</span>
+                        </div>
+                    </div>
+                    <div class="health-signal-bar">
+                        <div class="health-signal-fill" style="width:@sScore%;background:@sColor;"></div>
+                    </div>
+                    <div class="health-signal-desc">@sig.Description</div>
+                    <div style="margin-top:.3rem;">
+                        <span style="font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:999px;background:@sBg;color:@sColor;border:1px solid @sColor">@sig.Status</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 1 — FINANCIAL KPIs
+     ══════════════════════════════════════════════════════════ -->
+<div class="cs-section">
+    <div class="cs-section-title">💰 Financial Performance</div>
+    <div class="kpi-grid">
+        <div class="kpi-card green">
+            <div class="kpi-label">Revenue This Month</div>
+            <div class="kpi-value">₱@revThisMonth.ToString("N0")</div>
+            <div class="kpi-sub">@Html.Raw(MoMBadge(revMoM)) vs last month (₱@revLastMonth.ToString("N0"))</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-label">Revenue YTD</div>
+            <div class="kpi-value">₱@revYTD.ToString("N0")</div>
+            <div class="kpi-sub">All-time: ₱@revAllTime.ToString("N0")</div>
+        </div>
+        <div class="kpi-card @(profitThisMonth >= 0 ? "green" : "red")">
+            <div class="kpi-label">Net Profit This Month</div>
+            <div class="kpi-value" style="color:@(profitThisMonth >= 0 ? "#34d399" : "#f87171")">₱@profitThisMonth.ToString("N0")</div>
+            <div class="kpi-sub">@Html.Raw(MoMBadge(profitMoM)) vs last month</div>
+        </div>
+        <div class="kpi-card purple">
+            <div class="kpi-label">Net Profit YTD</div>
+            <div class="kpi-value" style="color:@(profitYTD >= 0 ? "#a78bfa" : "#f87171")">₱@profitYTD.ToString("N0")</div>
+            <div class="kpi-sub">All-time: ₱@profitAllTime.ToString("N0")</div>
+        </div>
+        <div class="kpi-card amber">
+            <div class="kpi-label">Gross Margin</div>
+            <div class="kpi-value" style="color:#fbbf24">@grossMarginPct.ToString("N1")%</div>
+            <div class="kpi-sub">Revenue minus expenses / revenue</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-label">Expenses This Month</div>
+            <div class="kpi-value" style="color:#f87171">₱@expThisMonth.ToString("N0")</div>
+            <div class="kpi-sub">YTD: ₱@expYTD.ToString("N0")</div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 2 — SALES KPIs
+     ══════════════════════════════════════════════════════════ -->
+<div class="cs-section">
+    <div class="cs-section-title">🛒 Sales Performance</div>
+    <div class="kpi-grid">
+        <div class="kpi-card green">
+            <div class="kpi-label">Transactions Today</div>
+            <div class="kpi-value">@txnToday</div>
+            <div class="kpi-sub">This month: @txnThisMonth transactions</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-label">Avg Order Value</div>
+            <div class="kpi-value">₱@avgOrder.ToString("N2")</div>
+            <div class="kpi-sub">This month average</div>
+        </div>
+        <div class="kpi-card purple">
+            <div class="kpi-label">Total Sales YTD</div>
+            <div class="kpi-value">₱@salesYTD.ToString("N0")</div>
+            <div class="kpi-sub">Completed transactions only</div>
+        </div>
+        <div class="kpi-card amber">
+            <div class="kpi-label">Active Products</div>
+            <div class="kpi-value">@totalProducts</div>
+            <div class="kpi-sub">Across @totalCategories categories</div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 3 — OPERATIONAL EFFICIENCY
+     ══════════════════════════════════════════════════════════ -->
+<div class="cs-section">
+    <div class="cs-section-title">⚙️ Operational Efficiency</div>
+    <div class="ops-grid">
+        <div class="ops-card">
+            <div class="ops-icon">🎯</div>
+            <div class="ops-label">Operational Efficiency</div>
+            <div class="ops-value" style="color:@(opEfficiency >= 60 ? "#34d399" : opEfficiency >= 30 ? "#fbbf24" : "#f87171")">@opEfficiency.ToString("N1")%</div>
+            <div class="ops-desc">100 − (Expenses ÷ Revenue) × 100</div>
+        </div>
+        <div class="ops-card">
+            <div class="ops-icon">📈</div>
+            <div class="ops-label">Return on Investment</div>
+            <div class="ops-value" style="color:@(roi >= 20 ? "#34d399" : roi >= 0 ? "#fbbf24" : "#f87171")">@roi.ToString("N1")%</div>
+            <div class="ops-desc">Net Profit ÷ Total Expenses × 100</div>
+        </div>
+        <div class="ops-card">
+            <div class="ops-icon">💧</div>
+            <div class="ops-label">Cash Flow Ratio</div>
+            <div class="ops-value" style="color:@(cashFlowRatio >= 1.2m ? "#34d399" : cashFlowRatio >= 1m ? "#fbbf24" : "#f87171")">@cashFlowRatio.ToString("N2")x</div>
+            <div class="ops-desc">Revenue ÷ Expenses (>1 = positive)</div>
+        </div>
+        <div class="ops-card">
+            <div class="ops-icon">🏪</div>
+            <div class="ops-label">Inventory Value</div>
+            <div class="ops-value" style="color:#60a5fa">₱@invValue.ToString("N0")</div>
+            <div class="ops-desc">Retail value: ₱@retailValue.ToString("N0")</div>
+        </div>
+        <div class="ops-card">
+            <div class="ops-icon">🍂</div>
+            <div class="ops-label">Spoilage Rate</div>
+            <div class="ops-value" style="color:@(spoilageRate <= 5 ? "#34d399" : spoilageRate <= 15 ? "#fbbf24" : "#f87171")">@spoilageRate.ToString("N1")%</div>
+            <div class="ops-desc">Spoilage loss ÷ Revenue × 100</div>
+        </div>
+        <div class="ops-card">
+            <div class="ops-icon">♻️</div>
+            <div class="ops-label">Spoilage Recovery</div>
+            <div class="ops-value" style="color:#a78bfa">@recoveryRate.ToString("N1")%</div>
+            <div class="ops-desc">₱@spoilageRecov.ToString("N0") recovered of ₱@spoilageLoss.ToString("N0") lost</div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 4 — CHARTS ROW 1: 6-Month P&L + Daily Trend
+     ══════════════════════════════════════════════════════════ -->
+<div class="cs-section">
+    <div class="cs-section-title">📉 Revenue & Profit Trends</div>
+    <div class="chart-grid-2">
+        <div class="chart-card">
+            <div class="chart-card-title">
+                <span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block"></span>
+                6-Month P&amp;L Overview
+            </div>
+            <div class="chart-wrap" style="height:240px"><canvas id="chartMonthly"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-title">
+                <span style="width:10px;height:10px;border-radius:50%;background:#3b82f6;display:inline-block"></span>
+                Daily Revenue — Last 30 Days
+            </div>
+            <div class="chart-wrap" style="height:240px"><canvas id="chartDaily"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 5 — CHARTS ROW 2: Top Products + Category Revenue
+     ══════════════════════════════════════════════════════════ -->
+<div class="cs-section">
+    <div class="cs-section-title">🏆 Product & Category Performance (YTD)</div>
+    <div class="chart-grid-2">
+        <div class="chart-card">
+            <div class="chart-card-title">
+                <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block"></span>
+                Top 8 Products by Revenue
+            </div>
+            <div class="chart-wrap" style="height:260px"><canvas id="chartTopProducts"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-title">
+                <span style="width:10px;height:10px;border-radius:50%;background:#8b5cf6;display:inline-block"></span>
+                Revenue by Product Category
+            </div>
+            <div class="chart-wrap" style="height:260px"><canvas id="chartCategoryRev"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 6 — CHARTS ROW 3: Expense Breakdown + Payment Methods
+     ══════════════════════════════════════════════════════════ -->
+<div class="cs-section">
+    <div class="cs-section-title">💳 Expenses & Payment Methods</div>
+    <div class="chart-grid-3">
+        <div class="chart-card">
+            <div class="chart-card-title">
+                <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block"></span>
+                Expense Breakdown (YTD)
+            </div>
+            <div class="chart-wrap" style="height:220px"><canvas id="chartExpenses"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-title">
+                <span style="width:10px;height:10px;border-radius:50%;background:#06b6d4;display:inline-block"></span>
+                Payment Methods Used
+            </div>
+            <div class="chart-wrap" style="height:220px"><canvas id="chartPayMethods"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-title">
+                <span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block"></span>
+                Revenue Sources (This Month)
+            </div>
+            <div class="chart-wrap" style="height:220px"><canvas id="chartRevSources"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 7 — INVENTORY HEALTH
+     ══════════════════════════════════════════════════════════ -->
+<div class="cs-section">
+    <div class="cs-section-title">📦 Inventory Health</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <!-- Stock status summary -->
+        <div class="chart-card">
+            <div class="chart-card-title">Stock Status Distribution</div>
+            @{
+                int totalInv = outOfStock + criticalStock + lowStock + healthyStock;
+                double pctOut      = totalInv > 0 ? (double)outOfStock    / totalInv * 100 : 0;
+                double pctCritical = totalInv > 0 ? (double)criticalStock / totalInv * 100 : 0;
+                double pctLow      = totalInv > 0 ? (double)lowStock      / totalInv * 100 : 0;
+                double pctHealthy  = totalInv > 0 ? (double)healthyStock  / totalInv * 100 : 0;
+            }
+            <div class="inv-bar-wrap">
+                <div class="inv-bar-seg" style="width:@pctOut.ToString("N1")%;background:#ef4444" title="Out of Stock"></div>
+                <div class="inv-bar-seg" style="width:@pctCritical.ToString("N1")%;background:#f59e0b" title="Critical"></div>
+                <div class="inv-bar-seg" style="width:@pctLow.ToString("N1")%;background:#eab308" title="Low"></div>
+                <div class="inv-bar-seg" style="width:@pctHealthy.ToString("N1")%;background:#10b981" title="Healthy"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.75rem;">
+                <div style="background:#0f172a;border-radius:8px;padding:.75rem;border-left:3px solid #ef4444">
+                    <div style="font-size:.68rem;color:#475569;font-weight:700;text-transform:uppercase">Out of Stock</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:#f87171">@outOfStock</div>
+                    <div style="font-size:.7rem;color:#64748b">products</div>
+                </div>
+                <div style="background:#0f172a;border-radius:8px;padding:.75rem;border-left:3px solid #f59e0b">
+                    <div style="font-size:.68rem;color:#475569;font-weight:700;text-transform:uppercase">Critical</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:#fbbf24">@criticalStock</div>
+                    <div style="font-size:.7rem;color:#64748b">below min level</div>
+                </div>
+                <div style="background:#0f172a;border-radius:8px;padding:.75rem;border-left:3px solid #eab308">
+                    <div style="font-size:.68rem;color:#475569;font-weight:700;text-transform:uppercase">Low Stock</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:#fde047">@lowStock</div>
+                    <div style="font-size:.7rem;color:#64748b">below reorder point</div>
+                </div>
+                <div style="background:#0f172a;border-radius:8px;padding:.75rem;border-left:3px solid #10b981">
+                    <div style="font-size:.68rem;color:#475569;font-weight:700;text-transform:uppercase">Healthy</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:#34d399">@healthyStock</div>
+                    <div style="font-size:.7rem;color:#64748b">above reorder point</div>
+                </div>
+            </div>
+        </div>
+        <!-- Inventory value by category -->
+        <div class="chart-card">
+            <div class="chart-card-title">Inventory Value by Category</div>
+            <div class="chart-wrap" style="height:220px"><canvas id="chartInvCategory"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 8 — SPOILAGE & SUPPLIER
+     ══════════════════════════════════════════════════════════ -->
+<div class="cs-section">
+    <div class="cs-section-title">🍂 Spoilage & Supplier Overview</div>
+    <div class="chart-grid-2">
+        <!-- Spoilage by reason -->
+        <div class="chart-card">
+            <div class="chart-card-title">Spoilage by Reason (All Time)</div>
+            <div id="spoilageReasonList" style="display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem">
+                @{
+                    var reasons = ViewBag.SpoilageByReason as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+                    var reasonColors = new Dictionary<string,string>
+                    {
+                        ["Overripe"] = "#f59e0b",
+                        ["Damaged"]  = "#ef4444",
+                        ["Expired"]  = "#8b5cf6",
+                        ["Pest"]     = "#ec4899",
+                        ["Other"]    = "#64748b"
+                    };
+                    decimal maxLoss = 1m;
+                    foreach (dynamic r in reasons) { decimal l = (decimal)r.Loss; if (l > maxLoss) maxLoss = l; }
+                }
+                @foreach (dynamic r in reasons)
+                {
+                    var rColor = reasonColors.GetValueOrDefault((string)r.Reason, "#64748b");
+                    decimal rLoss = (decimal)r.Loss;
+                    double rPct = maxLoss > 0 ? (double)(rLoss / maxLoss) * 100 : 0;
+                    <div style="background:#0f172a;border-radius:8px;padding:.75rem 1rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+                            <span style="font-size:.82rem;font-weight:700;color:#f1f5f9">@r.Reason</span>
+                            <span style="font-size:.78rem;color:#94a3b8">@((int)r.Count) units · ₱@rLoss.ToString("N0") loss</span>
+                        </div>
+                        <div style="background:#1e293b;border-radius:999px;height:6px;overflow:hidden">
+                            <div style="width:@rPct.ToString("N1")%;height:100%;background:@rColor;border-radius:999px;transition:width .4s"></div>
+                        </div>
+                    </div>
+                }
+                @if (!reasons.Any())
+                {
+                    <div style="text-align:center;color:#475569;padding:1.5rem">No spoilage records yet.</div>
+                }
+            </div>
+        </div>
+        <!-- Supplier summary -->
+        <div class="chart-card">
+            <div class="chart-card-title">Supplier Financial Summary</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem">
+                <div style="background:#0f172a;border-radius:8px;padding:.75rem;text-align:center">
+                    <div style="font-size:.68rem;color:#475569;font-weight:700;text-transform:uppercase">Active Suppliers</div>
+                    <div style="font-size:1.5rem;font-weight:800;color:#60a5fa">@totalSuppliers</div>
+                </div>
+                <div style="background:#0f172a;border-radius:8px;padding:.75rem;text-align:center">
+                    <div style="font-size:.68rem;color:#475569;font-weight:700;text-transform:uppercase">With Balance Due</div>
+                    <div style="font-size:1.5rem;font-weight:800;color:#fbbf24">@suppliersDebt</div>
+                </div>
+                <div style="background:#0f172a;border-radius:8px;padding:.75rem;text-align:center">
+                    <div style="font-size:.68rem;color:#475569;font-weight:700;text-transform:uppercase">Total Payables</div>
+                    <div style="font-size:1.1rem;font-weight:800;color:#f87171">₱@totalPayables.ToString("N0")</div>
+                </div>
+            </div>
+            <div style="background:#0f172a;border-radius:8px;padding:1rem">
+                <div style="font-size:.72rem;font-weight:700;color:#475569;text-transform:uppercase;margin-bottom:.75rem">Spoilage Financial Impact</div>
+                <div style="display:flex;flex-direction:column;gap:.5rem">
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#94a3b8;font-size:.82rem">Total Spoilage Loss (YTD)</span>
+                        <span style="color:#f87171;font-weight:700">₱@spoilageLoss.ToString("N0")</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#94a3b8;font-size:.82rem">Revenue Recovered from Spoilage</span>
+                        <span style="color:#34d399;font-weight:700">₱@spoilageRecov.ToString("N0")</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#94a3b8;font-size:.82rem">Net Spoilage Impact</span>
+                        <span style="color:#fbbf24;font-weight:700">₱@((spoilageLoss - spoilageRecov).ToString("N0"))</span>
+                    </div>
+                    <div style="height:1px;background:#334155;margin:.25rem 0"></div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#94a3b8;font-size:.82rem">Spoilage Rate</span>
+                        <span style="color:@(spoilageRate <= 5 ? "#34d399" : spoilageRate <= 15 ? "#fbbf24" : "#f87171");font-weight:700">@spoilageRate.ToString("N1")%</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#94a3b8;font-size:.82rem">Recovery Rate</span>
+                        <span style="color:#a78bfa;font-weight:700">@recoveryRate.ToString("N1")%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 9 — QUICK LINKS
+     ══════════════════════════════════════════════════════════ -->
+<div class="cs-section">
+    <div class="cs-section-title">🔗 Quick Navigation</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem">
+        @foreach (var (label, url, icon, color) in new (string,string,string,string)[] {
+            ("Deep Analytics",       "/Analytics/Index",                    "📈", "#3b82f6"),
+            ("Executive Dashboard",  "/ExecutiveDashboard/Index",           "🏛️", "#8b5cf6"),
+            ("KPI Dashboard",        "/ExecutiveDashboard/KPIDashboard",    "🎯", "#10b981"),
+            ("Revenue",              "/CfoDashboard/Revenue",               "💰", "#f59e0b"),
+            ("Expenses",             "/CfoDashboard/Expenses",              "💸", "#ef4444"),
+            ("Inventory",            "/Inventory/Dashboard",                "📦", "#06b6d4"),
+            ("Spoilage",             "/Inventory/RecordSpoilage",           "🍂", "#f97316"),
+            ("Sellable Spoilage",    "/Inventory/SellableSpoilage",         "🏷️", "#a78bfa"),
+            ("Supplier Balances",    "/Inventory/SupplierBalances",         "🏭", "#64748b"),
+            ("Risk Analysis",        "/ExecutiveDashboard/RiskAnalysis",    "⚠️", "#ef4444"),
+        })
+        {
+            <a href="@url" style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:.6rem 1.1rem;color:#f1f5f9;text-decoration:none;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:.5rem;transition:border-color .2s;border-left:3px solid @color">
+                @icon @label
+            </a>
+        }
+    </div>
+</div>
+
+</div><!-- end .cs-page -->
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    // ── Shared chart defaults ──────────────────────────────────────────────
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.borderColor = '#1e293b';
+    Chart.defaults.font.family = 'system-ui, sans-serif';
+    Chart.defaults.font.size = 11;
+
+    const PALETTE = ['#10b981','#3b82f6','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#ec4899','#f97316','#84cc16','#a78bfa'];
+
+    function makeGradient(ctx, color) {
+        const g = ctx.createLinearGradient(0, 0, 0, 300);
+        g.addColorStop(0, color.replace(')', ', 0.35)').replace('rgb', 'rgba'));
+        g.addColorStop(1, color.replace(')', ', 0.02)').replace('rgb', 'rgba'));
+        return g;
+    }
+
+    // ── Parse server data ──────────────────────────────────────────────────
+    const monthly    = @Html.Raw(monthlyStats);
+    const topProds   = @Html.Raw(topProducts);
+    const catRev     = @Html.Raw(categoryRevenue);
+    const revSrc     = @Html.Raw(revBySource);
+    const expCat     = @Html.Raw(expByCategory);
+    const daily      = @Html.Raw(dailyRevenue);
+    const invCat     = @Html.Raw(invByCategory);
+    const payMethods = @Html.Raw(payByMethod);
+
+    // ── 1. 6-Month P&L ────────────────────────────────────────────────────
+    new Chart(document.getElementById('chartMonthly'), {
+        type: 'bar',
+        data: {
+            labels: monthly.map(m => m.label),
+            datasets: [
+                {
+                    label: 'Revenue',
+                    data: monthly.map(m => m.revenue),
+                    backgroundColor: 'rgba(16,185,129,0.5)',
+                    borderColor: '#10b981',
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                    order: 2
+                },
+                {
+                    label: 'Expenses',
+                    data: monthly.map(m => m.expense),
+                    backgroundColor: 'rgba(239,68,68,0.45)',
+                    borderColor: '#ef4444',
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                    order: 2
+                },
+                {
+                    label: 'Net Profit',
+                    data: monthly.map(m => m.profit),
+                    type: 'line',
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#f59e0b',
+                    tension: 0.35,
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 12 } }, tooltip: { mode: 'index' } },
+            scales: {
+                x: { grid: { color: '#1e293b' } },
+                y: { grid: { color: '#1e293b' }, ticks: { callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }
+            }
+        }
+    });
+
+    // ── 2. Daily Revenue (last 30 days) ───────────────────────────────────
+    const dailyCtx = document.getElementById('chartDaily').getContext('2d');
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: daily.map(d => d.label),
+            datasets: [
+                {
+                    label: 'Revenue',
+                    data: daily.map(d => d.revenue),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.12)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 2
+                },
+                {
+                    label: 'Expenses',
+                    data: daily.map(d => d.expense),
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239,68,68,0.08)',
+                    borderWidth: 1.5,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 12 } } },
+            scales: {
+                x: { grid: { color: '#1e293b' }, ticks: { maxTicksLimit: 10 } },
+                y: { grid: { color: '#1e293b' }, ticks: { callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }
+            }
+        }
+    });
+
+    // ── 3. Top Products ───────────────────────────────────────────────────
+    new Chart(document.getElementById('chartTopProducts'), {
+        type: 'bar',
+        data: {
+            labels: topProds.map(p => (p.productEmoji || '') + ' ' + (p.productName || p.ProductName || '')),
+            datasets: [{
+                label: 'Revenue (₱)',
+                data: topProds.map(p => p.totalRevenue || p.TotalRevenue || 0),
+                backgroundColor: PALETTE.map(c => c + 'aa'),
+                borderColor: PALETTE,
+                borderWidth: 1.5,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: '#1e293b' }, ticks: { callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+
+    // ── 4. Category Revenue (doughnut) ────────────────────────────────────
+    new Chart(document.getElementById('chartCategoryRev'), {
+        type: 'doughnut',
+        data: {
+            labels: catRev.map(c => c.category || c.Category),
+            datasets: [{
+                data: catRev.map(c => c.revenue || c.Revenue || 0),
+                backgroundColor: PALETTE.map(c => c + 'cc'),
+                borderColor: '#0f172a',
+                borderWidth: 2,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } },
+                tooltip: { callbacks: { label: ctx => ' ₱' + ctx.parsed.toLocaleString() } }
+            }
+        }
+    });
+
+    // ── 5. Expense Breakdown (doughnut) ───────────────────────────────────
+    new Chart(document.getElementById('chartExpenses'), {
+        type: 'doughnut',
+        data: {
+            labels: expCat.map(e => e.category || e.Category),
+            datasets: [{
+                data: expCat.map(e => e.amount || e.Amount || 0),
+                backgroundColor: ['#ef4444cc','#f59e0bcc','#8b5cf6cc','#06b6d4cc','#ec4899cc','#64748bcc'],
+                borderColor: '#0f172a',
+                borderWidth: 2,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } },
+                tooltip: { callbacks: { label: ctx => ' ₱' + ctx.parsed.toLocaleString() } }
+            }
+        }
+    });
+
+    // ── 6. Payment Methods (bar) ──────────────────────────────────────────
+    const pmColors = { cash: '#10b981', gcash: '#3b82f6', paymaya: '#8b5cf6', card: '#f59e0b' };
+    new Chart(document.getElementById('chartPayMethods'), {
+        type: 'bar',
+        data: {
+            labels: payMethods.map(p => (p.method || p.Method || '').toUpperCase()),
+            datasets: [{
+                label: 'Total (₱)',
+                data: payMethods.map(p => p.total || p.Total || 0),
+                backgroundColor: payMethods.map(p => (pmColors[(p.method||p.Method||'').toLowerCase()] || '#64748b') + 'cc'),
+                borderColor:     payMethods.map(p =>  pmColors[(p.method||p.Method||'').toLowerCase()] || '#64748b'),
+                borderWidth: 1.5,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { color: '#1e293b' }, ticks: { callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }
+            }
+        }
+    });
+
+    // ── 7. Revenue Sources (horizontal bar) ───────────────────────────────
+    new Chart(document.getElementById('chartRevSources'), {
+        type: 'bar',
+        data: {
+            labels: revSrc.map(r => r.source || r.Source),
+            datasets: [{
+                label: 'Amount (₱)',
+                data: revSrc.map(r => r.amount || r.Amount || 0),
+                backgroundColor: PALETTE.map(c => c + 'aa'),
+                borderColor: PALETTE,
+                borderWidth: 1.5,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: '#1e293b' }, ticks: { callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } },
+                y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+
+    // ── 8. Inventory by Category (doughnut) ───────────────────────────────
+    new Chart(document.getElementById('chartInvCategory'), {
+        type: 'doughnut',
+        data: {
+            labels: invCat.map(i => i.category || i.Category),
+            datasets: [{
+                data: invCat.map(i => i.value || i.Value || 0),
+                backgroundColor: PALETTE.map(c => c + 'cc'),
+                borderColor: '#0f172a',
+                borderWidth: 2,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } },
+                tooltip: { callbacks: { label: ctx => ' ₱' + ctx.parsed.toLocaleString() } }
+            }
+        }
+    });
+
+})();
+</script>
+}

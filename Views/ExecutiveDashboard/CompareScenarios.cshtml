@@ -31,6 +31,56 @@
     </div>
 </div>
 
+<!-- Professor explanation -->
+<div class="dark-card" style="border-left:4px solid #6366f1;">
+    <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 0.75rem;display:flex;align-items:center;gap:.6rem;">
+        <i class="bi bi-mortarboard-fill" style="color:#6366f1;font-size:1.1rem;"></i>
+        How the Comparison is Calculated
+    </p>
+    <p style="color:#94a3b8;font-size:0.875rem;margin:0 0 1rem;line-height:1.7;">
+        Each saved scenario stores its input parameters. When you compare two scenarios, the system
+        <strong style="color:#f1f5f9;">re-runs the Compound Growth Financial Model</strong> for each one using those saved parameters,
+        then displays the results side-by-side so you can see which strategy produces better financial outcomes.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0.875rem;margin-bottom:1rem;">
+        <div style="background:#0d1526;border:1px solid #1e293b;border-radius:10px;padding:1rem;">
+            <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#6366f1;margin-bottom:0.5rem;">Total Revenue</div>
+            <div style="font-family:monospace;font-size:0.85rem;color:#f1f5f9;background:#060d1a;padding:0.5rem 0.75rem;border-radius:6px;margin-bottom:0.4rem;">
+                Σ [ Baseline × (1 + g)^(n−1) ] for n = 1 to N
+            </div>
+            <p style="font-size:0.75rem;color:#64748b;margin:0;">Sum of all monthly revenues over the simulation period</p>
+        </div>
+        <div style="background:#0d1526;border:1px solid #1e293b;border-radius:10px;padding:1rem;">
+            <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#22c55e;margin-bottom:0.5rem;">Total Net Profit</div>
+            <div style="font-family:monospace;font-size:0.85rem;color:#f1f5f9;background:#060d1a;padding:0.5rem 0.75rem;border-radius:6px;margin-bottom:0.4rem;">
+                Σ [ R(n) − COGS(n) − OpEx(n) ]
+            </div>
+            <p style="font-size:0.75rem;color:#64748b;margin:0;">Sum of monthly profits after COGS and operating expenses</p>
+        </div>
+        <div style="background:#0d1526;border:1px solid #1e293b;border-radius:10px;padding:1rem;">
+            <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#f59e0b;margin-bottom:0.5rem;">Avg Gross Margin %</div>
+            <div style="font-family:monospace;font-size:0.85rem;color:#f1f5f9;background:#060d1a;padding:0.5rem 0.75rem;border-radius:6px;margin-bottom:0.4rem;">
+                Average of [ (R(n) − COGS(n)) / R(n) × 100 ]
+            </div>
+            <p style="font-size:0.75rem;color:#64748b;margin:0;">Average monthly gross margin across all simulated months</p>
+        </div>
+        <div style="background:#0d1526;border:1px solid #1e293b;border-radius:10px;padding:1rem;">
+            <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#a78bfa;margin-bottom:0.5rem;">ROI %</div>
+            <div style="font-family:monospace;font-size:0.85rem;color:#f1f5f9;background:#060d1a;padding:0.5rem 0.75rem;border-radius:6px;margin-bottom:0.4rem;">
+                Total Net Profit / Total OpEx × 100
+            </div>
+            <p style="font-size:0.75rem;color:#64748b;margin:0;">Return on every peso of operating cost over the full period</p>
+        </div>
+    </div>
+    <div style="background:#0d1526;border:1px solid #1e3a5f;border-radius:8px;padding:0.875rem 1rem;display:flex;align-items:flex-start;gap:0.75rem;">
+        <i class="bi bi-trophy-fill" style="color:#f59e0b;font-size:1rem;flex-shrink:0;margin-top:2px;"></i>
+        <p style="margin:0;font-size:0.8rem;color:#64748b;line-height:1.6;">
+            The scenario with the higher <strong style="color:#94a3b8;">Total Net Profit</strong> is marked <strong style="color:#34d399;">BETTER</strong>.
+            The two charts below separate financial values (₱) from efficiency ratios (%) so both are clearly readable on their own scale.
+        </p>
+    </div>
+</div>
+
 <!-- Selector -->
 <div class="dark-card">
     <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;">Select Two Scenarios to Compare</p>
@@ -119,29 +169,70 @@
 
     <!-- Comparison chart -->
     <div class="dark-card">
-        <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 1.25rem;display:flex;align-items:center;gap:.6rem;">
-            <i class="bi bi-bar-chart-line" style="color:#6366f1;font-size:1.2rem;"></i> Side-by-Side Metrics
+        <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 0.25rem;display:flex;align-items:center;gap:.6rem;">
+            <i class="bi bi-bar-chart-line" style="color:#6366f1;font-size:1.2rem;"></i> Side-by-Side Financial Comparison
         </p>
+        <p style="font-size:0.78rem;color:#475569;margin:0 0 1.25rem;">Revenue and Profit (₱) — higher is better</p>
         <canvas id="compareChart" height="80"></canvas>
+    </div>
+
+    <div class="dark-card">
+        <p style="font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 0.25rem;display:flex;align-items:center;gap:.6rem;">
+            <i class="bi bi-percent" style="color:#f59e0b;font-size:1.2rem;"></i> Efficiency Metrics Comparison
+        </p>
+        <p style="font-size:0.78rem;color:#475569;margin:0 0 1.25rem;">Gross Margin % and ROI % — higher is better</p>
+        <canvas id="compareChartPct" height="60"></canvas>
     </div>
 
     @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
     Chart.defaults.color='#475569'; Chart.defaults.borderColor='rgba(255,255,255,.04)';
+
+    // Chart 1: Financial values (Revenue + Profit in ₱)
     new Chart(document.getElementById('compareChart'),{
         type:'bar',
         data:{
-            labels:['Total Revenue','Total Profit','Avg Margin %','ROI %'],
+            labels:['Total Revenue','Total Net Profit'],
             datasets:[
-                {label:'@s1.ScenarioName',data:[@r1Rev,@r1Prof,@r1Margin,@r1ROI],backgroundColor:'rgba(99,102,241,.6)',borderColor:'#6366f1',borderWidth:1,borderRadius:4},
-                {label:'@s2.ScenarioName',data:[@r2Rev,@r2Prof,@r2Margin,@r2ROI],backgroundColor:'rgba(16,185,129,.6)',borderColor:'#10b981',borderWidth:1,borderRadius:4}
+                {label:'@s1.ScenarioName',data:[@r1Rev,@r1Prof],backgroundColor:'rgba(99,102,241,.65)',borderColor:'#6366f1',borderWidth:1,borderRadius:6},
+                {label:'@s2.ScenarioName',data:[@r2Rev,@r2Prof],backgroundColor:'rgba(16,185,129,.65)',borderColor:'#10b981',borderWidth:1,borderRadius:6}
             ]
         },
         options:{responsive:true,interaction:{mode:'index',intersect:false},
-            plugins:{legend:{labels:{color:'#64748b',usePointStyle:true}},
-                tooltip:{backgroundColor:'#0d1526',borderColor:'rgba(99,102,241,.3)',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b'}},
-            scales:{x:{ticks:{color:'#475569'},grid:{display:false}},y:{ticks:{color:'#334155'},grid:{color:'rgba(255,255,255,.03)'}}}}
+            plugins:{
+                legend:{labels:{color:'#94a3b8',usePointStyle:true}},
+                tooltip:{backgroundColor:'#0d1526',borderColor:'rgba(99,102,241,.3)',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b',
+                    callbacks:{label:c=>' '+c.dataset.label+': ₱'+Number(c.raw).toLocaleString()}}
+            },
+            scales:{
+                x:{ticks:{color:'#475569'},grid:{display:false}},
+                y:{ticks:{color:'#334155',callback:v=>'₱'+Number(v).toLocaleString()},grid:{color:'rgba(255,255,255,.03)'}}
+            }
+        }
+    });
+
+    // Chart 2: Percentage metrics (Margin + ROI)
+    new Chart(document.getElementById('compareChartPct'),{
+        type:'bar',
+        data:{
+            labels:['Avg Gross Margin %','ROI %'],
+            datasets:[
+                {label:'@s1.ScenarioName',data:[@r1Margin.ToString("F2"),@r1ROI.ToString("F2")],backgroundColor:'rgba(99,102,241,.65)',borderColor:'#6366f1',borderWidth:1,borderRadius:6},
+                {label:'@s2.ScenarioName',data:[@r2Margin.ToString("F2"),@r2ROI.ToString("F2")],backgroundColor:'rgba(16,185,129,.65)',borderColor:'#10b981',borderWidth:1,borderRadius:6}
+            ]
+        },
+        options:{responsive:true,interaction:{mode:'index',intersect:false},
+            plugins:{
+                legend:{labels:{color:'#94a3b8',usePointStyle:true}},
+                tooltip:{backgroundColor:'#0d1526',borderColor:'rgba(245,158,11,.3)',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b',
+                    callbacks:{label:c=>' '+c.dataset.label+': '+Number(c.raw).toFixed(1)+'%'}}
+            },
+            scales:{
+                x:{ticks:{color:'#475569'},grid:{display:false}},
+                y:{ticks:{color:'#334155',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.03)'}}
+            }
+        }
     });
     </script>
     }

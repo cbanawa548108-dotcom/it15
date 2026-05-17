@@ -196,8 +196,9 @@ namespace CRLFruitstandESS.Controllers
         //  REVENUE
         // ════════════════════════════════════════════
 
-        public async Task<IActionResult> Revenue(string period = "month", DateTime? from = null, DateTime? to = null)
+        public async Task<IActionResult> Revenue(string period = "month", DateTime? from = null, DateTime? to = null, int page = 1)
         {
+            const int pageSize = 20;
             var query = _db.Revenues.Where(r => !r.IsDeleted);
             var today = DateTime.Today;
 
@@ -212,14 +213,26 @@ namespace CRLFruitstandESS.Controllers
                 _ => query.Where(r => r.TransactionDate >= new DateTime(today.Year, today.Month, 1))
             };
 
-            var revenues = await query.OrderByDescending(r => r.TransactionDate).ToListAsync();
+            var totalItems  = await query.CountAsync();
+            var totalAmount = await query.SumAsync(r => r.Amount);
+            int totalPages  = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var revenues = await query.OrderByDescending(r => r.TransactionDate)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            ViewBag.Page       = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize   = pageSize;
+
             var vm = new RevenueViewModel
             {
-                Revenues = revenues,
-                TotalRevenue = revenues.Sum(r => r.Amount),
+                Revenues     = revenues,
+                TotalRevenue = totalAmount,
                 FilterPeriod = period,
-                DateFrom = from,
-                DateTo = to
+                DateFrom     = from,
+                DateTo       = to
             };
             return View(vm);
         }
@@ -287,8 +300,9 @@ namespace CRLFruitstandESS.Controllers
         //  EXPENSES
         // ════════════════════════════════════════════
 
-        public async Task<IActionResult> Expenses(string period = "month", DateTime? from = null, DateTime? to = null)
+        public async Task<IActionResult> Expenses(string period = "month", DateTime? from = null, DateTime? to = null, int page = 1)
         {
+            const int pageSize = 20;
             var query = _db.Expenses.Where(e => !e.IsDeleted);
             var today = DateTime.Today;
 
@@ -303,14 +317,26 @@ namespace CRLFruitstandESS.Controllers
                 _ => query.Where(e => e.ExpenseDate >= new DateTime(today.Year, today.Month, 1))
             };
 
-            var expenses = await query.OrderByDescending(e => e.ExpenseDate).ToListAsync();
+            var totalItems  = await query.CountAsync();
+            var totalAmount = await query.SumAsync(e => e.Amount);
+            int totalPages  = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var expenses = await query.OrderByDescending(e => e.ExpenseDate)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            ViewBag.Page       = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize   = pageSize;
+
             var vm = new ExpenseViewModel
             {
-                Expenses = expenses,
-                TotalExpenses = expenses.Sum(e => e.Amount),
+                Expenses     = expenses,
+                TotalExpenses = totalAmount,
                 FilterPeriod = period,
-                DateFrom = from,
-                DateTo = to
+                DateFrom     = from,
+                DateTo       = to
             };
             return View(vm);
         }

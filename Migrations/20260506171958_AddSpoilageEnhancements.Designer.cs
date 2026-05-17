@@ -3,6 +3,7 @@ using System;
 using CRLFruitstandESS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRLFruitstandESS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260506171958_AddSpoilageEnhancements")]
+    partial class AddSpoilageEnhancements
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -712,9 +715,6 @@ namespace CRLFruitstandESS.Migrations
                     b.Property<int?>("SaleId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SpoilageRecordId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -726,8 +726,6 @@ namespace CRLFruitstandESS.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("SaleId");
-
-                    b.HasIndex("SpoilageRecordId");
 
                     b.ToTable("PaymentTransactions");
                 });
@@ -939,17 +937,8 @@ namespace CRLFruitstandESS.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<decimal>("DiscountedPrice")
-                        .HasColumnType("decimal(65,30)");
-
                     b.Property<decimal>("EstimatedLoss")
                         .HasColumnType("decimal(65,30)");
-
-                    b.Property<bool>("IsSellable")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsSold")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
@@ -970,23 +959,6 @@ namespace CRLFruitstandESS.Migrations
                     b.Property<string>("RecordedBy")
                         .IsRequired()
                         .HasColumnType("longtext");
-
-                    b.Property<DateTime?>("SoldAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("SoldQuantity")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("SoldRevenue")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<string>("SpoilageType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("PaymentMethod")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
 
                     b.HasKey("Id");
 
@@ -1387,14 +1359,7 @@ namespace CRLFruitstandESS.Migrations
                         .WithMany()
                         .HasForeignKey("SaleId");
 
-                    b.HasOne("CRLFruitstandESS.Models.SpoilageRecord", "SpoilageRecord")
-                        .WithMany()
-                        .HasForeignKey("SpoilageRecordId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Sale");
-
-                    b.Navigation("SpoilageRecord");
                 });
 
             modelBuilder.Entity("CRLFruitstandESS.Models.Sale", b =>

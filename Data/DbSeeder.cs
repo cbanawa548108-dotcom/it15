@@ -12,7 +12,7 @@ namespace CRLFruitstandESS.Data
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
             // Define roles
-            string[] roles = { "Admin", "CFO", "CEO", "Manager", "Cashier", "Warehouse", "Compliance" };
+            string[] roles = { "SuperAdmin", "Admin", "CFO", "CEO", "Manager", "Cashier", "Warehouse", "Compliance" };
 
             foreach (var role in roles)
             {
@@ -24,6 +24,24 @@ namespace CRLFruitstandESS.Data
                         Description = $"{role} role for CRL Fruitstand ESS"
                     });
                 }
+            }
+
+            // Seed default SuperAdmin user (unique email, highest privilege)
+            var superAdminEmail = "superadmin@crlfruitstand.local";
+            if (await userManager.FindByEmailAsync(superAdminEmail) == null)
+            {
+                var superAdmin = new ApplicationUser
+                {
+                    UserName       = "superadmin",
+                    Email          = superAdminEmail,
+                    FullName       = "Super Administrator",
+                    Department     = "System",
+                    IsActive       = true,
+                    EmailConfirmed = true
+                };
+                var result = await userManager.CreateAsync(superAdmin, "SuperAdmin@12345!");
+                if (result.Succeeded)
+                    await userManager.AddToRoleAsync(superAdmin, "SuperAdmin");
             }
 
             // Seed default Admin user

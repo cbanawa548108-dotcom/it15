@@ -153,11 +153,12 @@ namespace CRLFruitstandESS.Controllers
 
             return role switch
             {
-                "Admin"   => RedirectToAction("Index", "AdminDashboard"),
-                "CFO"     => RedirectToAction("Index", "CfoDashboard"),
-                "Manager" => RedirectToAction("Index", "ManagerDashboard"),
-                "Cashier" => RedirectToAction("POS", "Cashier"),
-                _         => RedirectToAction("AccessDenied")
+                "SuperAdmin" => RedirectToAction("Index", "SuperAdminDashboard"),
+                "Admin"      => RedirectToAction("Index", "AdminDashboard"),
+                "CFO"        => RedirectToAction("Index", "CfoDashboard"),
+                "Manager"    => RedirectToAction("Index", "ManagerDashboard"),
+                "Cashier"    => RedirectToAction("POS", "Cashier"),
+                _            => RedirectToAction("AccessDenied")
             };
         }
 

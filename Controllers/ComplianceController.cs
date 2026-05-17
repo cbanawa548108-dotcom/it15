@@ -22,12 +22,23 @@ namespace CRLFruitstandESS.Controllers
         // ── INDEX: compliance monitor dashboard
         public async Task<IActionResult> Index()
         {
-            await AutoFlagAsync(); // run auto-detection on every load
-            var flags = await _db.ComplianceFlags
-                .OrderByDescending(f => f.FlaggedAt)
-                .ToListAsync();
-            ViewBag.OpenCount     = flags.Count(f => !f.IsResolved);
-            ViewBag.CriticalCount = flags.Count(f => !f.IsResolved && f.Severity == "critical");
+            await AutoFlagAsync();
+            const int pageSize = 15;
+            int page = int.TryParse(Request.Query["page"], out var p) ? p : 1;
+
+            var query = _db.ComplianceFlags.OrderByDescending(f => f.FlaggedAt);
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var flags = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            ViewBag.OpenCount     = await _db.ComplianceFlags.CountAsync(f => !f.IsResolved);
+            ViewBag.CriticalCount = await _db.ComplianceFlags.CountAsync(f => !f.IsResolved && f.Severity == "critical");
+            ViewBag.Page          = page;
+            ViewBag.TotalPages    = totalPages;
+            ViewBag.TotalItems    = totalItems;
+            ViewBag.PageSize      = pageSize;
             return View(flags);
         }
 

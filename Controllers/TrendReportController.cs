@@ -22,9 +22,20 @@ namespace CRLFruitstandESS.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var reports = await _db.TrendReports
-                .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync();
+            const int pageSize = 10;
+            int page = int.TryParse(Request.Query["page"], out var p) ? p : 1;
+
+            var query = _db.TrendReports.OrderByDescending(r => r.CreatedAt);
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var reports = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            ViewBag.Page       = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize   = pageSize;
             return View(reports);
         }
 

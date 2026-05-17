@@ -1,4 +1,4 @@
-/* ═══════════════════════════════════════════════════════════
+﻿/* ═══════════════════════════════════════════════════════════
    CRL FRUITSTAND ESS — MAJESTIC DARK DESIGN SYSTEM
    Applies globally to every dashboard module
 ═══════════════════════════════════════════════════════════ */
@@ -159,24 +159,14 @@
     display: flex;
     flex-direction: column;
     background: #060b14;
-}
-
-/* Ambient background glow */
-.main-content::before {
-    content: '';
-    position: fixed;
-    top: 0; left: 260px; right: 0; bottom: 0;
-    z-index: 0; pointer-events: none;
-    background:
-        radial-gradient(ellipse 60% 40% at 80% 10%, rgba(14,165,233,.06) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 50% at 20% 80%, rgba(34,197,94,.04) 0%, transparent 60%);
+    /* NOTE: ::before ambient glow overlay REMOVED — it sat at z-index:0
+       over the entire content area and caused canvas/chart washout */
 }
 
 /* ── TOPBAR ──────────────────────────────────────────────── */
 .topbar {
     height: 58px;
     background: rgba(6,11,20,.85);
-    
     border-bottom: 1px solid rgba(14,165,233,.08);
     display: flex;
     align-items: center;
@@ -207,8 +197,6 @@
 }
 
 /* ── GLOBAL CARD SYSTEM ──────────────────────────────────── */
-
-/* Base glass card — used everywhere */
 .glass-card, .dark-card, .cfo-card, .dashboard-card {
     background: linear-gradient(135deg, rgba(13,21,38,.95) 0%, rgba(8,14,26,.9) 100%);
     border: 1px solid rgba(255,255,255,.07);
@@ -239,66 +227,113 @@
 /* ── STAT CARDS ──────────────────────────────────────────── */
 .stat-card {
     background: linear-gradient(135deg, rgba(13,21,38,.95), rgba(8,14,26,.9));
-    border: 1px solid rgba(255,255,255,.07);
-    border-radius: 16px;
-    padding: 1.5rem;
+    border: 2px solid rgba(255,255,255,.1);
+    border-radius: 20px;
+    padding: 2rem 1.75rem;
     display: flex;
     align-items: center;
-    gap: 1.25rem;
-    transition: all .3s cubic-bezier(.4,0,.2,1);
+    justify-content: space-between;
+    gap: 1.5rem;
+    transition: all .35s cubic-bezier(.34, 1.56, .64, 1);
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.04);
+    box-shadow: 0 8px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06), 0 0 40px rgba(14,165,233,.1);
+}
+.stat-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(59,130,246,.08) 0%, transparent 50%);
+    pointer-events: none;
 }
 .stat-card::after {
     content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(14,165,233,.4), transparent);
-    opacity: 0; transition: opacity .3s;
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(14,165,233,.6), transparent);
+    opacity: 0; transition: opacity .35s;
 }
 .stat-card:hover {
-    border-color: rgba(14,165,233,.25);
-    transform: translateY(-4px);
-    box-shadow: 0 16px 40px rgba(0,0,0,.45), 0 0 0 1px rgba(14,165,233,.1);
+    border-color: rgba(14,165,233,.4);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 24px 60px rgba(0,0,0,.6), 0 0 60px rgba(14,165,233,.25), inset 0 1px 20px rgba(255,255,255,.1);
 }
 .stat-card:hover::after { opacity: 1; }
+.stat-card:active {
+    transform: translateY(-6px) scale(1.01);
+}
 
 .stat-icon {
-    width: 52px; height: 52px;
-    border-radius: 14px;
+    width: 64px; height: 64px;
+    border-radius: 18px;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     position: relative;
+    transition: all .35s cubic-bezier(.34, 1.56, .64, 1);
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+}
+.stat-icon::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255,255,255,.15) 0%, transparent 60%);
+    opacity: 0; transition: opacity .35s;
 }
 .stat-icon::after {
     content: '';
-    position: absolute; inset: 0;
-    border-radius: 14px;
-    background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, transparent 60%);
+    position: absolute; inset: -2px;
+    border-radius: 18px;
+    opacity: 0; transition: opacity .35s;
 }
+.stat-card:hover .stat-icon {
+    transform: scale(1.15) rotate(5deg);
+}
+.stat-card:hover .stat-icon::before { opacity: 1; }
+.stat-card:hover .stat-icon::after { opacity: 1; }
 
-.si-blue   { background: rgba(59,130,246,.15);  color: #60a5fa;  box-shadow: 0 0 20px rgba(59,130,246,.2); }
-.si-gold   { background: rgba(234,179,8,.15);  color: #fde047;  box-shadow: 0 0 20px rgba(234,179,8,.2); }
-.si-green  { background: rgba(34,197,94,.15);  color: #86efac;  box-shadow: 0 0 20px rgba(34,197,94,.2); }
-.si-red    { background: rgba(239,68,68,.15);   color: #f87171;  box-shadow: 0 0 20px rgba(239,68,68,.2); }
-.si-purple { background: rgba(249,115,22,.15);  color: #fdba74;  box-shadow: 0 0 20px rgba(249,115,22,.2); }
-.si-teal   { background: rgba(6,182,212,.15);   color: #22d3ee;  box-shadow: 0 0 20px rgba(6,182,212,.2); }
+.si-blue   { background: linear-gradient(135deg, #3b82f6, #60a5fa);  color: #ffffff;  box-shadow: 0 8px 24px rgba(59,130,246,.4), inset 0 1px 10px rgba(255,255,255,.2); }
+.si-gold   { background: linear-gradient(135deg, #f59e0b, #fbbf24);   color: #ffffff;  box-shadow: 0 8px 24px rgba(245,158,11,.4), inset 0 1px 10px rgba(255,255,255,.2); }
+.si-green  { background: linear-gradient(135deg, #10b981, #34d399);   color: #ffffff;  box-shadow: 0 8px 24px rgba(16,185,129,.4), inset 0 1px 10px rgba(255,255,255,.2); }
+.si-red    { background: linear-gradient(135deg, #ef4444, #f87171);    color: #ffffff;  box-shadow: 0 8px 24px rgba(239,68,68,.4), inset 0 1px 10px rgba(255,255,255,.2); }
+.si-purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa);   color: #ffffff;  box-shadow: 0 8px 24px rgba(139,92,246,.4), inset 0 1px 10px rgba(255,255,255,.2); }
+.si-teal   { background: linear-gradient(135deg, #06b6d4, #22d3ee);    color: #ffffff;  box-shadow: 0 8px 24px rgba(6,182,212,.4), inset 0 1px 10px rgba(255,255,255,.2); }
+
+.si-blue::after   { background: linear-gradient(135deg, rgba(59,130,246,.3), transparent); }
+.si-gold::after   { background: linear-gradient(135deg, rgba(245,158,11,.3), transparent); }
+.si-green::after  { background: linear-gradient(135deg, rgba(16,185,129,.3), transparent); }
+.si-red::after    { background: linear-gradient(135deg, rgba(239,68,68,.3), transparent); }
+.si-purple::after { background: linear-gradient(135deg, rgba(139,92,246,.3), transparent); }
+.si-teal::after   { background: linear-gradient(135deg, rgba(6,182,212,.3), transparent); }
 
 .stat-value {
-    font-size: 1.6rem;
+    font-size: 1.85rem;
     font-weight: 900;
     color: #f1f5f9;
     line-height: 1;
-    letter-spacing: -.02em;
+    letter-spacing: -.025em;
+    text-align: right;
+    transition: all .35s cubic-bezier(.34, 1.56, .64, 1);
+    text-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+.stat-card:hover .stat-value {
+    font-size: 2rem;
+    text-shadow: 0 0 20px rgba(14,165,233,.4), 0 2px 8px rgba(0,0,0,.3);
 }
 .stat-label {
-    font-size: .7rem;
-    color: #334155;
-    margin-top: 5px;
+    font-size: .72rem;
+    color: #94a3b8;
+    margin-top: 6px;
     text-transform: uppercase;
-    letter-spacing: .09em;
-    font-weight: 700;
+    letter-spacing: .12em;
+    font-weight: 800;
+    text-align: right;
+    transition: color .35s;
+}
+.stat-card:hover .stat-label {
+    color: #cbd5e1;
+}
+.stat-info {
+    margin-left: auto;
+    text-align: right;
 }
 
 /* ── STATS GRID ──────────────────────────────────────────── */
@@ -360,9 +395,9 @@
 }
 
 .admin-badge   { background: rgba(239,68,68,.12);  color: #f87171; border: 1px solid rgba(239,68,68,.2); }
-.cfo-badge     { background: rgba(234,179,8,.12); color: #fde047; border: 1px solid rgba(234,179,8,.2); }
+.cfo-badge     { background: rgba(234,179,8,.12);  color: #fde047; border: 1px solid rgba(234,179,8,.2); }
 .manager-badge { background: rgba(6,182,212,.12);  color: #22d3ee; border: 1px solid rgba(6,182,212,.2); }
-.cashier-badge { background: rgba(34,197,94,.12); color: #86efac; border: 1px solid rgba(34,197,94,.2); }
+.cashier-badge { background: rgba(34,197,94,.12);  color: #86efac; border: 1px solid rgba(34,197,94,.2); }
 
 /* ── ACTION CARDS ────────────────────────────────────────── */
 .action-grid {
@@ -443,7 +478,7 @@
 .badge-green  { background: rgba(34,197,94,.12);  color: #86efac; border: 1px solid rgba(34,197,94,.2); }
 .badge-red    { background: rgba(239,68,68,.12);   color: #f87171; border: 1px solid rgba(239,68,68,.2); }
 .badge-blue   { background: rgba(59,130,246,.12);  color: #60a5fa; border: 1px solid rgba(59,130,246,.2); }
-.badge-gold   { background: rgba(234,179,8,.12);  color: #fde047; border: 1px solid rgba(234,179,8,.2); }
+.badge-gold   { background: rgba(234,179,8,.12);   color: #fde047; border: 1px solid rgba(234,179,8,.2); }
 .badge-purple { background: rgba(249,115,22,.12);  color: #fdba74; border: 1px solid rgba(249,115,22,.2); }
 
 /* ── PROGRESS BARS ───────────────────────────────────────── */
@@ -490,7 +525,7 @@
 .qa-red::before    { background: #ef4444; }
 .qa-blue   { background: rgba(59,130,246,.07);  color: #60a5fa; border-color: rgba(59,130,246,.15); }
 .qa-blue::before   { background: #3b82f6; }
-.qa-gold   { background: rgba(234,179,8,.07);  color: #fde047; border-color: rgba(234,179,8,.15); }
+.qa-gold   { background: rgba(234,179,8,.07);   color: #fde047; border-color: rgba(234,179,8,.15); }
 .qa-gold::before   { background: #eab308; }
 .qa-purple { background: rgba(249,115,22,.07);  color: #fdba74; border-color: rgba(249,115,22,.15); }
 .qa-purple::before { background: #f97316; }
@@ -577,7 +612,6 @@
     .sidebar { transform: translateX(-100%); }
     .sidebar.open { transform: translateX(0); box-shadow: 4px 0 40px rgba(0,0,0,.6); }
     .main-content { margin-left: 0; }
-    .main-content::before { left: 0; }
     .sidebar-toggle { display: flex; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -587,26 +621,27 @@
     .page-content { padding: 1rem; }
 }
 
-/* ── INVENTORY DASHBOARD OVERRIDES ──────────────
-   Prevent global .stat-icon from overriding
-   inventory-specific icon-wrap styles
-─────────────────────────────────────────────── */
+/* ── SITE.CSS NOISE OVERLAY FIX ─────────────────────────── */
+/* site.css body::before noise texture sits at z-index:0 and
+   washes out all dashboard content. Force it behind everything. */
+body::before {
+    z-index: -1 !important;
+}
+
+/* ── INVENTORY DASHBOARD OVERRIDES ──────────────────────── */
 .inv-stat-blue   .inv-stat-icon-wrap { background:linear-gradient(135deg,rgba(66,165,245,.3),rgba(66,165,245,.12)) !important; color:#64b5f6 !important; box-shadow:0 0 16px rgba(66,165,245,.2) !important; font-size:1.6rem !important; width:52px !important; height:52px !important; border-radius:14px !important; }
 .inv-stat-green  .inv-stat-icon-wrap { background:linear-gradient(135deg,rgba(102,187,106,.3),rgba(102,187,106,.12)) !important; color:#81c784 !important; box-shadow:0 0 16px rgba(102,187,106,.2) !important; font-size:1.6rem !important; width:52px !important; height:52px !important; border-radius:14px !important; }
 .inv-stat-purple .inv-stat-icon-wrap { background:linear-gradient(135deg,rgba(171,71,188,.3),rgba(171,71,188,.12)) !important; color:#ce93d8 !important; box-shadow:0 0 16px rgba(171,71,188,.2) !important; font-size:1.6rem !important; width:52px !important; height:52px !important; border-radius:14px !important; }
 .inv-stat-amber  .inv-stat-icon-wrap { background:linear-gradient(135deg,rgba(255,167,38,.3),rgba(255,167,38,.12)) !important; color:#ffb74d !important; box-shadow:0 0 16px rgba(255,167,38,.2) !important; font-size:1.6rem !important; width:52px !important; height:52px !important; border-radius:14px !important; }
 
-/* Quick-link cards — ensure text is visible */
 .inv-qlink span { color:#e2e8f0 !important; font-weight:600 !important; }
 .inv-qlink { color:#94a3b8 !important; }
 .inv-qlink-ico { color:#60a5fa !important; font-size:1.1rem !important; }
 
 /* ═══════════════════════════════════════════════
    FINAL POLISH — PRESENTATION READY
-   Applied globally to all dashboard modules
 ═══════════════════════════════════════════════ */
 
-/* Smoother font rendering */
 body, .main-content, .page-content {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -682,11 +717,17 @@ body, .main-content, .page-content {
     font-size: 1.65rem !important;
     font-weight: 900 !important;
     letter-spacing: -.025em !important;
+    text-align: right !important;
 }
 .stat-label {
     font-size: .68rem !important;
     letter-spacing: .1em !important;
     font-weight: 700 !important;
+    text-align: right !important;
+}
+.stat-info {
+    margin-left: auto !important;
+    text-align: right !important;
 }
 
 /* ── BUTTON POLISH ── */
@@ -716,7 +757,7 @@ button, .btn-blue, .btn-run, .btn-save, .btn-primary-dark, .login-btn {
     letter-spacing: -.01em !important;
 }
 
-/* ── HERO HEADERS — consistent across all modules ── */
+/* ── HERO HEADERS ── */
 .admin-hero, .fc-header, .scenario-header, .risk-header,
 .an-hero, .kpi-header, .rpt-header, .al-header,
 .comp-header, .tr-header, .pc-header, .wh-header, .tax-header {
@@ -767,19 +808,16 @@ a { transition: color .2s ease !important; }
     .page-content { padding: 1.5rem !important; }
 }
 
-
 /* ═══════════════════════════════════════════════
    5-COLOR PALETTE OVERRIDES
    Sky Blue · White · Green · Orange · Gold
 ═══════════════════════════════════════════════ */
 
-/* Brand */
 .brand-icon {
     background: linear-gradient(135deg, #0284c7, #0ea5e9) !important;
     box-shadow: 0 0 20px rgba(14,165,233,.5) !important;
 }
 
-/* Sidebar active */
 .sidebar-link.active {
     background: linear-gradient(135deg, rgba(14,165,233,.18), rgba(14,165,233,.08)) !important;
     border: 1px solid rgba(14,165,233,.3) !important;
@@ -788,13 +826,10 @@ a { transition: color .2s ease !important; }
 .sidebar-link::before { background: #0ea5e9 !important; }
 .sidebar-link:hover { color: #bae6fd !important; background: rgba(14,165,233,.1) !important; }
 
-/* User avatar */
 .user-avatar { background: linear-gradient(135deg, #0284c7, #0ea5e9) !important; box-shadow: 0 0 16px rgba(14,165,233,.4) !important; }
 
-/* Topbar */
 .topbar { border-bottom: 1px solid rgba(14,165,233,.12) !important; }
 
-/* Stat icons — palette mapped */
 .si-blue   { background: rgba(14,165,233,.15) !important;  color: #38bdf8 !important;  box-shadow: 0 0 20px rgba(14,165,233,.2) !important; }
 .si-green  { background: rgba(34,197,94,.15) !important;   color: #4ade80 !important;  box-shadow: 0 0 20px rgba(34,197,94,.2) !important; }
 .si-gold   { background: rgba(234,179,8,.15) !important;   color: #fde047 !important;  box-shadow: 0 0 20px rgba(234,179,8,.2) !important; }
@@ -802,37 +837,193 @@ a { transition: color .2s ease !important; }
 .si-purple { background: rgba(249,115,22,.15) !important;  color: #fb923c !important;  box-shadow: 0 0 20px rgba(249,115,22,.2) !important; }
 .si-teal   { background: rgba(14,165,233,.15) !important;  color: #38bdf8 !important;  box-shadow: 0 0 20px rgba(14,165,233,.2) !important; }
 
-/* Badges */
 .badge-green  { background: rgba(34,197,94,.12) !important;  color: #4ade80 !important; border-color: rgba(34,197,94,.25) !important; }
 .badge-blue   { background: rgba(14,165,233,.12) !important; color: #38bdf8 !important; border-color: rgba(14,165,233,.25) !important; }
 .badge-gold   { background: rgba(234,179,8,.12) !important;  color: #fde047 !important; border-color: rgba(234,179,8,.25) !important; }
 .badge-purple { background: rgba(249,115,22,.12) !important; color: #fb923c !important; border-color: rgba(249,115,22,.25) !important; }
 .badge-red    { background: rgba(239,68,68,.12) !important;  color: #f87171 !important; border-color: rgba(239,68,68,.25) !important; }
 
-/* Progress bars */
 .fill-green  { background: linear-gradient(90deg, #22c55e, #4ade80) !important; box-shadow: 0 0 8px rgba(34,197,94,.4) !important; }
 .fill-gold   { background: linear-gradient(90deg, #eab308, #fde047) !important; box-shadow: 0 0 8px rgba(234,179,8,.4) !important; }
 .fill-blue   { background: linear-gradient(90deg, #0ea5e9, #38bdf8) !important; box-shadow: 0 0 8px rgba(14,165,233,.4) !important; }
 .fill-purple { background: linear-gradient(90deg, #f97316, #fb923c) !important; box-shadow: 0 0 8px rgba(249,115,22,.4) !important; }
 .fill-red    { background: linear-gradient(90deg, #ef4444, #f87171) !important; box-shadow: 0 0 8px rgba(239,68,68,.4) !important; }
 
-/* Quick action items */
 .qa-blue   { background: rgba(14,165,233,.08) !important;  color: #38bdf8 !important; border-color: rgba(14,165,233,.2) !important; }
 .qa-green  { background: rgba(34,197,94,.08) !important;   color: #4ade80 !important; border-color: rgba(34,197,94,.2) !important; }
 .qa-gold   { background: rgba(234,179,8,.08) !important;   color: #fde047 !important; border-color: rgba(234,179,8,.2) !important; }
 .qa-purple { background: rgba(249,115,22,.08) !important;  color: #fb923c !important; border-color: rgba(249,115,22,.2) !important; }
 .qa-red    { background: rgba(239,68,68,.08) !important;   color: #f87171 !important; border-color: rgba(239,68,68,.2) !important; }
 
-/* Card hover glow */
 .glass-card:hover, .dark-card:hover {
     box-shadow: 0 8px 40px rgba(0,0,0,.45), 0 0 0 1px rgba(14,165,233,.1) !important;
 }
 
-/* Focus rings */
 input:focus, select:focus, textarea:focus, button:focus-visible {
     box-shadow: 0 0 0 3px rgba(14,165,233,.25) !important;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar-thumb { background: rgba(14,165,233,.3) !important; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(14,165,233,.5) !important; }
+
+
+/* =====================================================z
+   ANALYTICS PAGE - SCOPED HIGH-CONTRAST OVERRIDES
+   Uses body.analytics-page for guaranteed specificity
+   ===================================================== */
+
+body.analytics-page .page-content {
+    background: #0a1628 !important;
+}
+
+body.analytics-page .chart-panel {
+    background: #162844 !important;
+    border: 1.5px solid #3b82f6 !important;
+    box-shadow: 0 4px 32px rgba(0,0,0,.6) !important;
+}
+
+body.analytics-page .chart-panel canvas {
+    background: #162844 !important;
+}
+
+body.analytics-page .chart-panel.clickable:hover {
+    border-color: #60a5fa !important;
+    box-shadow: 0 6px 32px rgba(59,130,246,.3) !important;
+}
+
+body.analytics-page .stat-strip {
+    background: #1e3a5f !important;
+    border: 1px solid #3b82f6 !important;
+}
+
+body.analytics-page .stat-cell {
+    background: #162844 !important;
+}
+
+body.analytics-page .stat-cell:hover {
+    background: #1e3a5f !important;
+}
+
+body.analytics-page .stat-cell .sc-label {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+}
+
+body.analytics-page .stat-cell .sc-value {
+    opacity: 1 !important;
+}
+
+body.analytics-page .stat-cell .sc-sub {
+    color: #93c5fd !important;
+    opacity: 1 !important;
+}
+
+body.analytics-page .cp-title {
+    color: #f1f5f9 !important;
+}
+
+body.analytics-page .cp-badge {
+    opacity: 1 !important;
+}
+
+/* Analytics page — keep standard page-content padding */
+
+/* Analytics — compact stat cells and hero */
+body.analytics-page .stat-cell {
+    padding: 1rem 0.875rem !important;
+}
+body.analytics-page .stat-cell .sc-value {
+    font-size: 1.35rem !important;
+}
+body.analytics-page .stat-cell .sc-label {
+    font-size: .63rem !important;
+    margin-bottom: .3rem !important;
+}
+body.analytics-page .stat-cell .sc-sub {
+    font-size: .68rem !important;
+}
+body.analytics-page .chart-panel {
+    padding: 1rem !important;
+}
+body.analytics-page .cp-header {
+    margin-bottom: .75rem !important;
+}
+
+/* Analytics — scale entire content area down uniformly */
+body.analytics-page .page-content {
+    zoom: 0.65 !important;
+}
+
+/* Analytics — force 2-column grids to always show side by side */
+body.analytics-page .grid-2 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+    margin-bottom: 1rem !important;
+}
+body.analytics-page .grid-3 {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 1rem !important;
+    margin-bottom: 1rem !important;
+}
+body.analytics-page .grid-main {
+    gap: 1rem !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Analytics — stack chart rows on mobile */
+@media (max-width: 768px) {
+    body.analytics-page .page-content [style*="grid-template-columns:1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   STAT CARD PULSE ANIMATION — LIVELY EFFECT
+═══════════════════════════════════════════════════════════ */
+
+@keyframes statPulse {
+    0%, 100% { 
+        box-shadow: 0 8px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06), 0 0 40px rgba(14,165,233,.1);
+    }
+    50% { 
+        box-shadow: 0 8px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06), 0 0 70px rgba(14,165,233,.25);
+    }
+}
+
+@keyframes iconBounce {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.08) rotate(2deg); }
+}
+
+.stat-card {
+    animation: statPulse 4s ease-in-out infinite;
+}
+
+.stat-card:nth-child(1) { animation-delay: 0s; }
+.stat-card:nth-child(2) { animation-delay: 0.3s; }
+.stat-card:nth-child(3) { animation-delay: 0.6s; }
+.stat-card:nth-child(4) { animation-delay: 0.9s; }
+.stat-card:nth-child(5) { animation-delay: 1.2s; }
+.stat-card:nth-child(6) { animation-delay: 1.5s; }
+
+.stat-icon {
+    animation: iconBounce 3s ease-in-out infinite;
+}
+
+.stat-card:nth-child(1) .stat-icon { animation-delay: 0s; }
+.stat-card:nth-child(2) .stat-icon { animation-delay: 0.3s; }
+.stat-card:nth-child(3) .stat-icon { animation-delay: 0.6s; }
+.stat-card:nth-child(4) .stat-icon { animation-delay: 0.9s; }
+.stat-card:nth-child(5) .stat-icon { animation-delay: 1.2s; }
+.stat-card:nth-child(6) .stat-icon { animation-delay: 1.5s; }
+
+/* Pause animations on hover for better interaction */
+.stat-card:hover {
+    animation-play-state: paused;
+}
+
+.stat-card:hover .stat-icon {
+    animation-play-state: paused;
+}

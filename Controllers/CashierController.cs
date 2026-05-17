@@ -610,5 +610,75 @@ namespace CRLFruitstandESS.Controllers
 
             return View(vm);
         }
+
+        // GET: /Cashier/PaymentHistory
+        [Authorize(Roles = "Cashier,Admin,Manager,CFO,CEO,SuperAdmin")]
+        public async Task<IActionResult> PaymentHistory(string? status = null, string? method = null, int page = 1)
+        {
+            const int pageSize = 30;
+
+            var query = _context.PaymentTransactions
+                .Include(t => t.Sale)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(t => t.Status == status);
+            if (!string.IsNullOrEmpty(method))
+                query = query.Where(t => t.Method == method);
+
+            int total      = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(total / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var txns = await query
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Resolve ProcessedBy (user ID) → username + fullname + role
+            var userIds = txns
+                .Where(t => !string.IsNullOrEmpty(t.ProcessedBy))
+                .Select(t => t.ProcessedBy)
+                .Distinct()
+                .ToList();
+
+            var userMap = new Dictionary<string, (string UserName, string FullName, string Role)>();
+            foreach (var uid in userIds)
+            {
+                var u = await _userManager.FindByIdAsync(uid);
+                if (u != null)
+                {
+                    var roles = await _userManager.GetRolesAsync(u);
+                    userMap[uid] = (u.UserName ?? uid, u.FullName, roles.FirstOrDefault() ?? "Staff");
+                }
+            }
+
+            ViewBag.Transactions = txns;
+            ViewBag.UserMap      = userMap;
+            ViewBag.Status       = status;
+            ViewBag.Method       = method;
+            ViewBag.Page         = page;
+            ViewBag.TotalPages   = totalPages;
+            ViewBag.Total        = total;
+
+            // Summary stats
+            var allPaid    = await _context.PaymentTransactions.Where(t => t.Status == "paid").SumAsync(t => t.Amount);
+            var allPending = await _context.PaymentTransactions.CountAsync(t => t.Status == "pending");
+            var allFailed  = await _context.PaymentTransactions.CountAsync(t => t.Status == "failed");
+            var byMethod   = await _context.PaymentTransactions
+                .Where(t => t.Status == "paid")
+                .GroupBy(t => t.Method)
+                .Select(g => new { Method = g.Key, Count = g.Count(), Total = g.Sum(x => x.Amount) })
+                .OrderByDescending(x => x.Total)
+                .ToListAsync();
+
+            ViewBag.AllPaid    = allPaid;
+            ViewBag.AllPending = allPending;
+            ViewBag.AllFailed  = allFailed;
+            ViewBag.ByMethod   = byMethod;
+
+            return View();
+        }
     }
 }

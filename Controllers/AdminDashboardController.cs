@@ -8,7 +8,7 @@ using CRLFruitstandESS.Models.ViewModels;
 
 namespace CRLFruitstandESS.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class AdminDashboardController : Controller
     {
         private readonly ApplicationDbContext _context;

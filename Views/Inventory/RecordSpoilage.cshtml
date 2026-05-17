@@ -72,8 +72,23 @@
     <!-- Record Form -->
     <div class="dark-card">
         <p class="section-title"><i class="bi bi-plus-circle-fill" style="color:#ef4444;"></i> Record New Spoilage</p>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:.5rem;margin-bottom:1.25rem;border-bottom:1px solid #334155;padding-bottom:.75rem;">
+            <a href="/Inventory/RecordSpoilage" style="padding:.4rem 1rem;border-radius:8px;font-size:.8rem;font-weight:700;text-decoration:none;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);">
+                ✍️ Manual
+            </a>
+            <a href="/Inventory/PredictSpoilage" style="padding:.4rem 1rem;border-radius:8px;font-size:.8rem;font-weight:700;text-decoration:none;background:rgba(245,158,11,.1);color:#fbbf24;border:1px solid rgba(245,158,11,.2);">
+                🤖 AI Prediction
+            </a>
+            <a href="/Inventory/SellableSpoilage" style="padding:.4rem 1rem;border-radius:8px;font-size:.8rem;font-weight:700;text-decoration:none;background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.2);">
+                🏷️ Sellable Items
+            </a>
+        </div>
+
         <form asp-action="RecordSpoilage" asp-controller="Inventory" method="post">
             @Html.AntiForgeryToken()
+            <input type="hidden" name="spoilageType" value="Manual" />
             <div style="margin-bottom:1rem;">
                 <label style="font-size:.8rem;font-weight:700;color:#94a3b8;display:block;margin-bottom:.4rem;">Product</label>
                 <select name="productId" class="form-dark" required>
@@ -98,6 +113,23 @@
                     <option value="Other">Other</option>
                 </select>
             </div>
+
+            <!-- Sellable option -->
+            <div style="background:#0d1526;border:1px solid #334155;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+                <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem;">
+                    <input type="checkbox" name="isSellable" id="isSellable" value="true"
+                           style="width:16px;height:16px;accent-color:#10b981;" onchange="toggleSellable(this)" />
+                    <label for="isSellable" style="font-size:.85rem;font-weight:700;color:#34d399;cursor:pointer;">
+                        🏷️ Still sellable at a discount
+                    </label>
+                </div>
+                <p style="font-size:.75rem;color:#475569;margin:0 0 .75rem;">Check this if the product is degraded but can still be sold at a lower price (e.g. overripe bananas).</p>
+                <div id="discountPriceWrap" style="display:none;">
+                    <label style="font-size:.78rem;font-weight:700;color:#94a3b8;display:block;margin-bottom:.3rem;">Discounted Price (₱ per unit)</label>
+                    <input type="number" name="discountedPrice" id="discountedPrice" class="form-dark" min="0.01" step="0.01" placeholder="e.g. 15.00" />
+                </div>
+            </div>
+
             <div style="margin-bottom:1.25rem;">
                 <label style="font-size:.8rem;font-weight:700;color:#94a3b8;display:block;margin-bottom:.4rem;">Notes (optional)</label>
                 <textarea name="notes" class="form-dark" rows="2" placeholder="Additional details..."></textarea>
@@ -116,7 +148,7 @@
             <div style="overflow-x:auto;border-radius:8px;border:1px solid #334155;">
                 <table class="sp-table">
                     <thead>
-                        <tr><th>Date</th><th>Product</th><th>Qty</th><th>Loss</th><th>Reason</th></tr>
+                        <tr><th>Date</th><th>Product</th><th>Qty</th><th>Loss</th><th>Reason</th><th>Type</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var s in recentSpoilage)
@@ -127,9 +159,22 @@
                                 <td style="color:#fca5a5;">@s.Quantity</td>
                                 <td style="color:#fbbf24;">₱@s.EstimatedLoss.ToString("N0")</td>
                                 <td style="color:#64748b;font-size:.8rem;">@s.Reason</td>
+                                <td>
+                                    @if (s.SpoilageType == "Predicted")
+                                    {
+                                        <span style="padding:.15rem .5rem;border-radius:999px;font-size:.62rem;font-weight:700;background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3);">AI</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="padding:.15rem .5rem;border-radius:999px;font-size:.62rem;font-weight:700;background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3);">Manual</span>
+                                    }
+                                    @if (s.IsSellable)
+                                    {
+                                        <span style="padding:.15rem .5rem;border-radius:999px;font-size:.62rem;font-weight:700;background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3);margin-left:.25rem;">Sellable</span>
+                                    }
+                                </td>
                             </tr>
-                        }
-                    </tbody>
+                        }                    </tbody>
                 </table>
             </div>
         }
@@ -139,3 +184,12 @@
         }
     </div>
 </div>
+
+@section Scripts {
+<script>
+function toggleSellable(cb) {
+    document.getElementById('discountPriceWrap').style.display = cb.checked ? 'block' : 'none';
+    document.getElementById('discountedPrice').required = cb.checked;
+}
+</script>
+}

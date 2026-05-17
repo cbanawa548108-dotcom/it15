@@ -8,7 +8,7 @@ using CRLFruitstandESS.Models.ViewModels;
 
 namespace CRLFruitstandESS.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class AdminController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -30,11 +30,10 @@ namespace CRLFruitstandESS.Controllers
         // ════════════════════════════════════════════
         // USER MANAGEMENT
         // ════════════════════════════════════════════
-        public async Task<IActionResult> Users(string search = "")
+        public async Task<IActionResult> Users(string search = "", int page = 1)
         {
-            var users = await _userManager.Users
-                .OrderBy(u => u.FullName)
-                .ToListAsync();
+            const int pageSize = 15;
+            var users = await _userManager.Users.OrderBy(u => u.FullName).ToListAsync();
 
             if (!string.IsNullOrEmpty(search))
                 users = users.Where(u =>
@@ -60,9 +59,18 @@ namespace CRLFruitstandESS.Controllers
                 });
             }
 
-            ViewBag.Search = search;
-            ViewBag.AllRoles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
-            return View(vms);
+            int totalItems = vms.Count;
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+            var paged = vms.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            ViewBag.Search     = search;
+            ViewBag.AllRoles   = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
+            ViewBag.Page       = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize   = pageSize;
+            return View(paged);
         }
 
         [HttpGet]
@@ -146,8 +154,16 @@ namespace CRLFruitstandESS.Controllers
 
             await _userManager.UpdateAsync(user);
 
-            // Update role
+            // Update role — regular Admin cannot assign SuperAdmin role
             var currentRoles = await _userManager.GetRolesAsync(user);
+            if (!string.IsNullOrEmpty(vm.Role)
+                && vm.Role == "SuperAdmin"
+                && !User.IsInRole("SuperAdmin"))
+            {
+                TempData["Error"] = "Only a SuperAdmin can assign the SuperAdmin role.";
+                ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name!).ToListAsync();
+                return View(vm);
+            }
             await _userManager.RemoveFromRolesAsync(user, currentRoles);
             if (!string.IsNullOrEmpty(vm.Role))
                 await _userManager.AddToRoleAsync(user, vm.Role);
@@ -179,8 +195,20 @@ namespace CRLFruitstandESS.Controllers
         {
             var current = await _userManager.GetUserAsync(User);
             if (current?.Id == id) { TempData["Error"] = "You cannot delete your own account."; return RedirectToAction(nameof(Users)); }
-            var user = await _userManager.FindByIdAsync(id);
-            if (user != null) await _userManager.DeleteAsync(user);
+
+            var target = await _userManager.FindByIdAsync(id);
+            if (target == null) return NotFound();
+
+            // Only SuperAdmin can delete Admin accounts
+            var targetRoles = await _userManager.GetRolesAsync(target);
+            if ((targetRoles.Contains("Admin") || targetRoles.Contains("SuperAdmin"))
+                && !User.IsInRole("SuperAdmin"))
+            {
+                TempData["Error"] = "Only a SuperAdmin can delete Admin or SuperAdmin accounts.";
+                return RedirectToAction(nameof(Users));
+            }
+
+            await _userManager.DeleteAsync(target);
             TempData["Success"] = "User deleted.";
             return RedirectToAction(nameof(Users));
         }
@@ -279,18 +307,28 @@ namespace CRLFruitstandESS.Controllers
         // ════════════════════════════════════════════
         // PRODUCT MANAGEMENT
         // ════════════════════════════════════════════
-        public async Task<IActionResult> Products(string search = "", string category = "")
+        public async Task<IActionResult> Products(string search = "", string category = "", int page = 1)
         {
+            const int pageSize = 15;
             var query = _db.Products.Include(p => p.Inventory).AsQueryable();
             if (!string.IsNullOrEmpty(search))   query = query.Where(p => p.Name.Contains(search));
             if (!string.IsNullOrEmpty(category)) query = query.Where(p => p.Category == category);
 
-            var products  = await query.OrderBy(p => p.Category).ThenBy(p => p.Name).ToListAsync();
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var products   = await query.OrderBy(p => p.Category).ThenBy(p => p.Name)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
             var categories = await _db.Products.Select(p => p.Category).Distinct().OrderBy(c => c).ToListAsync();
 
             ViewBag.Search     = search;
             ViewBag.Category   = category;
             ViewBag.Categories = categories;
+            ViewBag.Page       = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize   = pageSize;
             return View(products);
         }
 
@@ -394,13 +432,25 @@ namespace CRLFruitstandESS.Controllers
         // ════════════════════════════════════════════
         // SUPPLIER MANAGEMENT
         // ════════════════════════════════════════════
-        public async Task<IActionResult> Suppliers(string search = "")
+        public async Task<IActionResult> Suppliers(string search = "", int page = 1)
         {
+            const int pageSize = 15;
             var query = _db.Suppliers.AsQueryable();
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(s => s.Name.Contains(search) || (s.City != null && s.City.Contains(search)));
-            var suppliers = await query.OrderBy(s => s.Name).ToListAsync();
-            ViewBag.Search = search;
+
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var suppliers = await query.OrderBy(s => s.Name)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            ViewBag.Search     = search;
+            ViewBag.Page       = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize   = pageSize;
             return View(suppliers);
         }
 
@@ -460,8 +510,9 @@ namespace CRLFruitstandESS.Controllers
         // ════════════════════════════════════════════
         // INVENTORY MANAGEMENT
         // ════════════════════════════════════════════
-        public async Task<IActionResult> InventoryManagement(string filter = "all")
+        public async Task<IActionResult> InventoryManagement(string filter = "all", int page = 1)
         {
+            const int pageSize = 15;
             var query = _db.Inventory.Include(i => i.Product).AsQueryable();
             query = filter switch
             {
@@ -469,8 +520,19 @@ namespace CRLFruitstandESS.Controllers
                 "critical" => query.Where(i => i.Quantity == 0),
                 _          => query
             };
-            var items = await query.OrderBy(i => i.Product.Name).ToListAsync();
-            ViewBag.Filter = filter;
+
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var items = await query.OrderBy(i => i.Product.Name)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            ViewBag.Filter     = filter;
+            ViewBag.Page       = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize   = pageSize;
             return View(items);
         }
 

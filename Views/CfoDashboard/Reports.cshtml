@@ -77,28 +77,50 @@
 <!-- KPI Summary -->
 <div class="stats-grid four-col" style="margin-bottom:1.5rem;">
     <div class="stat-card">
-        <div class="stat-icon si-green"></div>
+        <div class="stat-icon si-green">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+        </div>
         <div class="stat-info">
             <div class="stat-value text-profit">₱@Model.TotalRevenue.ToString("N2")</div>
             <div class="stat-label">Total Revenue</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon si-red"></div>
+        <div class="stat-icon si-red">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <circle cx="9" cy="21" r="1"/>
+                <circle cx="20" cy="21" r="1"/>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+        </div>
         <div class="stat-info">
             <div class="stat-value text-loss">₱@Model.TotalExpenses.ToString("N2")</div>
             <div class="stat-label">Total Expenses</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon @(Model.NetProfit >= 0 ? "si-green" : "si-red")"></div>
+        <div class="stat-icon @(Model.NetProfit >= 0 ? "si-green" : "si-red")">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+        </div>
         <div class="stat-info">
             <div class="stat-value @(Model.NetProfit >= 0 ? "text-profit" : "text-loss")">₱@Model.NetProfit.ToString("N2")</div>
             <div class="stat-label">Net Profit</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon si-blue"></div>
+        <div class="stat-icon si-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M3 3h18v14H3z" stroke-linejoin="round"/>
+                <path d="M3 17h18"/>
+                <circle cx="6" cy="20" r="1"/>
+                <circle cx="18" cy="20" r="1"/>
+            </svg>
+        </div>
         <div class="stat-info">
             <div class="stat-value">@Model.GrossMarginPercent.ToString("N1")%</div>
             <div class="stat-label">Gross Margin</div>

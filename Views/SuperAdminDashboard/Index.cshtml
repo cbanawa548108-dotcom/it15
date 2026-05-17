@@ -1,0 +1,480 @@
+﻿@{
+    ViewData["Title"] = "Super Admin Control Panel";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+
+    int    totalUsers    = (int)(ViewBag.TotalUsers    ?? 0);
+    int    activeUsers   = (int)(ViewBag.ActiveUsers   ?? 0);
+    int    inactiveUsers = (int)(ViewBag.InactiveUsers ?? 0);
+    int    failedToday   = (int)(ViewBag.FailedToday   ?? 0);
+    int    successToday  = (int)(ViewBag.SuccessToday  ?? 0);
+    int    totalSales    = (int)(ViewBag.TotalSales    ?? 0);
+    int    totalProducts = (int)(ViewBag.TotalProducts ?? 0);
+    decimal revYTD       = (decimal)(ViewBag.RevYTD    ?? 0m);
+    decimal expYTD       = (decimal)(ViewBag.ExpYTD    ?? 0m);
+    decimal profitYTD    = (decimal)(ViewBag.ProfitYTD ?? 0m);
+    string dbServer      = ViewBag.DbServer    ?? "?";
+    string dbName        = ViewBag.DbName      ?? "?";
+    string payMongoMode  = ViewBag.PayMongoMode ?? "?";
+    string smtpHost      = ViewBag.SmtpHost    ?? "?";
+    DateTime generatedAt = ViewBag.GeneratedAt ?? DateTime.Now;
+
+    var roleStats   = ViewBag.RoleStats   as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var recentLogins= ViewBag.RecentLogins as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var userRows    = ViewBag.UserRows    as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+
+    var allRoleNames = roleStats.Select(r => (string)r.Name).ToList();
+}
+
+@section Styles {
+<style>
+.sa-page { background:#0f172a; min-height:100vh; padding:1.5rem; }
+
+/* Header */
+.sa-header { background:linear-gradient(135deg,#1c1400,#0f172a); border:1px solid rgba(245,158,11,.3); border-radius:14px; padding:1.75rem 2rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+.sa-title { font-size:1.75rem; font-weight:800; color:#f1f5f9; margin:0; }
+.sa-badge { background:rgba(245,158,11,.15); border:1px solid rgba(245,158,11,.35); color:#fbbf24; border-radius:8px; padding:.35rem .85rem; font-size:.75rem; font-weight:700; }
+
+/* Sections */
+.sa-section { margin-bottom:1.75rem; }
+.sa-section-title { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#475569; margin:0 0 .9rem; display:flex; align-items:center; gap:.5rem; }
+.sa-section-title::after { content:''; flex:1; height:1px; background:#1e293b; }
+
+/* KPI grid */
+.sa-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; }
+.sa-kpi { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:1.1rem 1.3rem; position:relative; overflow:hidden; }
+.sa-kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:12px 12px 0 0; }
+.sa-kpi.amber::before { background:#f59e0b; }
+.sa-kpi.green::before { background:#10b981; }
+.sa-kpi.red::before   { background:#ef4444; }
+.sa-kpi.blue::before  { background:#3b82f6; }
+.sa-kpi.purple::before{ background:#8b5cf6; }
+.sa-kpi-label { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:#475569; margin-bottom:.3rem; }
+.sa-kpi-value { font-size:1.5rem; font-weight:800; color:#f1f5f9; }
+.sa-kpi-sub   { font-size:.7rem; color:#64748b; margin-top:.2rem; }
+
+/* Cards */
+.sa-card { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:1.4rem; margin-bottom:1rem; }
+.sa-card-title { font-size:.8rem; font-weight:700; color:#94a3b8; margin:0 0 1rem; }
+
+/* Role pills */
+.role-pill { display:inline-block; padding:.2rem .6rem; border-radius:999px; font-size:.65rem; font-weight:700; text-transform:uppercase; margin:.1rem; }
+.role-superadmin { background:rgba(245,158,11,.2); color:#fbbf24; border:1px solid rgba(245,158,11,.4); }
+.role-admin   { background:rgba(239,68,68,.15);  color:#f87171; border:1px solid rgba(239,68,68,.3); }
+.role-cfo     { background:rgba(16,185,129,.15); color:#34d399; border:1px solid rgba(16,185,129,.3); }
+.role-ceo     { background:rgba(139,92,246,.15); color:#a78bfa; border:1px solid rgba(139,92,246,.3); }
+.role-manager { background:rgba(59,130,246,.15); color:#60a5fa; border:1px solid rgba(59,130,246,.3); }
+.role-cashier { background:rgba(6,182,212,.15);  color:#22d3ee; border:1px solid rgba(6,182,212,.3); }
+.role-other   { background:rgba(100,116,139,.15);color:#94a3b8; border:1px solid rgba(100,116,139,.3); }
+
+/* Table */
+.sa-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.sa-table thead th { padding:.6rem .9rem; text-align:left; font-size:.68rem; font-weight:700; text-transform:uppercase; color:#475569; border-bottom:1px solid #334155; background:#0f172a; }
+.sa-table tbody tr { border-bottom:1px solid #1e293b; }
+.sa-table tbody tr:hover { background:#0f172a; }
+.sa-table tbody td { padding:.6rem .9rem; color:#cbd5e1; vertical-align:middle; }
+
+/* Status dot */
+.dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:.4rem; }
+.dot-green { background:#10b981; }
+.dot-red   { background:#ef4444; }
+
+/* Danger zone */
+.danger-zone { border:1px solid rgba(239,68,68,.3); border-radius:12px; padding:1.25rem 1.4rem; background:rgba(239,68,68,.04); }
+.danger-title { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#f87171; margin:0 0 .75rem; }
+
+/* Config row */
+.cfg-row { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid #1e293b; font-size:.82rem; }
+.cfg-row:last-child { border-bottom:none; }
+.cfg-key { color:#64748b; }
+.cfg-val { color:#f1f5f9; font-weight:600; font-family:monospace; }
+
+/* Modal overlay */
+.sa-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9000; align-items:center; justify-content:center; }
+.sa-modal-overlay.open { display:flex; }
+.sa-modal { background:#1e293b; border:1px solid #334155; border-radius:14px; padding:1.75rem; width:100%; max-width:440px; }
+.sa-modal-title { font-size:1rem; font-weight:700; color:#f1f5f9; margin:0 0 1rem; }
+.sa-input { background:#0f172a; border:1px solid #334155; border-radius:8px; padding:.6rem .875rem; color:#f1f5f9; font-size:.875rem; width:100%; outline:none; }
+.sa-input:focus { border-color:#f59e0b; }
+.sa-btn { padding:.55rem 1.25rem; border-radius:8px; font-weight:700; font-size:.82rem; cursor:pointer; border:none; transition:opacity .2s; }
+.sa-btn:hover { opacity:.85; }
+.sa-btn-amber  { background:#f59e0b; color:#0f172a; }
+.sa-btn-red    { background:#ef4444; color:white; }
+.sa-btn-ghost  { background:transparent; border:1px solid #334155; color:#94a3b8; }
+</style>
+}
+
+<div class="sa-page">
+
+<!-- ── Header ── -->
+<div class="sa-header">
+    <div>
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#f59e0b;margin-bottom:.3rem">⚡ Highest Privilege</div>
+        <h1 class="sa-title">Super Admin Control Panel</h1>
+        <p style="color:#64748b;font-size:.82rem;margin:.25rem 0 0">Full system access · All modules · All users · @generatedAt.ToString("MMM d, yyyy h:mm tt")</p>
+    </div>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
+        <span class="sa-badge">⚡ SuperAdmin</span>
+        <a href="/AdminDashboard/Index" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#60a5fa;border-radius:8px;padding:.35rem .85rem;font-size:.75rem;font-weight:700;text-decoration:none;">
+            Admin Dashboard →
+        </a>
+    </div>
+</div>
+
+<!-- ── What SuperAdmin can do ── -->
+<div class="sa-card" style="border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04);margin-bottom:1.5rem;">
+    <div class="sa-card-title" style="color:#fbbf24;">⚡ SuperAdmin Exclusive Capabilities</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6rem;">
+        @foreach (var cap in new[] {
+            ("🔑", "Assign or revoke any role including Admin"),
+            ("🗑️", "Delete Admin and SuperAdmin accounts"),
+            ("🔒", "Force-deactivate any user instantly"),
+            ("🔑", "Force-reset any user's password"),
+            ("🧹", "Purge login attempt audit logs"),
+            ("👁️", "View all users, roles, and system config"),
+            ("📊", "Access every module: Finance, Ops, Executive"),
+            ("⚙️", "View live system configuration summary"),
+        })
+        {
+            <div style="display:flex;align-items:flex-start;gap:.6rem;background:#0f172a;border-radius:8px;padding:.65rem .9rem;">
+                <span style="font-size:1rem;flex-shrink:0">@cap.Item1</span>
+                <span style="font-size:.8rem;color:#94a3b8">@cap.Item2</span>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ── KPI Strip ── -->
+<div class="sa-section">
+    <div class="sa-section-title">📊 System Overview</div>
+    <div class="sa-kpi-grid">
+        <div class="sa-kpi amber">
+            <div class="sa-kpi-label">Total Users</div>
+            <div class="sa-kpi-value">@totalUsers</div>
+            <div class="sa-kpi-sub">@activeUsers active · @inactiveUsers inactive</div>
+        </div>
+        <div class="sa-kpi green">
+            <div class="sa-kpi-label">Revenue YTD</div>
+            <div class="sa-kpi-value" style="font-size:1.2rem">₱@revYTD.ToString("N0")</div>
+            <div class="sa-kpi-sub">Expenses: ₱@expYTD.ToString("N0")</div>
+        </div>
+        <div class="sa-kpi @(profitYTD >= 0 ? "green" : "red")">
+            <div class="sa-kpi-label">Net Profit YTD</div>
+            <div class="sa-kpi-value" style="color:@(profitYTD >= 0 ? "#34d399" : "#f87171");font-size:1.2rem">₱@profitYTD.ToString("N0")</div>
+            <div class="sa-kpi-sub">@(profitYTD >= 0 ? "Profitable" : "Operating at loss")</div>
+        </div>
+        <div class="sa-kpi blue">
+            <div class="sa-kpi-label">Total Sales</div>
+            <div class="sa-kpi-value">@totalSales.ToString("N0")</div>
+            <div class="sa-kpi-sub">Completed transactions</div>
+        </div>
+        <div class="sa-kpi purple">
+            <div class="sa-kpi-label">Active Products</div>
+            <div class="sa-kpi-value">@totalProducts</div>
+            <div class="sa-kpi-sub">In product catalog</div>
+        </div>
+        <div class="sa-kpi @(failedToday > 10 ? "red" : "amber")">
+            <div class="sa-kpi-label">Login Attempts Today</div>
+            <div class="sa-kpi-value">@(successToday + failedToday)</div>
+            <div class="sa-kpi-sub">@successToday success · <span style="color:#f87171">@failedToday failed</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Role Distribution ── -->
+<div class="sa-section">
+    <div class="sa-section-title">🎭 Role Distribution</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;">
+        @foreach (dynamic role in roleStats)
+        {
+            string rName  = (string)role.Name;
+            int    rCount = (int)role.UserCount;
+            string rDesc  = (string)role.Description;
+            string pillClass = rName.ToLower() switch {
+                "superadmin" => "role-superadmin",
+                "admin"      => "role-admin",
+                "cfo"        => "role-cfo",
+                "ceo"        => "role-ceo",
+                "manager"    => "role-manager",
+                "cashier"    => "role-cashier",
+                _            => "role-other"
+            };
+            <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1rem 1.1rem;">
+                <span class="role-pill @pillClass">@rName</span>
+                <div style="font-size:1.6rem;font-weight:800;color:#f1f5f9;margin:.4rem 0 .2rem">@rCount</div>
+                <div style="font-size:.7rem;color:#475569">@(rCount == 1 ? "user" : "users")</div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ── User Management Table ── -->
+<div class="sa-section">
+    <div class="sa-section-title">👥 All Users — Full Control</div>
+    <div class="sa-card" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table class="sa-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (dynamic u in userRows)
+                    {
+                        var roles = u.Roles as List<string> ?? new List<string>();
+                        string topRole = roles.FirstOrDefault() ?? "—";
+                        bool isActive  = (bool)u.IsActive;
+                        string pillClass = topRole.ToLower() switch {
+                            "superadmin" => "role-superadmin",
+                            "admin"      => "role-admin",
+                            "cfo"        => "role-cfo",
+                            "ceo"        => "role-ceo",
+                            "manager"    => "role-manager",
+                            "cashier"    => "role-cashier",
+                            _            => "role-other"
+                        };
+                        <tr>
+                            <td>
+                                <div style="font-weight:700;color:#f1f5f9">@u.FullName</div>
+                                <div style="font-size:.72rem;color:#475569">@@@u.UserName</div>
+                            </td>
+                            <td style="color:#64748b;font-size:.78rem">@u.Email</td>
+                            <td style="color:#94a3b8;font-size:.78rem">@u.Department</td>
+                            <td><span class="role-pill @pillClass">@topRole</span></td>
+                            <td>
+                                <span class="dot @(isActive ? "dot-green" : "dot-red")"></span>
+                                <span style="font-size:.78rem;color:@(isActive ? "#34d399" : "#f87171")">@(isActive ? "Active" : "Inactive")</span>
+                            </td>
+                            <td style="color:#64748b;font-size:.75rem">
+                                @(u.LastLoginAt != null ? ((DateTime)u.LastLoginAt).ToString("MMM d, yyyy") : "Never")
+                            </td>
+                            <td style="text-align:right;">
+                                <div style="display:flex;gap:.4rem;justify-content:flex-end;flex-wrap:wrap;">
+                                    <!-- Assign Role -->
+                                    <button onclick="openRoleModal('@u.Id','@u.FullName','@topRole')"
+                                            class="sa-btn sa-btn-amber" style="padding:.3rem .7rem;font-size:.72rem;">
+                                        🎭 Role
+                                    </button>
+                                    <!-- Reset Password -->
+                                    <button onclick="openPwdModal('@u.Id','@u.FullName')"
+                                            class="sa-btn" style="padding:.3rem .7rem;font-size:.72rem;background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.3);">
+                                        🔑 Pwd
+                                    </button>
+                                    <!-- Toggle Active -->
+                                    <form method="post" action="@(isActive ? "/SuperAdminDashboard/ForceDeactivate" : "/SuperAdminDashboard/ForceActivate")" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@u.Id" />
+                                        <button type="submit" class="sa-btn" style="padding:.3rem .7rem;font-size:.72rem;background:@(isActive ? "rgba(239,68,68,.15)" : "rgba(16,185,129,.15)");color:@(isActive ? "#f87171" : "#34d399");border:1px solid @(isActive ? "rgba(239,68,68,.3)" : "rgba(16,185,129,.3)");">
+                                            @(isActive ? "🔒 Deactivate" : "✅ Activate")
+                                        </button>
+                                    </form>
+                                    <!-- Delete -->
+                                    <button onclick="openDeleteModal('@u.Id','@u.FullName')"
+                                            class="sa-btn sa-btn-red" style="padding:.3rem .7rem;font-size:.72rem;">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── Recent Login Attempts ── -->
+<div class="sa-section">
+    <div class="sa-section-title">🔐 Recent Login Attempts (Last 50)</div>
+    <div class="sa-card" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table class="sa-table">
+                <thead>
+                    <tr><th>Time</th><th>Username</th><th>IP Address</th><th>Result</th><th>Reason</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (dynamic log in recentLogins)
+                    {
+                        bool ok = (bool)log.Succeeded;
+                        <tr>
+                            <td style="color:#64748b;font-size:.75rem;white-space:nowrap">@((DateTime)log.AttemptedAt).ToString("MMM d HH:mm:ss")</td>
+                            <td style="font-weight:600;color:#f1f5f9">@log.UserName</td>
+                            <td style="color:#64748b;font-size:.78rem;font-family:monospace">@log.IpAddress</td>
+                            <td>
+                                <span style="font-size:.72rem;font-weight:700;padding:.2rem .55rem;border-radius:999px;background:@(ok ? "rgba(16,185,129,.15)" : "rgba(239,68,68,.15)");color:@(ok ? "#34d399" : "#f87171");border:1px solid @(ok ? "rgba(16,185,129,.3)" : "rgba(239,68,68,.3)")">
+                                    @(ok ? "✓ Success" : "✗ Failed")
+                                </span>
+                            </td>
+                            <td style="color:#475569;font-size:.75rem">@log.FailReason</td>
+                        </tr>
+                    }
+                    @if (!recentLogins.Any())
+                    {
+                        <tr><td colspan="5" style="text-align:center;color:#475569;padding:1.5rem">No login attempts recorded.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── System Config + Danger Zone ── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.75rem;">
+
+    <!-- System Config -->
+    <div class="sa-card">
+        <div class="sa-card-title">⚙️ System Configuration</div>
+        <div class="cfg-row"><span class="cfg-key">Database Server</span><span class="cfg-val">@dbServer</span></div>
+        <div class="cfg-row"><span class="cfg-key">Database Name</span><span class="cfg-val">@dbName</span></div>
+        <div class="cfg-row"><span class="cfg-key">PayMongo Mode</span>
+            <span class="cfg-val" style="color:@(payMongoMode.Contains("Test") ? "#fbbf24" : "#34d399")">@payMongoMode</span>
+        </div>
+        <div class="cfg-row"><span class="cfg-key">SMTP Host</span><span class="cfg-val">@smtpHost</span></div>
+        <div class="cfg-row"><span class="cfg-key">Environment</span>
+            <span class="cfg-val" style="color:#60a5fa">@System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")</span>
+        </div>
+        <div class="cfg-row"><span class="cfg-key">Server Time</span><span class="cfg-val">@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")</span></div>
+        <div class="cfg-row"><span class="cfg-key">UTC Time</span><span class="cfg-val">@DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")</span></div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="danger-zone">
+        <div class="danger-title">⚠️ Danger Zone — Irreversible Actions</div>
+
+        <!-- Purge login attempts -->
+        <div style="margin-bottom:1rem;">
+            <div style="font-size:.82rem;color:#94a3b8;margin-bottom:.5rem;">
+                <strong style="color:#f1f5f9">Purge Login Audit Log</strong><br/>
+                Permanently deletes login attempt records older than the specified number of days.
+            </div>
+            <form method="post" action="/SuperAdminDashboard/PurgeLoginAttempts"
+                  onsubmit="return confirm('Permanently delete old login records? This cannot be undone.')">
+                @Html.AntiForgeryToken()
+                <div style="display:flex;gap:.5rem;align-items:center;">
+                    <input type="number" name="daysOlderThan" value="30" min="1" max="365"
+                           class="sa-input" style="width:80px" />
+                    <span style="color:#64748b;font-size:.8rem">days old</span>
+                    <button type="submit" class="sa-btn sa-btn-red" style="padding:.4rem .9rem;">
+                        🧹 Purge
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div style="height:1px;background:#334155;margin:.75rem 0"></div>
+
+        <div style="font-size:.78rem;color:#475569;line-height:1.6;">
+            <strong style="color:#f87171">Remember:</strong> SuperAdmin actions are logged.
+            Force-deactivating a user immediately prevents login.
+            Deleting a user is permanent and cannot be undone.
+            Role changes take effect on the user's next request.
+        </div>
+    </div>
+</div>
+
+</div><!-- end .sa-page -->
+
+<!-- ══ MODALS ══════════════════════════════════════════════════════════════ -->
+
+<!-- Assign Role Modal -->
+<div class="sa-modal-overlay" id="roleModal">
+    <div class="sa-modal">
+        <div class="sa-modal-title">🎭 Assign Role</div>
+        <p id="roleModalUser" style="color:#94a3b8;font-size:.85rem;margin:0 0 1rem"></p>
+        <form method="post" action="/SuperAdminDashboard/AssignRole">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="userId" id="roleModalUserId" />
+            <div style="margin-bottom:.75rem;">
+                <label style="font-size:.75rem;color:#64748b;display:block;margin-bottom:.35rem">New Role</label>
+                <select name="newRole" id="roleModalSelect" class="sa-input">
+                    @foreach (dynamic role in roleStats)
+                    {
+                        <option value="@role.Name">@role.Name</option>
+                    }
+                </select>
+            </div>
+            <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+                <button type="button" onclick="closeModal('roleModal')" class="sa-btn sa-btn-ghost">Cancel</button>
+                <button type="submit" class="sa-btn sa-btn-amber">Assign Role</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="sa-modal-overlay" id="pwdModal">
+    <div class="sa-modal">
+        <div class="sa-modal-title">🔑 Force Reset Password</div>
+        <p id="pwdModalUser" style="color:#94a3b8;font-size:.85rem;margin:0 0 1rem"></p>
+        <form method="post" action="/SuperAdminDashboard/ForceResetPassword">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="userId" id="pwdModalUserId" />
+            <div style="margin-bottom:.75rem;">
+                <label style="font-size:.75rem;color:#64748b;display:block;margin-bottom:.35rem">New Password (min 8 chars)</label>
+                <input type="password" name="newPassword" class="sa-input" placeholder="Enter new password" required minlength="8" />
+            </div>
+            <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+                <button type="button" onclick="closeModal('pwdModal')" class="sa-btn sa-btn-ghost">Cancel</button>
+                <button type="submit" class="sa-btn sa-btn-amber">Reset Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete User Modal -->
+<div class="sa-modal-overlay" id="deleteModal">
+    <div class="sa-modal">
+        <div class="sa-modal-title" style="color:#f87171">🗑️ Permanently Delete User</div>
+        <p id="deleteModalUser" style="color:#94a3b8;font-size:.85rem;margin:0 0 1rem"></p>
+        <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.82rem;color:#fca5a5;">
+            ⚠️ This action is <strong>permanent and cannot be undone</strong>. All data associated with this user account will be removed.
+        </div>
+        <form method="post" action="/SuperAdminDashboard/DeleteUser">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="userId" id="deleteModalUserId" />
+            <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                <button type="button" onclick="closeModal('deleteModal')" class="sa-btn sa-btn-ghost">Cancel</button>
+                <button type="submit" class="sa-btn sa-btn-red">Delete Permanently</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function openRoleModal(userId, fullName, currentRole) {
+    document.getElementById('roleModalUserId').value = userId;
+    document.getElementById('roleModalUser').textContent = 'Changing role for: ' + fullName;
+    var sel = document.getElementById('roleModalSelect');
+    for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === currentRole) { sel.selectedIndex = i; break; }
+    }
+    document.getElementById('roleModal').classList.add('open');
+}
+function openPwdModal(userId, fullName) {
+    document.getElementById('pwdModalUserId').value = userId;
+    document.getElementById('pwdModalUser').textContent = 'Resetting password for: ' + fullName;
+    document.getElementById('pwdModal').classList.add('open');
+}
+function openDeleteModal(userId, fullName) {
+    document.getElementById('deleteModalUserId').value = userId;
+    document.getElementById('deleteModalUser').textContent = 'You are about to permanently delete: ' + fullName;
+    document.getElementById('deleteModal').classList.add('open');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+// Close on backdrop click
+document.querySelectorAll('.sa-modal-overlay').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+        if (e.target === el) el.classList.remove('open');
+    });
+});
+</script>
+}

@@ -1,0 +1,278 @@
+﻿@{
+    ViewData["Title"] = "Payment Transaction History";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+
+    var txns      = ViewBag.Transactions as IEnumerable<CRLFruitstandESS.Models.PaymentTransaction>
+                    ?? Enumerable.Empty<CRLFruitstandESS.Models.PaymentTransaction>();
+    var userMap   = ViewBag.UserMap as Dictionary<string,(string UserName,string FullName,string Role)>
+                    ?? new();
+    int page       = (int)(ViewBag.Page       ?? 1);
+    int totalPages = (int)(ViewBag.TotalPages  ?? 1);
+    int total      = (int)(ViewBag.Total       ?? 0);
+    decimal allPaid= (decimal)(ViewBag.AllPaid ?? 0m);
+    int allPending = (int)(ViewBag.AllPending  ?? 0);
+    int allFailed  = (int)(ViewBag.AllFailed   ?? 0);
+    string? filterStatus = ViewBag.Status as string;
+    string? filterMethod = ViewBag.Method as string;
+
+    var byMethod = ViewBag.ByMethod as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+
+    string MethodIcon(string m) => m?.ToLower() switch {
+        "gcash"   => "📱",
+        "paymaya" => "💳",
+        "maya"    => "💳",
+        "cash"    => "💵",
+        "card"    => "💳",
+        _         => "💰"
+    };
+    string MethodColor(string m) => m?.ToLower() switch {
+        "gcash"   => "#3b82f6",
+        "paymaya" => "#8b5cf6",
+        "maya"    => "#8b5cf6",
+        "cash"    => "#10b981",
+        "card"    => "#f59e0b",
+        _         => "#64748b"
+    };
+    string StatusColor(string s) => s?.ToLower() switch {
+        "paid"    => "#34d399",
+        "pending" => "#fbbf24",
+        "failed"  => "#f87171",
+        "expired" => "#94a3b8",
+        _         => "#64748b"
+    };
+    string StatusBg(string s) => s?.ToLower() switch {
+        "paid"    => "rgba(16,185,129,.15)",
+        "pending" => "rgba(245,158,11,.15)",
+        "failed"  => "rgba(239,68,68,.15)",
+        "expired" => "rgba(100,116,139,.15)",
+        _         => "rgba(100,116,139,.1)"
+    };
+    string RoleColor(string r) => r?.ToLower() switch {
+        "superadmin" => "#f59e0b",
+        "admin"      => "#f87171",
+        "cashier"    => "#22d3ee",
+        "manager"    => "#60a5fa",
+        "cfo"        => "#34d399",
+        "ceo"        => "#a78bfa",
+        _            => "#94a3b8"
+    };
+}
+
+@section Styles {
+<style>
+.ph-page { background:#0f172a; min-height:100vh; padding:1.5rem; }
+.ph-header { background:linear-gradient(135deg,#1e293b,#0f172a); border:1px solid #334155; border-radius:14px; padding:1.75rem 2rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+.ph-title { font-size:1.75rem; font-weight:800; color:#f1f5f9; margin:0; }
+
+/* Summary strip */
+.ph-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+.ph-stat { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:1.1rem 1.3rem; }
+.ph-stat-label { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:#475569; margin-bottom:.3rem; }
+.ph-stat-value { font-size:1.5rem; font-weight:800; color:#f1f5f9; }
+
+/* Filters */
+.ph-filters { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+.ph-filter-btn { padding:.4rem .9rem; border-radius:8px; font-size:.78rem; font-weight:700; border:1px solid #334155; background:#1e293b; color:#94a3b8; text-decoration:none; transition:all .2s; }
+.ph-filter-btn:hover { border-color:#475569; color:#f1f5f9; }
+.ph-filter-btn.active { background:rgba(59,130,246,.15); border-color:#3b82f6; color:#60a5fa; }
+
+/* Table */
+.ph-card { background:#1e293b; border:1px solid #334155; border-radius:12px; overflow:hidden; }
+.ph-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.ph-table thead th { padding:.7rem 1rem; text-align:left; font-size:.67rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#475569; border-bottom:1px solid #334155; background:#0f172a; white-space:nowrap; }
+.ph-table tbody tr { border-bottom:1px solid #1e293b; transition:background .15s; }
+.ph-table tbody tr:hover { background:#0f172a; }
+.ph-table tbody td { padding:.7rem 1rem; color:#cbd5e1; vertical-align:middle; }
+
+/* User badge */
+.user-badge { display:flex; align-items:center; gap:.5rem; }
+.user-avatar { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:800; flex-shrink:0; }
+.user-name { font-size:.82rem; font-weight:600; color:#f1f5f9; }
+.user-role { font-size:.67rem; color:#475569; }
+
+/* Pagination */
+.ph-pagination { display:flex; gap:.4rem; justify-content:center; padding:1rem; flex-wrap:wrap; }
+.ph-page-btn { padding:.4rem .8rem; border-radius:7px; font-size:.78rem; font-weight:600; border:1px solid #334155; background:#1e293b; color:#94a3b8; text-decoration:none; }
+.ph-page-btn.active { background:#3b82f6; border-color:#3b82f6; color:white; }
+.ph-page-btn:hover:not(.active) { border-color:#475569; color:#f1f5f9; }
+</style>
+}
+
+<div class="ph-page">
+
+<!-- Header -->
+<div class="ph-header">
+    <div>
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#3b82f6;margin-bottom:.3rem">POS · Finance</div>
+        <h1 class="ph-title">💳 Payment Transaction History</h1>
+        <p style="color:#64748b;font-size:.82rem;margin:.25rem 0 0">All payment transactions — who processed each one</p>
+    </div>
+    <a href="/Cashier/DailySummary" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#60a5fa;border-radius:8px;padding:.4rem .9rem;font-size:.78rem;font-weight:700;text-decoration:none;">
+        📅 Daily Summary →
+    </a>
+</div>
+
+<!-- Summary strip -->
+<div class="ph-summary">
+    <div class="ph-stat" style="border-top:3px solid #10b981">
+        <div class="ph-stat-label">Total Collected</div>
+        <div class="ph-stat-value" style="color:#34d399;font-size:1.2rem">₱@allPaid.ToString("N0")</div>
+        <div style="font-size:.7rem;color:#475569">All paid transactions</div>
+    </div>
+    <div class="ph-stat" style="border-top:3px solid #fbbf24">
+        <div class="ph-stat-label">Pending</div>
+        <div class="ph-stat-value" style="color:#fbbf24">@allPending</div>
+        <div style="font-size:.7rem;color:#475569">Awaiting payment</div>
+    </div>
+    <div class="ph-stat" style="border-top:3px solid #f87171">
+        <div class="ph-stat-label">Failed</div>
+        <div class="ph-stat-value" style="color:#f87171">@allFailed</div>
+        <div style="font-size:.7rem;color:#475569">Cancelled or failed</div>
+    </div>
+    @foreach (dynamic bm in byMethod)
+    {
+        string bmMethod = (string)(bm.Method ?? "");
+        <div class="ph-stat" style="border-top:3px solid @MethodColor(bmMethod)">
+            <div class="ph-stat-label">@MethodIcon(bmMethod) @bmMethod.ToUpper()</div>
+            <div class="ph-stat-value" style="color:@MethodColor(bmMethod);font-size:1.1rem">₱@((decimal)bm.Total).ToString("N0")</div>
+            <div style="font-size:.7rem;color:#475569">@((int)bm.Count) transactions</div>
+        </div>
+    }
+</div>
+
+<!-- Filters -->
+<div class="ph-filters">
+    <span style="font-size:.75rem;color:#475569;align-self:center;font-weight:700">Status:</span>
+    <a href="/Cashier/PaymentHistory@(filterMethod != null ? $"?method={filterMethod}" : "")" class="ph-filter-btn @(filterStatus == null ? "active" : "")">All</a>
+    <a href="/Cashier/PaymentHistory?status=paid@(filterMethod != null ? $"&method={filterMethod}" : "")" class="ph-filter-btn @(filterStatus == "paid" ? "active" : "")">✓ Paid</a>
+    <a href="/Cashier/PaymentHistory?status=pending@(filterMethod != null ? $"&method={filterMethod}" : "")" class="ph-filter-btn @(filterStatus == "pending" ? "active" : "")">⏳ Pending</a>
+    <a href="/Cashier/PaymentHistory?status=failed@(filterMethod != null ? $"&method={filterMethod}" : "")" class="ph-filter-btn @(filterStatus == "failed" ? "active" : "")">✗ Failed</a>
+    <span style="font-size:.75rem;color:#475569;align-self:center;font-weight:700;margin-left:.5rem">Method:</span>
+    <a href="/Cashier/PaymentHistory@(filterStatus != null ? $"?status={filterStatus}" : "")" class="ph-filter-btn @(filterMethod == null ? "active" : "")">All</a>
+    <a href="/Cashier/PaymentHistory?method=cash@(filterStatus != null ? $"&status={filterStatus}" : "")" class="ph-filter-btn @(filterMethod == "cash" ? "active" : "")">💵 Cash</a>
+    <a href="/Cashier/PaymentHistory?method=gcash@(filterStatus != null ? $"&status={filterStatus}" : "")" class="ph-filter-btn @(filterMethod == "gcash" ? "active" : "")">📱 GCash</a>
+    <a href="/Cashier/PaymentHistory?method=paymaya@(filterStatus != null ? $"&status={filterStatus}" : "")" class="ph-filter-btn @(filterMethod == "paymaya" ? "active" : "")">💳 Maya</a>
+</div>
+
+<!-- Table -->
+<div class="ph-card">
+    <div style="overflow-x:auto;">
+        <table class="ph-table">
+            <thead>
+                <tr>
+                    <th>Txn #</th>
+                    <th>Date & Time</th>
+                    <th>Processed By</th>
+                    <th>Method</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Sale #</th>
+                    <th>Reference</th>
+                    <th>Mode</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in txns)
+                {
+                    var hasUser = !string.IsNullOrEmpty(t.ProcessedBy) && userMap.ContainsKey(t.ProcessedBy);
+                    var (uName, uFull, uRole) = hasUser ? userMap[t.ProcessedBy] : ("—", "Unknown", "Staff");
+                    var initial = uFull.Length > 0 ? uFull[0].ToString().ToUpper() : "?";
+                    var mColor  = MethodColor(t.Method);
+                    var sColor  = StatusColor(t.Status);
+                    var sBg     = StatusBg(t.Status);
+                    var rColor  = RoleColor(uRole);
+
+                    <tr>
+                        <td style="font-family:monospace;color:#64748b;font-size:.78rem">#@t.Id.ToString("D5")</td>
+                        <td>
+                            <div style="font-size:.82rem;color:#f1f5f9">@t.CreatedAt.ToString("MMM dd, yyyy")</div>
+                            <div style="font-size:.72rem;color:#475569">@t.CreatedAt.ToString("hh:mm:ss tt")</div>
+                        </td>
+                        <td>
+                            @if (hasUser)
+                            {
+                                <div class="user-badge">
+                                    <div class="user-avatar" style="background:rgba(59,130,246,.15);color:@rColor;border:1px solid @rColor">
+                                        @initial
+                                    </div>
+                                    <div>
+                                        <div class="user-name">@uFull</div>
+                                        <div style="display:flex;align-items:center;gap:.3rem;">
+                                            <span style="font-size:.65rem;color:#475569">@@@uName</span>
+                                            <span style="font-size:.62rem;font-weight:700;padding:.1rem .4rem;border-radius:999px;background:rgba(59,130,246,.1);color:@rColor;border:1px solid @rColor">@uRole</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span style="color:#475569;font-size:.78rem">— Unknown</span>
+                            }
+                        </td>
+                        <td>
+                            <span style="font-size:.8rem;font-weight:700;color:@mColor">
+                                @MethodIcon(t.Method) @t.Method.ToUpper()
+                            </span>
+                            @if (!string.IsNullOrEmpty(t.CardLast4))
+                            {
+                                <div style="font-size:.68rem;color:#475569">•••• @t.CardLast4 (@t.CardBrand)</div>
+                            }
+                        </td>
+                        <td style="font-weight:700;color:#f1f5f9">₱@t.Amount.ToString("N2")</td>
+                        <td>
+                            <span style="font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;background:@sBg;color:@sColor;border:1px solid @sColor">
+                                @t.Status.ToUpper()
+                            </span>
+                            @if (t.PaidAt.HasValue)
+                            {
+                                <div style="font-size:.68rem;color:#475569;margin-top:.2rem">@t.PaidAt.Value.ToString("MMM dd HH:mm")</div>
+                            }
+                        </td>
+                        <td>
+                            @if (t.SaleId.HasValue)
+                            {
+                                <a href="/Cashier/Receipt/@t.SaleId" style="color:#60a5fa;font-size:.8rem;font-family:monospace;text-decoration:none;">
+                                    #@t.SaleId.Value.ToString("D6")
+                                </a>
+                            }
+                            else { <span style="color:#334155">—</span> }
+                        </td>
+                        <td style="font-family:monospace;font-size:.72rem;color:#475569;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="@t.ReferenceNumber">
+                            @(string.IsNullOrEmpty(t.ReferenceNumber) ? "—" : t.ReferenceNumber)
+                        </td>
+                        <td>
+                            @if (t.IsTestMode)
+                            {
+                                <span style="font-size:.65rem;font-weight:700;padding:.15rem .45rem;border-radius:4px;background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3)">TEST</span>
+                            }
+                            else
+                            {
+                                <span style="font-size:.65rem;font-weight:700;padding:.15rem .45rem;border-radius:4px;background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.25)">LIVE</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!txns.Any())
+                {
+                    <tr><td colspan="9" style="text-align:center;padding:2.5rem;color:#475569">No payment transactions found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <div class="ph-pagination">
+            @for (int p = 1; p <= totalPages; p++)
+            {
+                var pUrl = $"/Cashier/PaymentHistory?page={p}" +
+                           (filterStatus != null ? $"&status={filterStatus}" : "") +
+                           (filterMethod != null ? $"&method={filterMethod}" : "");
+                <a href="@pUrl" class="ph-page-btn @(p == page ? "active" : "")">@p</a>
+            }
+        </div>
+    }
+</div>
+
+</div>

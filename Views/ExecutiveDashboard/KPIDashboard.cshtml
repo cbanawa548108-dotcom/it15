@@ -139,6 +139,7 @@
             color: #f1f5f9;
             line-height: 1;
             margin-bottom: 1rem;
+            text-align: right;
         }
         .kpi-change {
             display: inline-flex;
@@ -260,8 +261,10 @@
                     <small style="color:#64748b;font-size:0.8rem;">
                         Previous:
                         <strong style="color:#94a3b8;">
-                            @if (kpi.Unit == "₱") { <text>₱@kpi.PreviousValue.ToString("N0")</text> }
-                            else { <text>@kpi.PreviousValue.ToString("F1")@kpi.Unit</text> }
+                            @if (kpi.Unit == "₱" || string.IsNullOrEmpty(kpi.Unit)) { <text>₱@kpi.PreviousValue.ToString("N0")</text> }
+                            else if (kpi.Unit == "%") { <text>@kpi.PreviousValue.ToString("N1")%</text> }
+                            else if (kpi.Unit == "x") { <text>@kpi.PreviousValue.ToString("N2")x</text> }
+                            else { <text>@kpi.PreviousValue.ToString("N1") @kpi.Unit</text> }
                         </strong>
                     </small>
                 </div>
@@ -297,13 +300,25 @@ else
                     <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.75rem;">
                         <div style="display:flex;justify-content:space-between;font-size:0.875rem;">
                             <span style="color:#64748b;">Target</span>
-                            <strong style="color:#f1f5f9;">@target.TargetValue@(target.Unit ?? "")</strong>
+                            <strong style="color:#f1f5f9;">
+                                @{
+                                    var tUnit = target.Unit ?? "";
+                                    string FormatKpiVal(decimal val, string unit) {
+                                        if (unit == "%" || unit == "x" || unit.ToLower().Contains("day") || unit.ToLower().Contains("count"))
+                                            return val.ToString("N1") + unit;
+                                        if (unit == "₱" || string.IsNullOrEmpty(unit))
+                                            return "₱" + val.ToString("N0");
+                                        return val.ToString("N1") + unit;
+                                    }
+                                }
+                                @FormatKpiVal(target.TargetValue, tUnit)
+                            </strong>
                         </div>
                         @if (target.CurrentValue.HasValue)
                         {
                             <div style="display:flex;justify-content:space-between;font-size:0.875rem;">
                                 <span style="color:#64748b;">Current</span>
-                                <strong style="color:#f1f5f9;">@target.CurrentValue@(target.Unit ?? "")</strong>
+                                <strong style="color:#f1f5f9;">@FormatKpiVal(target.CurrentValue.Value, tUnit)</strong>
                             </div>
                         }
                     </div>
@@ -311,7 +326,7 @@ else
                     {
                         <div style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.3rem 0.75rem;border-radius:20px;font-size:0.78rem;font-weight:700;background:@(target.VariancePercent > 0 ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)");color:@(target.VariancePercent > 0 ? "#34d399" : "#fca5a5");border:1px solid @(target.VariancePercent > 0 ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)");">
                             <i class="bi @(target.VariancePercent > 0 ? "bi-arrow-up-short" : "bi-arrow-down-short")"></i>
-                            @Math.Abs(target.VariancePercent.Value).ToString("F1")% variance
+                            @Math.Abs(target.VariancePercent.Value).ToString("N1")% variance
                         </div>
                     }
                     @if (!string.IsNullOrEmpty(target.Notes))

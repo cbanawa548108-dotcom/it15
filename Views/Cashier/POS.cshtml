@@ -216,7 +216,7 @@ function selectMethod(method, btn) {
     selectedMethod = method;
     document.querySelectorAll('.btn-pay-method').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    const isCash = method === 'cash';
+    const isCash = method === 'cash' || method === 'qrph';
     document.getElementById('cashSection').style.display    = isCash ? '' : 'none';
     document.getElementById('digitalSection').style.display = isCash ? 'none' : '';
     
@@ -229,7 +229,7 @@ function selectMethod(method, btn) {
     let checkoutLabel = 'Process Payment';
     if (method === 'gcash') checkoutLabel = 'Pay with GCash';
     else if (method === 'paymaya') checkoutLabel = 'Pay with Maya';
-    else if (method === 'qrph') checkoutLabel = 'Pay with QRPH';
+    else if (method === 'qrph') checkoutLabel = 'Process QRPH Payment';
     
     document.getElementById('checkoutLabel').textContent = checkoutLabel;
     
@@ -237,7 +237,6 @@ function selectMethod(method, btn) {
     if (!isCash) {
         document.getElementById('gcashTestCreds').style.display = method === 'gcash' ? '' : 'none';
         document.getElementById('mayaTestCreds').style.display  = method === 'paymaya' ? '' : 'none';
-        document.getElementById('qrphTestCreds').style.display  = method === 'qrph' ? '' : 'none';
     }
 }
 

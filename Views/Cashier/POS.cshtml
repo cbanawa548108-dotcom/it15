@@ -88,7 +88,7 @@
                     <div class="digital-info p-3 text-center rounded border border-primary border-2 bg-light">
                         <i class="bi bi-qr-code" style="font-size:2rem;color:#0070ba;"></i>
                         <p class="mb-1 mt-2 fw-bold" id="digitalMethodLabel">Pay via GCash</p>
-                        <small class="text-muted">Customer will be redirected to complete payment</small>
+                        <small class="text-muted" id="digitalMethodDesc">Customer will be redirected to complete payment</small>
                     </div>
 
                     <!-- TEST MODE CREDENTIALS PANEL -->
@@ -221,15 +221,22 @@ function selectMethod(method, btn) {
     document.getElementById('digitalSection').style.display = isCash ? 'none' : '';
     
     let methodLabel = 'Pay via GCash';
-    if (method === 'paymaya') methodLabel = 'Pay via Maya';
-    else if (method === 'qrph') methodLabel = 'Pay via QRPH';
+    let methodDesc = 'Customer will be redirected to complete payment';
+    if (method === 'paymaya') {
+        methodLabel = 'Pay via Maya';
+        methodDesc = 'Customer will be redirected to complete payment';
+    } else if (method === 'qrph') {
+        methodLabel = 'Pay via QRPH';
+        methodDesc = 'Customer scans QR code with their phone to pay';
+    }
     
     document.getElementById('digitalMethodLabel').textContent = methodLabel;
+    document.getElementById('digitalMethodDesc').textContent = methodDesc;
     
     let checkoutLabel = 'Process Payment';
     if (method === 'gcash') checkoutLabel = 'Pay with GCash';
     else if (method === 'paymaya') checkoutLabel = 'Pay with Maya';
-    else if (method === 'qrph') checkoutLabel = 'Continue Transaction';
+    else if (method === 'qrph') checkoutLabel = 'Scan QR Code';
     
     document.getElementById('checkoutLabel').textContent = checkoutLabel;
     

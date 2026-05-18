@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
 using CRLFruitstandESS.Data;
 using CRLFruitstandESS.Middleware;
 using CRLFruitstandESS.Models;
@@ -7,12 +8,16 @@ using CRLFruitstandESS.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Data Protection (persists keys across restarts)
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "keys")))
+    .SetApplicationName("CRLFruitstandESS");
+
 // ── Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0))));
 
 // ── Identity
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -41,15 +46,11 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-        ? CookieSecurePolicy.SameAsRequest
-        : CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
     options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
 });
 
 builder.Services.AddControllersWithViews();
-
-// ── In-memory cache for dashboard aggregations (5-min TTL)
 builder.Services.AddMemoryCache();
 
 // ── Executive Decision Support Services
@@ -58,13 +59,12 @@ builder.Services.AddScoped<IForecastingService, ForecastingService>();
 builder.Services.AddScoped<IScenarioService, ScenarioService>();
 builder.Services.AddScoped<IRiskAnalysisService, RiskAnalysisService>();
 
-// ── PayMongo — configure the named client at registration time
+// ── PayMongo
 builder.Services.AddHttpClient("PayMongo", (sp, client) =>
 {
     var secretKey = Environment.GetEnvironmentVariable("PAYMONGO_SECRET_KEY")
         ?? sp.GetRequiredService<IConfiguration>()["PayMongo:SecretKey"]
         ?? "";
-
     var encoded = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(secretKey + ":"));
     client.BaseAddress = new Uri("https://api.paymongo.com/v1/");
     client.DefaultRequestHeaders.Authorization =
@@ -73,11 +73,7 @@ builder.Services.AddHttpClient("PayMongo", (sp, client) =>
         new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 });
 builder.Services.AddScoped<IPayMongoService, PayMongoService>();
-
-// ── Security: singleton rate limiter (shared across all requests)
 builder.Services.AddSingleton<LoginRateLimiter>();
-
-// ── Email notification service
 builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
 
 var app = builder.Build();
@@ -94,8 +90,6 @@ else
 
 app.UseStatusCodePagesWithReExecute("/Home/Error/{0}");
 app.UseSecurityHeaders();
-if (!app.Environment.IsDevelopment())
-    app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
@@ -109,13 +103,6 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var logger = services.GetRequiredService<ILogger<Program>>();
-
-    if (!app.Environment.IsDevelopment())
-    {
-        var connStr = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
-        if (connStr.Contains("Password=;") || connStr.Contains("Password=\"\";"))
-            logger.LogWarning("⚠️  DATABASE PASSWORD IS EMPTY.");
-    }
 
     try
     {

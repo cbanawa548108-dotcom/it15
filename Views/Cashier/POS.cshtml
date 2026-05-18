@@ -216,7 +216,7 @@ function selectMethod(method, btn) {
     selectedMethod = method;
     document.querySelectorAll('.btn-pay-method').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    const isCash = method === 'cash' || method === 'qrph';
+    const isCash = method === 'cash';
     document.getElementById('cashSection').style.display    = isCash ? '' : 'none';
     document.getElementById('digitalSection').style.display = isCash ? 'none' : '';
     
@@ -229,7 +229,7 @@ function selectMethod(method, btn) {
     let checkoutLabel = 'Process Payment';
     if (method === 'gcash') checkoutLabel = 'Pay with GCash';
     else if (method === 'paymaya') checkoutLabel = 'Pay with Maya';
-    else if (method === 'qrph') checkoutLabel = 'Process QRPH Payment';
+    else if (method === 'qrph') checkoutLabel = 'Continue Transaction';
     
     document.getElementById('checkoutLabel').textContent = checkoutLabel;
     
@@ -237,6 +237,7 @@ function selectMethod(method, btn) {
     if (!isCash) {
         document.getElementById('gcashTestCreds').style.display = method === 'gcash' ? '' : 'none';
         document.getElementById('mayaTestCreds').style.display  = method === 'paymaya' ? '' : 'none';
+        document.getElementById('qrphTestCreds').style.display  = method === 'qrph' ? '' : 'none';
     }
 }
 
@@ -356,13 +357,16 @@ function setCash(amount) { document.getElementById('amountPaid').value = amount;
 function processCheckout() {
     var total = getTotal();
     if (!cart.length) return;
-    if (selectedMethod === 'cash' || selectedMethod === 'qrph') {
+    if (selectedMethod === 'cash') {
         var paid = parseFloat(document.getElementById('amountPaid').value) || 0;
         if (paid < total) { showToast('Amount tendered is less than total!', 'danger'); document.getElementById('amountPaid').focus(); return; }
         document.getElementById('modalTotal').textContent  = '₱' + total.toFixed(2);
         document.getElementById('modalPaid').textContent   = '₱' + paid.toFixed(2);
         document.getElementById('modalChange').textContent = '₱' + (paid - total).toFixed(2);
         new bootstrap.Modal(document.getElementById('paymentModal')).show();
+    } else if (selectedMethod === 'qrph') {
+        // QRPH: Go directly to PayMongo
+        processDigitalPayment();
     } else {
         processDigitalPayment();
     }

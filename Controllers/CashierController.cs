@@ -270,11 +270,13 @@ namespace CRLFruitstandESS.Controllers
                 // ── Normalise method name to what PayMongo API actually accepts
                 // PayMongo Sources API only supports "gcash" and "grab_pay".
                 // Maya must use the Payment Intents API with type "paymaya".
+                // QRPH uses gcash as the underlying payment method
                 var paymongoType = req.Method.ToLower() switch
                 {
                     "gcash"   => "gcash",
                     "paymaya" => "paymaya",
                     "maya"    => "paymaya",
+                    "qrph"    => "gcash",  // QRPH uses GCash infrastructure
                     _         => req.Method.ToLower()
                 };
 

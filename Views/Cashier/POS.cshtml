@@ -60,6 +60,9 @@
                     <button class="btn btn-pay-method" data-method="paymaya" onclick="selectMethod('paymaya',this)">
                         <i class="bi bi-phone"></i> Maya
                     </button>
+                    <button class="btn btn-pay-method" data-method="qrph" onclick="selectMethod('qrph',this)">
+                        <i class="bi bi-qr-code"></i> QRPH
+                    </button>
                 </div>
 
                 <div id="cashSection">
@@ -101,6 +104,10 @@
                         <div id="mayaTestCreds" style="display:none;">
                             <small class="d-block text-muted"><b>Maya test number:</b> 09123456789</small>
                             <small class="d-block text-muted"><b>OTP:</b> 123456</small>
+                        </div>
+                        <div id="qrphTestCreds" style="display:none;">
+                            <small class="d-block text-muted"><b>QRPH:</b> Scan QR code to pay</small>
+                            <small class="d-block text-muted"><b>Supported:</b> All major e-wallets</small>
                         </div>
                         <small class="d-block text-muted mt-1">
                             <b>Test card:</b> 4343 4343 4343 4345<br>
@@ -212,14 +219,25 @@ function selectMethod(method, btn) {
     const isCash = method === 'cash';
     document.getElementById('cashSection').style.display    = isCash ? '' : 'none';
     document.getElementById('digitalSection').style.display = isCash ? 'none' : '';
-    document.getElementById('digitalMethodLabel').textContent =
-        method === 'gcash' ? 'Pay via GCash' : 'Pay via Maya';
-    document.getElementById('checkoutLabel').textContent =
-        isCash ? 'Process Payment' : ('Pay with ' + (method === 'gcash' ? 'GCash' : 'Maya'));
+    
+    let methodLabel = 'Pay via GCash';
+    if (method === 'paymaya') methodLabel = 'Pay via Maya';
+    else if (method === 'qrph') methodLabel = 'Pay via QRPH';
+    
+    document.getElementById('digitalMethodLabel').textContent = methodLabel;
+    
+    let checkoutLabel = 'Process Payment';
+    if (method === 'gcash') checkoutLabel = 'Pay with GCash';
+    else if (method === 'paymaya') checkoutLabel = 'Pay with Maya';
+    else if (method === 'qrph') checkoutLabel = 'Pay with QRPH';
+    
+    document.getElementById('checkoutLabel').textContent = checkoutLabel;
+    
     // Toggle test credential hints
     if (!isCash) {
         document.getElementById('gcashTestCreds').style.display = method === 'gcash' ? '' : 'none';
         document.getElementById('mayaTestCreds').style.display  = method === 'paymaya' ? '' : 'none';
+        document.getElementById('qrphTestCreds').style.display  = method === 'qrph' ? '' : 'none';
     }
 }
 

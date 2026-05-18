@@ -184,7 +184,7 @@ namespace CRLFruitstandESS.Services
             return response.IsSuccessStatusCode;
         }
 
-        // ── Create a Checkout Session (supports GCash, Maya, card, GrabPay, QRPH, etc.)
+        // ── Create a Checkout Session (supports GCash, Maya, card, GrabPay, etc.)
         // This is the recommended approach — returns a real checkout.paymongo.com URL.
         public async Task<PayMongoCheckoutSession> CreateCheckoutSessionAsync(
             decimal amount,
@@ -219,9 +219,7 @@ namespace CRLFruitstandESS.Services
                         description            = description,
                         success_url            = successUrl,
                         cancel_url             = cancelUrl,
-                        statement_descriptor   = "CRL Fruitstand",
-                        // Auto-redirect after payment for QRPH
-                        redirect_after_payment = paymentMethods.Contains("qrph") || paymentMethods.Contains("qr_ph")
+                        statement_descriptor   = "CRL Fruitstand"
                     }
                 }
             };

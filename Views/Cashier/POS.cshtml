@@ -357,7 +357,7 @@ function setCash(amount) { document.getElementById('amountPaid').value = amount;
 function processCheckout() {
     var total = getTotal();
     if (!cart.length) return;
-    if (selectedMethod === 'cash') {
+    if (selectedMethod === 'cash' || selectedMethod === 'qrph') {
         var paid = parseFloat(document.getElementById('amountPaid').value) || 0;
         if (paid < total) { showToast('Amount tendered is less than total!', 'danger'); document.getElementById('amountPaid').focus(); return; }
         document.getElementById('modalTotal').textContent  = '₱' + total.toFixed(2);
@@ -409,7 +409,7 @@ async function confirmPayment() {
         items: cart.map(function(i) { return { productId: i.productId, productName: i.name, unitPrice: i.unitPrice, quantity: i.quantity }; }),
         totalAmount: getTotal(),
         amountPaid: parseFloat(document.getElementById('amountPaid').value),
-        paymentMethod: 'cash'
+        paymentMethod: selectedMethod === 'qrph' ? 'qrph' : 'cash'
     };
     try {
         var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
